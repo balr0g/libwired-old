@@ -40,6 +40,7 @@
 #include <wired/wi-data.h>
 #include <wired/wi-digest.h>
 #include <wired/wi-file.h>
+#include <wired/wi-fs.h>
 #include <wired/wi-macros.h>
 #include <wired/wi-private.h>
 #include <wired/wi-random.h>
@@ -205,11 +206,11 @@ wi_data_t * wi_data_init_with_base64(wi_data_t *data, wi_string_t *string) {
 
 wi_data_t * wi_data_init_with_contents_of_file(wi_data_t *data, wi_string_t *path) {
 	wi_file_t		*file;
-	wi_file_stat_t	sb;
+	wi_fs_stat_t	sb;
 	char			buffer[WI_FILE_BUFFER_SIZE];
 	wi_integer_t	bytes;
 	
-	if(!wi_file_stat(path, &sb)) {
+	if(!wi_fs_stat(path, &sb)) {
 		wi_release(data);
 		
 		return NULL;
@@ -391,8 +392,8 @@ wi_boolean_t wi_data_write_to_file(wi_data_t *data, wi_string_t *path) {
 	fwrite(data->bytes, 1, data->length, fp);
 	fclose(fp);
 	
-	if(!wi_file_rename(fullpath, path)) {
-		wi_file_delete(fullpath);
+	if(!wi_fs_rename(fullpath, path)) {
+		wi_fs_delete(fullpath);
 		
 		return false;
 	}

@@ -55,9 +55,9 @@ void wi_test_fsevents(void) {
 		return;
 	}
 	
-	directory = wi_file_temporary_path_with_template(WI_STR("/tmp/libwired-fsevents.XXXXXXXX"));
+	directory = wi_fs_temporary_path_with_template(WI_STR("/tmp/libwired-fsevents.XXXXXXXX"));
 	
-	wi_file_create_directory(directory, 0700);
+	wi_fs_create_directory(directory, 0700);
 	
 	wi_fsevents_add_path(wi_test_fsevents_fsevents, directory);
 	wi_fsevents_set_callback(wi_test_fsevents_fsevents, wi_test_fsevents_callback);
@@ -80,7 +80,7 @@ void wi_test_fsevents(void) {
 	
 	wi_condition_lock_unlock(wi_test_fsevents_lock);
 
-	wi_file_delete(directory);
+	wi_fs_delete(directory);
 	
 	wi_release(wi_test_fsevents_lock);
 	wi_release(wi_test_fsevents_fsevents);

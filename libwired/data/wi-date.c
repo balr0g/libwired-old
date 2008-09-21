@@ -322,10 +322,10 @@ static wi_hash_code_t _wi_date_hash(wi_runtime_instance_t *instance) {
 static wi_string_t * _wi_date_description(wi_runtime_instance_t *instance) {
 	wi_date_t		*date = instance;
 	
-	return wi_string_with_format(WI_STR("<%@ %p>{interval = %.2f}"),
+	return wi_string_with_format(WI_STR("<%@ %p>{date = %@}"),
 		wi_runtime_class_name(date),
 		date,
-		date->interval);
+		wi_time_interval_string_with_format(date->interval, WI_STR("%Y-%m-%d %H:%M:%S %z")));
 }
 
 
