@@ -45,6 +45,7 @@
 #include <wired/wi-error.h>
 #include <wired/wi-file.h>
 #include <wired/wi-fs.h>
+#include <wired/wi-fsenumerator.h>
 #include <wired/wi-fsevents.h>
 #include <wired/wi-fts.h>
 #include <wired/wi-host.h>

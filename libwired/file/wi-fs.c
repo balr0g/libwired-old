@@ -744,6 +744,14 @@ wi_array_t * wi_fs_directory_contents_at_path(wi_string_t *path) {
 
 
 
+wi_fsenumerator_t * wi_fs_enumerator_at_path(wi_string_t *path) {
+	return wi_autorelease(wi_fsenumerator_init_with_path(wi_fsenumerator_alloc(), path));
+}
+
+
+
+#pragma mark -
+
 #ifdef WI_DIGESTS
 
 wi_string_t * wi_fs_sha1(wi_string_t *path, wi_file_offset_t offset) {

@@ -29,6 +29,8 @@
 #ifndef WI_FTS_H
 #define WI_FTS_H 1
 
+#include <sys/types.h>
+
 /*      $OpenBSD: fts.h,v 1.11 2005/06/17 20:36:55 millert Exp $        */
 /*      $NetBSD: fts.h,v 1.5 1994/12/28 01:41:50 mycroft Exp $        */
 

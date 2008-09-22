@@ -32,6 +32,7 @@
 #include <sys/param.h>
 #include <wired/wi-base.h>
 #include <wired/wi-file.h>
+#include <wired/wi-fsenumerator.h>
 #include <wired/wi-runtime.h>
 
 #define WI_PATH_SIZE				MAXPATHLEN
@@ -92,6 +93,8 @@ WI_EXPORT wi_boolean_t				wi_fs_set_finder_comment(wi_string_t *, wi_string_t *)
 WI_EXPORT wi_string_t *				wi_fs_finder_comment(wi_string_t *);
 
 WI_EXPORT wi_array_t *				wi_fs_directory_contents_at_path(wi_string_t *);
+WI_EXPORT wi_fsenumerator_t *		wi_fs_enumerator_at_path(wi_string_t *);
+
 WI_EXPORT wi_string_t *				wi_fs_sha1(wi_string_t *, wi_file_offset_t);
 
 #endif /* WI_FS_H */
