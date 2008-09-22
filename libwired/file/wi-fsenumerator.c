@@ -120,7 +120,7 @@ wi_fsenumerator_status_t wi_fsenumerator_get_next_path(wi_fsenumerator_t *fsenum
 
 		switch(fsenumerator->ftsent->fts_info) {
 			case WI_FTS_DC:
-				*path = wi_string_init_with_cstring(wi_string_alloc(), fsenumerator->ftsent->fts_path);
+				*path = wi_string_with_cstring(fsenumerator->ftsent->fts_path);
 				wi_error_set_errno(ELOOP);
 
 				return WI_FSENUMERATOR_ERROR;
@@ -128,7 +128,7 @@ wi_fsenumerator_status_t wi_fsenumerator_get_next_path(wi_fsenumerator_t *fsenum
 
 			case WI_FTS_DNR:
 			case WI_FTS_ERR:
-				*path = wi_string_init_with_cstring(wi_string_alloc(), fsenumerator->ftsent->fts_path);
+				*path = wi_string_with_cstring(fsenumerator->ftsent->fts_path);
 				wi_error_set_errno(fsenumerator->ftsent->fts_errno);
 
 				return WI_FSENUMERATOR_ERROR;
@@ -139,7 +139,7 @@ wi_fsenumerator_status_t wi_fsenumerator_get_next_path(wi_fsenumerator_t *fsenum
 				break;
 
 			default:
-				*path = wi_string_init_with_cstring(wi_string_alloc(), fsenumerator->ftsent->fts_path);
+				*path = wi_string_with_cstring(fsenumerator->ftsent->fts_path);
 
 				return WI_FSENUMERATOR_PATH;
 				break;
