@@ -1121,7 +1121,7 @@ wi_uinteger_t wi_string_index_of_string_in_range(wi_string_t *string, wi_string_
 	char			*p;
 	wi_uinteger_t	i, index;
 	wi_boolean_t	insensitive = false;
-	
+
 	if(options & WI_STRING_CASE_INSENSITIVE) {
 		insensitive = true;
 	}
@@ -1136,10 +1136,18 @@ wi_uinteger_t wi_string_index_of_string_in_range(wi_string_t *string, wi_string_
 			}
 		}
 	}
-	
-	p = insensitive
-		? wi_strncasestr(string->string + range.location, otherstring->string, range.length)
-		: wi_strnstr(string->string + range.location, otherstring->string, range.length);
+
+	if(options & WI_STRING_BACKWARDS) {
+		if(insensitive)
+			p = wi_strrncasestr(string->string + range.location, otherstring->string, range.length);
+		else
+			p = wi_strrnstr(string->string + range.location, otherstring->string, range.length);
+	} else {
+		if(insensitive)
+			p = wi_strncasestr(string->string + range.location, otherstring->string, range.length);
+		else
+			p = wi_strnstr(string->string + range.location, otherstring->string, range.length);
+	}
 	
 	if(!p)
 		return WI_NOT_FOUND;
@@ -1461,7 +1469,33 @@ wi_string_t * wi_string_by_appending_path_component(wi_string_t *path, wi_string
 
 
 wi_string_t * wi_string_last_path_component(wi_string_t *path) {
-	return wi_array_last_data(wi_string_path_components(path));
+	wi_string_t			*component;
+	wi_range_t			range;
+	wi_uinteger_t		length, index;
+
+	if(wi_is_equal(path, WI_STR("/")))
+		return path;
+
+	length	= wi_string_length(path);
+	range 	= wi_make_range(0, length);
+
+	while(true) {
+		index = wi_string_index_of_string_in_range(path, WI_STR("/"), WI_STRING_BACKWARDS, range);
+
+		if(index == WI_NOT_FOUND) {
+			return path;
+		}
+		else if(index == length - 1) {
+			range.length--;
+
+			if(range.length == 0)
+				return WI_STR("/");
+
+			continue;
+		}
+
+		return wi_string_substring_with_range(path, wi_make_range(index + 1, range.length - index - 1));
+	}
 }
 
 
