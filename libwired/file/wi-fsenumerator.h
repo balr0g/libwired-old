@@ -44,5 +44,6 @@ typedef struct _wi_fsenumerator				wi_fsenumerator_t;
 
 WI_EXPORT wi_fsenumerator_status_t			wi_fsenumerator_get_next_path(wi_fsenumerator_t *, wi_string_t **);
 WI_EXPORT void								wi_fsenumerator_skip_descendents(wi_fsenumerator_t *);
+WI_EXPORT wi_uinteger_t						wi_fsenumerator_level(wi_fsenumerator_t *);
 
 #endif /* WI_FSENUMERATOR_H */

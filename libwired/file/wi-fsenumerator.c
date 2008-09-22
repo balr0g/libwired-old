@@ -117,7 +117,7 @@ wi_fsenumerator_status_t wi_fsenumerator_get_next_path(wi_fsenumerator_t *fsenum
 			
 			continue;
 		}
-
+		
 		switch(fsenumerator->ftsent->fts_info) {
 			case WI_FTS_DC:
 				*path = wi_string_with_cstring(fsenumerator->ftsent->fts_path);
@@ -154,4 +154,10 @@ wi_fsenumerator_status_t wi_fsenumerator_get_next_path(wi_fsenumerator_t *fsenum
 void wi_fsenumerator_skip_descendents(wi_fsenumerator_t *fsenumerator) {
 	if(fsenumerator->ftsent)
 		wi_fts_set(fsenumerator->fts, fsenumerator->ftsent, WI_FTS_SKIP);
+}
+
+
+
+wi_uinteger_t wi_fsenumerator_level(wi_fsenumerator_t *fsenumerator) {
+	return fsenumerator->ftsent ? fsenumerator->ftsent->fts_level : 0;
 }
