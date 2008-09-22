@@ -33,18 +33,21 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <dirent.h>
+#include <wired/wi-base.h>
 
-char *					wi_strsep(char **, const char *);
-char *					wi_strnstr(const char *, const char *, size_t);
-char *					wi_strcasestr(const char *, const char *);
-char *					wi_strncasestr(const char *, const char *, size_t);
-size_t					wi_strlcat(char *, const char *, size_t);
-size_t					wi_strlcpy(char *, const char *, size_t);
-int						wi_asprintf(char **, const char *, ...);
-int						wi_vasprintf(char **, const char *, va_list);
+WI_EXPORT char *					wi_strsep(char **, const char *);
+WI_EXPORT char *					wi_strnstr(const char *, const char *, size_t);
+WI_EXPORT char *					wi_strcasestr(const char *, const char *);
+WI_EXPORT char *					wi_strncasestr(const char *, const char *, size_t);
+WI_EXPORT char *					wi_strrnstr(const char *, const char *, size_t);
+WI_EXPORT char *					wi_strrncasestr(const char *, const char *, size_t);
+WI_EXPORT size_t					wi_strlcat(char *, const char *, size_t);
+WI_EXPORT size_t					wi_strlcpy(char *, const char *, size_t);
+WI_EXPORT int						wi_asprintf(char **, const char *, ...);
+WI_EXPORT int						wi_vasprintf(char **, const char *, va_list);
 
-FILE *					wi_tmpfile(void);
+WI_EXPORT FILE *					wi_tmpfile(void);
 
-int						wi_dirfd(DIR *);
+WI_EXPORT int						wi_dirfd(DIR *);
 
 #endif /* WI_COMPAT_H */

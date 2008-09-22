@@ -250,6 +250,38 @@ char * wi_strncasestr(const char *s, const char *find, size_t slen) {
 
 
 
+char * wi_strrnstr(const char *s, const char *find, size_t slen) {
+	const char	*p;
+	size_t		len;
+
+	len = strlen(find);
+
+	for(p = s + slen - 1; p >= s; --p) {
+		if(strncmp(p, find, len) == 0)
+			return (char *) p;
+	}
+
+	return NULL;
+}
+
+
+
+char * wi_strrncasestr(const char *s, const char *find, size_t slen) {
+	const char	*p;
+	size_t		len;
+
+	len = strlen(find);
+
+	for(p = s + slen - 1; p >= s; --p) {
+		if(strncmp(p, find, len) == 0)
+			return (char *) p;
+	}
+
+	return NULL;
+}
+
+
+
 /*	$OpenBSD: strlcat.c,v 1.11 2003/06/17 21:56:24 millert Exp $	*/
 
 /*
