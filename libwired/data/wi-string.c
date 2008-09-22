@@ -1469,7 +1469,6 @@ wi_string_t * wi_string_by_appending_path_component(wi_string_t *path, wi_string
 
 
 wi_string_t * wi_string_last_path_component(wi_string_t *path) {
-	wi_string_t			*component;
 	wi_range_t			range;
 	wi_uinteger_t		length, index;
 
