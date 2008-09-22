@@ -80,7 +80,7 @@ void wi_test_fsevents(void) {
 	
 	wi_condition_lock_unlock(wi_test_fsevents_lock);
 
-	wi_fs_delete(directory);
+	wi_fs_delete_path(directory);
 	
 	wi_release(wi_test_fsevents_lock);
 	wi_release(wi_test_fsevents_fsevents);

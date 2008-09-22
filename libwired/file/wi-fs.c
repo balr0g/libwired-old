@@ -68,12 +68,14 @@
 static wi_boolean_t						_wi_fs_delete_file(wi_string_t *);
 static wi_boolean_t						_wi_fs_delete_directory(wi_string_t *);
 
+static wi_boolean_t						_wi_fs_copy_file(wi_string_t *, wi_string_t *);
+static wi_boolean_t						_wi_fs_copy_directory(wi_string_t *, wi_string_t *);
+
+static wi_boolean_t						_wi_fs_stat_path(wi_string_t *, wi_fs_stat_t *, wi_boolean_t);
+
 #ifdef HAVE_CARBON_CARBON_H
 static int16_t							_wi_fs_finder_flags(const char *);
 #endif
-
-static wi_boolean_t						_wi_fs_copy_file(wi_string_t *, wi_string_t *);
-static wi_boolean_t						_wi_fs_copy_directory(wi_string_t *, wi_string_t *);
 
 
 
@@ -92,11 +94,25 @@ wi_string_t * wi_fs_temporary_path_with_template(wi_string_t *template) {
 
 #pragma mark -
 
-wi_boolean_t wi_fs_delete(wi_string_t *path) {
+wi_boolean_t wi_fs_create_directory(wi_string_t *path, uint32_t mode) {
+	if(mkdir(wi_string_cstring(path), mode) < 0) {
+		wi_error_set_errno(errno);
+		
+		return false;
+	}
+	
+	return true;
+}
+
+
+
+#pragma mark -
+
+wi_boolean_t wi_fs_delete_path(wi_string_t *path) {
 	wi_fs_stat_t	sb;
 	wi_boolean_t	result;
 	
-	if(!wi_fs_lstat(path, &sb))
+	if(!wi_fs_lstat_path(path, &sb))
 		return false;
 	
 	if(S_ISDIR(sb.mode))
@@ -180,7 +196,7 @@ static wi_boolean_t _wi_fs_delete_directory(wi_string_t *path) {
 
 
 
-wi_boolean_t wi_fs_clear(wi_string_t *path) {
+wi_boolean_t wi_fs_clear_path(wi_string_t *path) {
 	if(truncate(wi_string_cstring(path), 0) < 0) {
 		wi_error_set_errno(errno);
 		
@@ -192,7 +208,7 @@ wi_boolean_t wi_fs_clear(wi_string_t *path) {
 
 
 
-wi_boolean_t wi_fs_rename(wi_string_t *path, wi_string_t *newpath) {
+wi_boolean_t wi_fs_rename_path(wi_string_t *path, wi_string_t *newpath) {
 	if(rename(wi_string_cstring(path), wi_string_cstring(newpath)) < 0) {
 		wi_error_set_errno(errno);
 		
@@ -204,7 +220,7 @@ wi_boolean_t wi_fs_rename(wi_string_t *path, wi_string_t *newpath) {
 
 
 
-wi_boolean_t wi_fs_symlink(wi_string_t *frompath, wi_string_t *topath) {
+wi_boolean_t wi_fs_symlink_path(wi_string_t *frompath, wi_string_t *topath) {
 	if(symlink(wi_string_cstring(frompath), wi_string_cstring(topath)) < 0) {
 		wi_error_set_errno(errno);
 		
@@ -216,16 +232,19 @@ wi_boolean_t wi_fs_symlink(wi_string_t *frompath, wi_string_t *topath) {
 
 
 
-wi_boolean_t wi_fs_copy(wi_string_t *frompath, wi_string_t *topath) {
+wi_boolean_t wi_fs_copy_path(wi_string_t *frompath, wi_string_t *topath) {
 	wi_fs_stat_t	sb;
 	int				err;
 	wi_boolean_t	result;
 	
-	if(!wi_fs_lstat(frompath, &sb))
+	if(!wi_fs_lstat_path(frompath, &sb))
 		return false;
 	
-	if(wi_fs_lstat(topath, &sb))
+	if(wi_fs_path_exists(topath, NULL)) {
+		wi_error_set_errno(EEXIST);
+		
 		return false;
+	}
 	
 	if(S_ISDIR(sb.mode))
 		result = _wi_fs_copy_directory(frompath, topath);
@@ -235,7 +254,7 @@ wi_boolean_t wi_fs_copy(wi_string_t *frompath, wi_string_t *topath) {
 	if(!result) {
 		err = errno;
 		
-		wi_fs_delete(topath);
+		wi_fs_delete_path(topath);
 
 		wi_error_set_errno(err);
 	}
@@ -339,19 +358,7 @@ static wi_boolean_t _wi_fs_copy_directory(wi_string_t *frompath, wi_string_t *to
 
 
 
-wi_boolean_t wi_fs_create_directory(wi_string_t *path, uint32_t mode) {
-	if(mkdir(wi_string_cstring(path), mode) < 0) {
-		wi_error_set_errno(errno);
-		
-		return false;
-	}
-	
-	return true;
-}
-
-
-
-wi_boolean_t wi_fs_set_mode(wi_string_t *path, uint32_t mode) {
+wi_boolean_t wi_fs_set_mode_for_path(wi_string_t *path, uint32_t mode) {
 	if(chmod(wi_string_cstring(path), mode) < 0) {
 		wi_error_set_errno(errno);
 		
@@ -363,7 +370,9 @@ wi_boolean_t wi_fs_set_mode(wi_string_t *path, uint32_t mode) {
 
 
 
-static wi_boolean_t _wi_fs_stat(wi_string_t *path, wi_fs_stat_t *sp, wi_boolean_t link) {
+#pragma mark -
+
+static wi_boolean_t _wi_fs_stat_path(wi_string_t *path, wi_fs_stat_t *sp, wi_boolean_t link) {
 #ifdef HAVE_STAT64
 	struct stat64		sb;
 	
@@ -433,19 +442,19 @@ static wi_boolean_t _wi_fs_stat(wi_string_t *path, wi_fs_stat_t *sp, wi_boolean_
 
 
 
-wi_boolean_t wi_fs_stat(wi_string_t *path, wi_fs_stat_t *sp) {
-	return _wi_fs_stat(path, sp, false);
+wi_boolean_t wi_fs_stat_path(wi_string_t *path, wi_fs_stat_t *sp) {
+	return _wi_fs_stat_path(path, sp, false);
 }
 
 
 
-wi_boolean_t wi_fs_lstat(wi_string_t *path, wi_fs_stat_t *sp) {
-	return _wi_fs_stat(path, sp, true);
+wi_boolean_t wi_fs_lstat_path(wi_string_t *path, wi_fs_stat_t *sp) {
+	return _wi_fs_stat_path(path, sp, true);
 }
 
 
 
-wi_boolean_t wi_fs_statfs(wi_string_t *path, wi_fs_statfs_t *sfp) {
+wi_boolean_t wi_fs_statfs_path(wi_string_t *path, wi_fs_statfs_t *sfp) {
 #ifdef HAVE_STATVFS
 	struct statvfs		sfvb;
 
@@ -493,10 +502,10 @@ wi_boolean_t wi_fs_statfs(wi_string_t *path, wi_fs_statfs_t *sfp) {
 
 
 
-wi_boolean_t wi_fs_exists(wi_string_t *path, wi_boolean_t *is_directory) {
+wi_boolean_t wi_fs_path_exists(wi_string_t *path, wi_boolean_t *is_directory) {
 	wi_fs_stat_t	sb;
 	
-	if(!wi_fs_stat(path, &sb))
+	if(!wi_fs_stat_path(path, &sb))
 		return false;
 		
 	if(is_directory)
@@ -507,13 +516,13 @@ wi_boolean_t wi_fs_exists(wi_string_t *path, wi_boolean_t *is_directory) {
 
 
 
-wi_boolean_t wi_fs_is_alias(wi_string_t *path) {
-	return wi_fs_is_alias_cpath(wi_string_cstring(path));
+wi_boolean_t wi_fs_path_is_alias(wi_string_t *path) {
+	return wi_fs_cpath_is_alias(wi_string_cstring(path));
 }
 
 
 
-wi_boolean_t wi_fs_is_alias_cpath(const char *cpath) {
+wi_boolean_t wi_fs_cpath_is_alias(const char *cpath) {
 #ifdef HAVE_CARBON_CARBON_H
 	return (_wi_fs_finder_flags(cpath) & kIsAlias);
 #else
@@ -525,13 +534,13 @@ wi_boolean_t wi_fs_is_alias_cpath(const char *cpath) {
 
 
 
-wi_boolean_t wi_fs_is_invisible(wi_string_t *path) {
-	return wi_fs_is_invisible_cpath(wi_string_cstring(path));
+wi_boolean_t wi_fs_path_is_invisible(wi_string_t *path) {
+	return wi_fs_cpath_is_invisible(wi_string_cstring(path));
 }
 
 
 
-wi_boolean_t wi_fs_is_invisible_cpath(const char *cpath) {
+wi_boolean_t wi_fs_cpath_is_invisible(const char *cpath) {
 #ifdef HAVE_CARBON_CARBON_H
 	return (_wi_fs_finder_flags(cpath) & kIsInvisible);
 #else
@@ -570,7 +579,9 @@ static int16_t _wi_fs_finder_flags(const char *cpath) {
 
 
 
-wi_boolean_t wi_fs_set_finder_comment(wi_string_t *path, wi_string_t *comment) {
+#pragma mark -
+
+wi_boolean_t wi_fs_set_finder_comment_for_path(wi_string_t *path, wi_string_t *comment) {
 #ifdef HAVE_CARBON_CARBON_H
     FSRef			fileRef;
     AEDesc			fileDesc, commentDesc, builtEvent, replyEvent;
@@ -662,7 +673,7 @@ wi_boolean_t wi_fs_set_finder_comment(wi_string_t *path, wi_string_t *comment) {
 
 
 
-wi_string_t * wi_fs_finder_comment(wi_string_t *path) {
+wi_string_t * wi_fs_finder_comment_for_path(wi_string_t *path) {
 #ifdef HAVE_CARBON_CARBON_H
 	MDItemRef		item;
 	CFStringRef		cfPath, cfComment = NULL;
@@ -754,7 +765,7 @@ wi_fsenumerator_t * wi_fs_enumerator_at_path(wi_string_t *path) {
 
 #ifdef WI_DIGESTS
 
-wi_string_t * wi_fs_sha1(wi_string_t *path, wi_file_offset_t offset) {
+wi_string_t * wi_fs_sha1_for_path(wi_string_t *path, wi_file_offset_t offset) {
 	static unsigned char	hex[] = "0123456789abcdef";
 	FILE					*fp;
 	wi_sha1_ctx_t			c;

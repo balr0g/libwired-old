@@ -74,27 +74,29 @@ typedef struct _wi_fs_statfs		wi_fs_statfs_t;
 
 WI_EXPORT wi_string_t *				wi_fs_temporary_path_with_template(wi_string_t *);
 
-WI_EXPORT wi_boolean_t				wi_fs_delete(wi_string_t *);
-WI_EXPORT wi_boolean_t				wi_fs_clear(wi_string_t *);
-WI_EXPORT wi_boolean_t				wi_fs_rename(wi_string_t *, wi_string_t *);
-WI_EXPORT wi_boolean_t				wi_fs_symlink(wi_string_t *, wi_string_t *);
-WI_EXPORT wi_boolean_t				wi_fs_copy(wi_string_t *, wi_string_t *);
-WI_EXPORT wi_boolean_t				wi_fs_stat(wi_string_t *, wi_fs_stat_t *);
-WI_EXPORT wi_boolean_t				wi_fs_lstat(wi_string_t *, wi_fs_stat_t *);
-WI_EXPORT wi_boolean_t				wi_fs_statfs(wi_string_t *, wi_fs_statfs_t *);
-WI_EXPORT wi_boolean_t				wi_fs_exists(wi_string_t *, wi_boolean_t *);
 WI_EXPORT wi_boolean_t				wi_fs_create_directory(wi_string_t *, uint32_t);
-WI_EXPORT wi_boolean_t				wi_fs_set_mode(wi_string_t *, uint32_t);
-WI_EXPORT wi_boolean_t				wi_fs_is_alias(wi_string_t *);
-WI_EXPORT wi_boolean_t				wi_fs_is_alias_cpath(const char *);
-WI_EXPORT wi_boolean_t				wi_fs_is_invisible(wi_string_t *);
-WI_EXPORT wi_boolean_t				wi_fs_is_invisible_cpath(const char *);
-WI_EXPORT wi_boolean_t				wi_fs_set_finder_comment(wi_string_t *, wi_string_t *);
-WI_EXPORT wi_string_t *				wi_fs_finder_comment(wi_string_t *);
+
+WI_EXPORT wi_boolean_t				wi_fs_delete_path(wi_string_t *);
+WI_EXPORT wi_boolean_t				wi_fs_clear_path(wi_string_t *);
+WI_EXPORT wi_boolean_t				wi_fs_rename_path(wi_string_t *, wi_string_t *);
+WI_EXPORT wi_boolean_t				wi_fs_symlink_path(wi_string_t *, wi_string_t *);
+WI_EXPORT wi_boolean_t				wi_fs_copy_path(wi_string_t *, wi_string_t *);
+WI_EXPORT wi_boolean_t				wi_fs_set_mode_for_path(wi_string_t *, uint32_t);
+
+WI_EXPORT wi_boolean_t				wi_fs_stat_path(wi_string_t *, wi_fs_stat_t *);
+WI_EXPORT wi_boolean_t				wi_fs_lstat_path(wi_string_t *, wi_fs_stat_t *);
+WI_EXPORT wi_boolean_t				wi_fs_statfs_path(wi_string_t *, wi_fs_statfs_t *);
+WI_EXPORT wi_boolean_t				wi_fs_path_exists(wi_string_t *, wi_boolean_t *);
+WI_EXPORT wi_boolean_t				wi_fs_path_is_alias(wi_string_t *);
+WI_EXPORT wi_boolean_t				wi_fs_cpath_is_alias(const char *);
+WI_EXPORT wi_boolean_t				wi_fs_path_is_invisible(wi_string_t *);
+WI_EXPORT wi_boolean_t				wi_fs_cpath_is_invisible(const char *);
+WI_EXPORT wi_boolean_t				wi_fs_set_finder_comment_for_path(wi_string_t *, wi_string_t *);
+WI_EXPORT wi_string_t *				wi_fs_finder_comment_for_path(wi_string_t *);
 
 WI_EXPORT wi_array_t *				wi_fs_directory_contents_at_path(wi_string_t *);
 WI_EXPORT wi_fsenumerator_t *		wi_fs_enumerator_at_path(wi_string_t *);
 
-WI_EXPORT wi_string_t *				wi_fs_sha1(wi_string_t *, wi_file_offset_t);
+WI_EXPORT wi_string_t *				wi_fs_sha1_for_path(wi_string_t *, wi_file_offset_t);
 
 #endif /* WI_FS_H */

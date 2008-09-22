@@ -210,7 +210,7 @@ wi_data_t * wi_data_init_with_contents_of_file(wi_data_t *data, wi_string_t *pat
 	char			buffer[WI_FILE_BUFFER_SIZE];
 	wi_integer_t	bytes;
 	
-	if(!wi_fs_stat(path, &sb)) {
+	if(!wi_fs_stat_path(path, &sb)) {
 		wi_release(data);
 		
 		return NULL;
@@ -392,8 +392,8 @@ wi_boolean_t wi_data_write_to_file(wi_data_t *data, wi_string_t *path) {
 	fwrite(data->bytes, 1, data->length, fp);
 	fclose(fp);
 	
-	if(!wi_fs_rename(fullpath, path)) {
-		wi_fs_delete(fullpath);
+	if(!wi_fs_rename_path(fullpath, path)) {
+		wi_fs_delete_path(fullpath);
 		
 		return false;
 	}
