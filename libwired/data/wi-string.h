@@ -145,6 +145,8 @@ WI_EXPORT wi_string_t *						wi_string_by_appending_path_component(wi_string_t *
 WI_EXPORT wi_string_t *						wi_string_last_path_component(wi_string_t *);
 WI_EXPORT void								wi_string_delete_last_path_component(wi_string_t *);
 WI_EXPORT wi_string_t *						wi_string_by_deleting_last_path_component(wi_string_t *);
+WI_EXPORT void								wi_string_append_path_extension(wi_string_t *, wi_string_t *);
+WI_EXPORT wi_string_t *						wi_string_by_appending_path_extension(wi_string_t *, wi_string_t *);
 WI_EXPORT wi_string_t *						wi_string_path_extension(wi_string_t *);
 WI_EXPORT void								wi_string_delete_path_extension(wi_string_t *);
 WI_EXPORT wi_string_t *						wi_string_by_deleting_path_extension(wi_string_t *);

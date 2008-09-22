@@ -1532,6 +1532,23 @@ wi_string_t * wi_string_by_deleting_last_path_component(wi_string_t *path) {
 
 
 
+void wi_string_append_path_extension(wi_string_t *path, wi_string_t *extension) {
+	wi_string_append_format(path, WI_STR(".%@"), extension);
+}
+
+
+
+wi_string_t * wi_string_by_appending_path_extension(wi_string_t *path, wi_string_t *extension) {
+	wi_string_t		*string;
+	
+	string = wi_copy(path);
+	wi_string_append_path_extension(string, extension);
+	
+	return wi_autorelease(string);
+}
+
+
+
 wi_string_t * wi_string_path_extension(wi_string_t *path) {
 	wi_uinteger_t	index;
 	
