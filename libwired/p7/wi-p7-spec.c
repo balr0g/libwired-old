@@ -1135,11 +1135,11 @@ static wi_boolean_t _wi_p7_spec_transaction_is_compatible(wi_p7_spec_t *p7_spec,
 	if(transaction->required) {
 		if(!other_transaction || !other_transaction->required) {
 			if(!other_transaction) {
-				wi_error_set_libwired_error_with_format(WI_ERROR_P7_INVALIDSPEC,
+				wi_error_set_libwired_error_with_format(WI_ERROR_P7_INCOMPATIBLE_SPEC,
 					WI_STR("Transaction \"%@\" is required, but peer lacks it"),
 					transaction->message->name);
 			} else {
-				wi_error_set_libwired_error_with_format(WI_ERROR_P7_INVALIDSPEC,
+				wi_error_set_libwired_error_with_format(WI_ERROR_P7_INCOMPATIBLE_SPEC,
 					WI_STR("Transaction \"%@\" is required, but peer has it optional"),
 					transaction->message->name);
 			}
@@ -1150,7 +1150,7 @@ static wi_boolean_t _wi_p7_spec_transaction_is_compatible(wi_p7_spec_t *p7_spec,
 	
 	if(other_transaction) {
 		if(transaction->originator != other_transaction->originator) {
-			wi_error_set_libwired_error_with_format(WI_ERROR_P7_INVALIDSPEC,
+			wi_error_set_libwired_error_with_format(WI_ERROR_P7_INCOMPATIBLE_SPEC,
 				WI_STR("Transaction \"%@\" should be sent by %@, but peer sends it by %@"),
 				transaction->message->name,
 				_wi_p7_spec_originator(transaction->originator),
@@ -1175,11 +1175,11 @@ static wi_boolean_t _wi_p7_spec_broadcast_is_compatible(wi_p7_spec_t *p7_spec, _
 	if(broadcast->required) {
 		if(!other_broadcast || !other_broadcast->required) {
 			if(!other_broadcast) {
-				wi_error_set_libwired_error_with_format(WI_ERROR_P7_INVALIDSPEC,
+				wi_error_set_libwired_error_with_format(WI_ERROR_P7_INCOMPATIBLE_SPEC,
 					WI_STR("Broadcast \"%@\" is required, but peer lacks it"),
 					broadcast->message->name);
 			} else {
-				wi_error_set_libwired_error_with_format(WI_ERROR_P7_INVALIDSPEC,
+				wi_error_set_libwired_error_with_format(WI_ERROR_P7_INCOMPATIBLE_SPEC,
 					WI_STR("Broadcast \"%@\" is required, but peer has it optional"),
 					broadcast->message->name);
 			}
@@ -1212,7 +1212,7 @@ static wi_boolean_t _wi_p7_spec_andor_is_compatible(wi_p7_spec_t *p7_spec, _wi_p
 	other_count = wi_array_count(other_andor->children);
 	
 	if(count != other_count) {
-		wi_error_set_libwired_error_with_format(WI_ERROR_P7_INVALIDSPEC,
+		wi_error_set_libwired_error_with_format(WI_ERROR_P7_INCOMPATIBLE_SPEC,
 			WI_STR("Transaction \"%@\" should have %lu %@, but peer has %lu"),
 			transaction->message->name,
 			count,
@@ -1283,11 +1283,11 @@ static wi_boolean_t _wi_p7_spec_reply_is_compatible(wi_p7_spec_t *p7_spec, _wi_p
 	if(reply->required) {
 		if(!other_reply || !other_reply->required) {
 			if(!other_reply) {
-				wi_error_set_libwired_error_with_format(WI_ERROR_P7_INVALIDSPEC,
+				wi_error_set_libwired_error_with_format(WI_ERROR_P7_INCOMPATIBLE_SPEC,
 					WI_STR("Reply \"%@\" in transaction \"%@\" is required, but peer lacks it"),
 					reply->message->name, transaction->message->name);
 			} else {
-				wi_error_set_libwired_error_with_format(WI_ERROR_P7_INVALIDSPEC,
+				wi_error_set_libwired_error_with_format(WI_ERROR_P7_INCOMPATIBLE_SPEC,
 					WI_STR("Reply \"%@\" in transaction \"%@\" is required, but peer has it optional"),
 					reply->message->name, transaction->message->name);
 			}
@@ -1308,7 +1308,7 @@ static wi_boolean_t _wi_p7_spec_reply_is_compatible(wi_p7_spec_t *p7_spec, _wi_p
 				compatible = (reply->count == other_reply->count);
 			
 			if(!compatible) {
-				wi_error_set_libwired_error_with_format(WI_ERROR_P7_INVALIDSPEC,
+				wi_error_set_libwired_error_with_format(WI_ERROR_P7_INCOMPATIBLE_SPEC,
 					WI_STR("Reply \"%@\" in transaction \"%@\" should be sent %@, but peer sends it %@"),
 					reply->message->name,
 					transaction->message->name,
@@ -1335,7 +1335,7 @@ static wi_boolean_t _wi_p7_spec_message_is_compatible(wi_p7_spec_t *p7_spec, wi_
 	wi_p7_spec_field_t		*field, *other_field;
 	
 	if(!wi_is_equal(message->name, other_message->name)) {
-		wi_error_set_libwired_error_with_format(WI_ERROR_P7_INVALIDSPEC,
+		wi_error_set_libwired_error_with_format(WI_ERROR_P7_INCOMPATIBLE_SPEC,
 			WI_STR("Message should be \"%@\", but peer has \"%@\""),
 				message->name, other_message->name);
 		
@@ -1343,7 +1343,7 @@ static wi_boolean_t _wi_p7_spec_message_is_compatible(wi_p7_spec_t *p7_spec, wi_
 	}
 	
 	if(message->id != other_message->id) {
-		wi_error_set_libwired_error_with_format(WI_ERROR_P7_INVALIDSPEC,
+		wi_error_set_libwired_error_with_format(WI_ERROR_P7_INCOMPATIBLE_SPEC,
 			WI_STR("Message should have id %lu, but peer has id %lu"),
 			message->id, other_message->id);
 		
@@ -1359,11 +1359,11 @@ static wi_boolean_t _wi_p7_spec_message_is_compatible(wi_p7_spec_t *p7_spec, wi_
 		if(parameter->required) {
 			if(!other_parameter || !other_parameter->required) {
 				if(!other_parameter) {
-					wi_error_set_libwired_error_with_format(WI_ERROR_P7_INVALIDSPEC,
+					wi_error_set_libwired_error_with_format(WI_ERROR_P7_INCOMPATIBLE_SPEC,
 						WI_STR("Parameter \"%@\" in message \"%@\" is required, but peer lacks it"),
 						parameter->field->name, message->name);
 				} else {
-					wi_error_set_libwired_error_with_format(WI_ERROR_P7_INVALIDSPEC,
+					wi_error_set_libwired_error_with_format(WI_ERROR_P7_INCOMPATIBLE_SPEC,
 						WI_STR("Parameter \"%@\" in message \"%@\" is required, but peer has it optional"),
 						parameter->field->name, message->name);
 				}
@@ -1377,7 +1377,7 @@ static wi_boolean_t _wi_p7_spec_message_is_compatible(wi_p7_spec_t *p7_spec, wi_
 			other_field = other_parameter->field;
 			
 			if(field->id != other_field->id) {
-				wi_error_set_libwired_error_with_format(WI_ERROR_P7_INVALIDSPEC,
+				wi_error_set_libwired_error_with_format(WI_ERROR_P7_INCOMPATIBLE_SPEC,
 					WI_STR("Field in parameter \"%@\" in message \"%@\" should have id %lu, but peer has id %lu"),
 					parameter->field->name, message->name, field->id, other_field->id);
 				
@@ -1385,7 +1385,7 @@ static wi_boolean_t _wi_p7_spec_message_is_compatible(wi_p7_spec_t *p7_spec, wi_
 			}
 			
 			if(field->type->id != other_field->type->id) {
-				wi_error_set_libwired_error_with_format(WI_ERROR_P7_INVALIDSPEC,
+				wi_error_set_libwired_error_with_format(WI_ERROR_P7_INCOMPATIBLE_SPEC,
 					WI_STR("Parameter \"%@\" in message \"%@\" should be of type \"%@\", but peer has it as \"%@\""),
 					parameter->field->name, message->name, field->type->name, other_field->type->name);
 
@@ -1394,7 +1394,7 @@ static wi_boolean_t _wi_p7_spec_message_is_compatible(wi_p7_spec_t *p7_spec, wi_
 			
 			if(field->type->id == WI_P7_ENUM) {
 				if(!wi_is_equal(field->enums_name, other_field->enums_name)) {
-					wi_error_set_libwired_error_with_format(WI_ERROR_P7_INVALIDSPEC,
+					wi_error_set_libwired_error_with_format(WI_ERROR_P7_INCOMPATIBLE_SPEC,
 						WI_STR("Parameter \"%@\" in message \"%@\" have enumerations that differ with those of peer"),
 						parameter->field->name, message->name);
 					
