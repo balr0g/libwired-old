@@ -35,11 +35,12 @@
 #include <grp.h>
 #include <wired/wi-base.h>
 
-WI_EXPORT wi_boolean_t			wi_chdir(wi_string_t *);
-
 WI_EXPORT void					wi_switch_user(uid_t, gid_t);
+WI_EXPORT wi_uinteger_t			wi_user_id(void);
 WI_EXPORT wi_string_t *			wi_user_name(void);
 WI_EXPORT wi_string_t *			wi_user_home(void);
+WI_EXPORT wi_uinteger_t			wi_group_id(void);
+WI_EXPORT wi_string_t *			wi_group_name(void);
 
 WI_EXPORT wi_uinteger_t			wi_page_size(void);
 

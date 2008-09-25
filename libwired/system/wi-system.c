@@ -59,25 +59,8 @@
 #include <wired/wi-string.h>
 #include <wired/wi-system.h>
 
-wi_boolean_t wi_chdir(wi_string_t *path) {
-	if(chdir(wi_string_cstring(path)) < 0) {
-		wi_error_set_errno(errno);
-		
-		return false;
-	}
-	
-	return true;
-}
-
-
-
-#pragma mark -
-
 void wi_switch_user(uid_t uid, gid_t gid) {
 	struct passwd	*user;
-	struct group	*group;
-	uid_t			euid;
-	gid_t			egid;
 	
 	if(wi_log_path) {
 		if(chown(wi_string_cstring(wi_log_path), uid, gid) < 0) {
@@ -108,57 +91,57 @@ void wi_switch_user(uid_t uid, gid_t gid) {
 				strerror(errno));
 		}
 	}
+}
 
-	euid = geteuid();
-	egid = getegid();
-	user = getpwuid(euid);
-	group = getgrgid(egid);
-	
-	if(user && group) {
-		wi_log_info(WI_STR("Operating as user %s (%d), group %s (%d)"),
-			user->pw_name, user->pw_uid, group->gr_name, group->gr_gid);
-	} else {
-		wi_log_info(WI_STR("Operating as user %d, group %d"),
-			euid, egid);
-	}
+
+
+wi_uinteger_t wi_user_id(void) {
+	return geteuid();
 }
 
 
 
 wi_string_t * wi_user_name(void) {
-	wi_string_t		*user;
-	struct passwd	*pwd;
+	struct passwd	*user;
 	
-	user = wi_getenv(WI_STR("USER"));
+	user = getpwuid(wi_user_id());
 	
-	if(user)
-		return user;
-	
-	pwd = getpwuid(getuid());
-	
-	if(!pwd)
+	if(!user)
 		return NULL;
 	
-	return wi_string_with_cstring(pwd->pw_name);
+	return wi_string_with_cstring(user->pw_name);
 }
 
 
 
 wi_string_t * wi_user_home(void) {
-	wi_string_t		*home;
-	struct passwd	*pwd;
+	struct passwd	*user;
 	
-	home = wi_getenv(WI_STR("HOME"));
+	user = getpwuid(wi_user_id());
 	
-	if(home)
-		return home;
-	
-	pwd = getpwuid(getuid());
-	
-	if(!pwd)
+	if(!user)
 		return NULL;
 	
-	return wi_string_with_cstring(pwd->pw_dir);
+	return wi_string_with_cstring(user->pw_dir);
+}
+
+
+
+wi_uinteger_t wi_group_id(void) {
+	return getegid();
+}
+
+
+
+wi_string_t * wi_group_name(void) {
+	struct group	*group;
+	
+	group = getgrgid(wi_group_id());
+	
+	if(!group)
+		return NULL;
+	
+	return wi_string_with_cstring(group->gr_name);
 }
 
 

@@ -106,6 +106,20 @@ wi_boolean_t wi_fs_create_directory(wi_string_t *path, uint32_t mode) {
 
 
 
+wi_boolean_t wi_fs_change_directory(wi_string_t *path) {
+	if(chdir(wi_string_cstring(path)) < 0) {
+		wi_error_set_errno(errno);
+		
+		return false;
+	}
+	
+	return true;
+}
+
+
+
+#pragma mark -
+
 #pragma mark -
 
 wi_boolean_t wi_fs_delete_path(wi_string_t *path) {
