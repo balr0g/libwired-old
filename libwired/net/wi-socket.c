@@ -982,7 +982,7 @@ wi_boolean_t wi_socket_listen(wi_socket_t *socket, wi_uinteger_t backlog) {
 		
 		if(getsockname(socket->sd, (struct sockaddr *) &ss, &length) == 0) {
 			wi_release(socket->address);
-			socket->address = wi_address_init_with_sa(wi_address_alloc(), (struct sockaddr *) & ss);
+			socket->address = wi_address_init_with_sa(wi_address_alloc(), (struct sockaddr *) &ss);
 		}
 	}
 	

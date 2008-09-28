@@ -56,7 +56,7 @@
 #define SA_LEN(sa)						((sa)->sa_len)  
 #else
 static size_t sa_len(const struct sockaddr *sa) {  
-	switch (sa->sa_family) {  
+	switch(sa->sa_family) {  
 		case AF_INET:  
 			return sizeof(struct sockaddr_in);
 			break;
@@ -136,6 +136,14 @@ wi_address_t * wi_address_alloc(void) {
 
 
 wi_address_t * wi_address_init_with_sa(wi_address_t *address, struct sockaddr *sa) {
+	if(sa->sa_family != AF_INET && sa->sa_family != AF_INET6) {
+		wi_error_set_error(WI_ERROR_DOMAIN_GAI, EAI_FAMILY);
+		
+		wi_release(address);
+		
+		return NULL;
+	}
+	
 	memcpy(&address->ss, sa, SA_LEN(sa));
 
 	return address;
