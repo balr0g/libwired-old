@@ -74,7 +74,7 @@ void wi_parse_wired_command(wi_string_t *buffer, wi_string_t **out_command, wi_a
 	if(index != WI_NOT_FOUND) {
 		*out_command	= wi_string_substring_to_index(string, index);
 		substring		= wi_string_substring_from_index(string, index + 1);
-		*out_arguments	= wi_autorelease(wi_array_init_with_string(wi_array_alloc(), substring, WI_STR(_WI_WIRED_FIELD_SEPARATOR)));
+		*out_arguments	= wi_string_components_separated_by_string(substring, WI_STR(_WI_WIRED_FIELD_SEPARATOR));
 	} else {
 		*out_command	= string;
 		*out_arguments	= wi_array();
@@ -100,7 +100,7 @@ void wi_parse_wired_message(wi_string_t *buffer, uint32_t *out_message, wi_array
 		substring		= wi_string_substring_to_index(string, index);
 		*out_message	= wi_string_uint32(substring);
 		substring		= wi_string_substring_from_index(string, index + 1);
-		*out_arguments	= wi_autorelease(wi_array_init_with_string(wi_array_alloc(), substring, WI_STR(_WI_WIRED_FIELD_SEPARATOR)));
+		*out_arguments	= wi_string_components_separated_by_string(substring, WI_STR(_WI_WIRED_FIELD_SEPARATOR));
 	} else {
 		*out_message	= wi_string_uint32(string);
 		*out_arguments	= wi_array();

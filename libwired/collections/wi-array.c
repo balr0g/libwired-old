@@ -302,20 +302,6 @@ wi_array_t * wi_array_init_with_argv(wi_array_t *array, int argc, const char **a
 
 
 
-wi_array_t * wi_array_init_with_string(wi_array_t *array, wi_string_t *string, wi_string_t *separator) {
-	if(wi_string_length(string) == 0) {
-		array = wi_array_init_with_data(array, WI_STR(""), (void *) NULL);
-	} else {
-		wi_release(array);
-		
-		array = wi_retain(wi_string_components_separated_by_string(string, separator));
-	}
-	
-	return array;
-}
-
-
-
 wi_array_t * wi_array_init_with_argument_string(wi_array_t *array, wi_string_t *string, wi_integer_t index) {
 	wi_string_t		*data;
 	const char		*cstring;
