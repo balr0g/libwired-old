@@ -38,9 +38,9 @@ ARCHIVE			= ar rcs $@
 .PHONY: all test dist clean distclean scmclean
 
 ifeq ($(WI_MAINTAINER), 1)
-ALL				= $(rundir)/lib/libwired.a
-else
 ALL				= Makefile configure config.h.in $(rundir)/lib/libwired.a $(rundir)/test
+else
+ALL				= $(rundir)/lib/libwired.a
 endif
 
 all: $(ALL)
