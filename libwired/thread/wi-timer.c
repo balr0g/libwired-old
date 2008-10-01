@@ -68,7 +68,9 @@ static void								_wi_timer_dealloc(wi_runtime_instance_t *);
 static wi_string_t *					_wi_timer_description(wi_runtime_instance_t *);
 static wi_integer_t						_wi_timer_compare(wi_runtime_instance_t *, wi_runtime_instance_t *);
 
+static void								_wi_timer_create_thread(void);
 static void								_wi_timer_thread(wi_runtime_instance_t *);
+static wi_timer_t *						_wi_timer_first_timer(void);
 
 static void								_wi_timer_schedule(wi_timer_t *);
 static void								_wi_timer_invalidate(wi_timer_t *);
@@ -133,27 +135,27 @@ static void _wi_timer_thread(wi_runtime_instance_t *argument) {
 	while(true) {
 		fire_timer	= NULL;
 		locked		= true;
-		timer		= wi_array_first_data(_wi_timers);
 		interval	= wi_time_interval();
+		timer		= _wi_timer_first_timer();
 
 		if(!timer) {
 			wi_condition_lock_lock_when_condition(_wi_timer_lock, 1, 0.0);
 
-			timer = wi_array_first_data(_wi_timers);
+			timer = _wi_timer_first_timer();
 			interval = wi_time_interval();
 
 			if(timer && timer->fire - interval <= _WI_TIMER_MINIMUM_INTERVAL)
-				fire_timer = wi_retain(timer);
+				fire_timer = timer;
 		} else {
 			diff = timer->fire - interval;
 
 			if(diff <= _WI_TIMER_MINIMUM_INTERVAL) {
-				fire_timer = wi_retain(timer);
+				fire_timer = timer;
 
 				locked = false;
 			} else {
 				if(!wi_condition_lock_lock_when_condition(_wi_timer_lock, 1, diff))
-					fire_timer = wi_retain(wi_array_first_data(_wi_timers));
+					fire_timer = _wi_timer_first_timer();
 			} 
 		}
 
@@ -167,14 +169,24 @@ static void _wi_timer_thread(wi_runtime_instance_t *argument) {
 
 			if(timer->repeats)
 				_wi_timer_schedule(fire_timer);
-			
-			wi_release(fire_timer);
 		}
 		
 		wi_pool_drain(pool);
 	}
 
 	wi_release(pool);
+}
+
+
+
+static wi_timer_t * _wi_timer_first_timer(void) {
+	wi_timer_t		*timer;
+	
+	wi_array_rdlock(_wi_timers);
+	timer = wi_autorelease(wi_retain(wi_array_first_data(_wi_timers)));
+	wi_array_unlock(_wi_timers);
+	
+	return timer;
 }
 
 
