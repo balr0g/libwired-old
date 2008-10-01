@@ -475,30 +475,19 @@ char wi_string_character_at_index(wi_string_t *string, wi_uinteger_t index) {
 #pragma mark -
 
 wi_string_t * _wi_string_constant_string(const char *cstring) {
-	wi_string_t			*string, *newstring;
-	wi_uinteger_t		count;
+	wi_string_t			*string;
 	
 	wi_lock_lock(_wi_string_constant_string_lock);
 	string = wi_dictionary_data_for_key(_wi_string_constant_string_table, (void *) cstring);
-	wi_lock_unlock(_wi_string_constant_string_lock);
 	
 	if(!string) {
-		newstring = string = wi_string_init_with_cstring(wi_string_alloc(), cstring);
-		
-		wi_lock_lock(_wi_string_constant_string_lock);
-		
-		count = wi_dictionary_count(_wi_string_constant_string_table);
-
+		string = wi_string_init_with_cstring(wi_string_alloc(), cstring);
 		wi_dictionary_set_data_for_key(_wi_string_constant_string_table, string, (void *) cstring);
-		
-		if(wi_dictionary_count(_wi_string_constant_string_table) == count)
-			string = wi_dictionary_data_for_key(_wi_string_constant_string_table, (void *) cstring);
-		
-		wi_lock_unlock(_wi_string_constant_string_lock);
-		
-		wi_release(newstring);
+		wi_release(string);
 	}
 	
+	wi_lock_unlock(_wi_string_constant_string_lock);
+
 	return string;
 }
 
@@ -1121,6 +1110,11 @@ wi_uinteger_t wi_string_index_of_string_in_range(wi_string_t *string, wi_string_
 	char			*p;
 	wi_uinteger_t	i, index;
 	wi_boolean_t	insensitive = false;
+
+	_WI_STRING_RANGE_ASSERT(string, range);
+	
+	if(range.length == 0)
+		return WI_NOT_FOUND;
 
 	if(options & WI_STRING_CASE_INSENSITIVE) {
 		insensitive = true;
