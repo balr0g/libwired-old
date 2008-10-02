@@ -54,8 +54,8 @@ int main(int argc, const char **argv) {
 	
 	pool			= wi_pool_init(wi_pool_alloc());
 	
-	user 			= wi_retain(WI_STR("guest"));
-	password		= wi_retain(WI_STR(""));
+	user 			= WI_STR("guest");
+	password		= WI_STR("");
 	
 	wc_spec			= wi_p7_spec_init_with_file(wi_p7_spec_alloc(), WI_STR("wired.xml"), WI_P7_CLIENT);
 	
