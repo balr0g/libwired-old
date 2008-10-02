@@ -88,12 +88,36 @@ sub p7connect {
 	my $message = p7readmessage($socket);
 	
 	if($message->{"name"} ne "p7.handshake.server_handshake") {
-		die "Unexpected message from server\n";
+		die "Unexpected message $message->{'name'} from server\n";
 	}
 	
 	print "Connected to P7 server with protocol $message->{'p7:field'}->{'p7.handshake.protocol.name'}->{'content'} $message->{'p7:field'}->{'p7.handshake.protocol.version'}->{'content'}\n";
 
 	p7sendmessage($socket, "p7.handshake.acknowledge");
+	
+	if($message->{"p7:field"}->{"p7.handshake.compatibility_check"}) {
+		my $specification;
+		
+		open(FH, "wired.xml") or die "wired.xml: $!";
+		while(<FH>) {
+			$specification .= $_;
+		}
+		close(FH);
+		
+		p7sendmessage($socket, "p7.compatibility_check.specification",
+			{ name => "p7.compatibility_check.specification", content => $specification, type => "string" },
+		);
+		
+		$message = p7readmessage($socket);
+		
+		if($message->{"name"} ne "p7.compatibility_check.status") {
+			die "Unexpected message $message->{'name'} from server\n";
+		}
+		
+		if($message->{"p7:field"}->{"content"} != 1) {
+			die "Local protocol incompatible with server protocol\n";
+		}
+	}
 	
 	return $socket;
 }

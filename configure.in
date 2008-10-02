@@ -254,6 +254,7 @@ AC_CHECK_FUNCS([ \
 # Output
 
 AC_CONFIG_FILES([Makefile])
+AC_CONFIG_FILES([p7/examples/Makefile])
 
 AC_OUTPUT
 
