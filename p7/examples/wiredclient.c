@@ -27,7 +27,6 @@
  */
 
 #include <stdlib.h>
-#include <string.h>
 
 #include <wired/wired.h>
 
@@ -115,8 +114,8 @@ static void wc_usage(void) {
 "Usage: wiredclient [-p password] [-u user] host\n\
 \n\
 Options:\n\
--p password         password\n\
--u user             user\n\
+    -p password         password\n\
+    -u user             user\n\
 \n\
 By Axel Andersson <axel@zankasoftware.com>\n");
 	
@@ -128,43 +127,42 @@ By Axel Andersson <axel@zankasoftware.com>\n");
 #pragma mark -
 
 static void wc_client(wi_url_t *url) {
-	wi_pool_t			*pool;
 	wi_p7_socket_t		*socket;
 	wi_p7_message_t		*message;
-	
-	pool = wi_pool_init(wi_pool_alloc());
 	
 	socket = wc_connect(url);
 	
 	if(!socket) {
 		wi_log_warn(WI_STR("Could not connect to %@: %m"), wi_url_host(url));
-	} else {
-		if(!wc_login(socket, url)) {
-			wi_log_warn(WI_STR("Could not login to %@: %m"), wi_url_host(url));
-		} else {
-			wi_log_info(WI_STR("Listing files at /..."));
-			
-			message = wi_p7_message_with_name(WI_STR("wired.file.list_directory"), wc_spec);
-			wi_p7_message_set_string_for_name(message, WI_STR("/"), WI_STR("wired.file.path"));
-			
-			if(!wi_p7_socket_write_message(socket, 0.0, message))
-				wi_log_warn(WI_STR("Could not send message to %@: %m"), wi_url_host(url));
-			
-			while((message = wi_p7_socket_read_message(socket, 0.0))) {
-				if(wi_is_equal(wi_p7_message_name(message), WI_STR("wired.file.list")))
-					wi_log_info(WI_STR("\t%@"), wi_p7_message_string_for_name(message, WI_STR("wired.file.path")));
-				else if(wi_is_equal(wi_p7_message_name(message), WI_STR("wired.file.list.done")))
-					break;
-			}
-			
-			if(!message)
-				wi_log_warn(WI_STR("Could not read message from %@: %m"), wi_url_host(url));
-
-			wi_log_info(WI_STR("Exiting"));
-		}
+		
+		return;
 	}
 	
-	wi_release(pool);
+	if(!wc_login(socket, url)) {
+		wi_log_warn(WI_STR("Could not login to %@: %m"), wi_url_host(url));
+		
+		return;
+	}
+
+	wi_log_info(WI_STR("Listing files at /..."));
+			
+	message = wi_p7_message_with_name(WI_STR("wired.file.list_directory"), wc_spec);
+	wi_p7_message_set_string_for_name(message, WI_STR("/"), WI_STR("wired.file.path"));
+	
+	if(!wi_p7_socket_write_message(socket, 0.0, message))
+		wi_log_warn(WI_STR("Could not send message to %@: %m"), wi_url_host(url));
+	
+	while((message = wi_p7_socket_read_message(socket, 0.0))) {
+		if(wi_is_equal(wi_p7_message_name(message), WI_STR("wired.file.list")))
+			wi_log_info(WI_STR("\t%@"), wi_p7_message_string_for_name(message, WI_STR("wired.file.path")));
+		else if(wi_is_equal(wi_p7_message_name(message), WI_STR("wired.file.list.done")))
+			break;
+	}
+	
+	if(!message)
+		wi_log_warn(WI_STR("Could not read message from %@: %m"), wi_url_host(url));
+
+	wi_log_info(WI_STR("Exiting"));
 }
 
 
@@ -259,9 +257,15 @@ static wi_boolean_t wc_login(wi_p7_socket_t *socket, wi_url_t *url) {
 	if(!message)
 		return false;
 	
-	wi_p7_message_get_uint32_for_name(message, &id, WI_STR("wired.user.id"));
+	if(wi_is_equal(wi_p7_message_name(message), WI_STR("wired.login"))) {
+		wi_p7_message_get_uint32_for_name(message, &id, WI_STR("wired.user.id"));
 
-	wi_log_info(WI_STR("Logged in with user ID %u"), id);
+		wi_log_info(WI_STR("Logged in with user ID %u"), id);
+	} else {
+		wi_log_info(WI_STR("Login failed"));
+		
+		return false;
+	}
 
 	return true;
 }
