@@ -4,6 +4,7 @@ use strict;
 use IO::Socket;
 use XML::Simple;
 use Digest::SHA1;
+use POSIX;
 
 
 sub main {
@@ -20,13 +21,15 @@ sub main {
 	my $socket = p7connect($hostname, $port);
 	
 	print "Performing Wired handshake...\n";
+	
+	my($os_name, undef, $os_version, undef, $arch) = uname();
 
 	p7sendmessage($socket, "wired.client_info",
 		{ name => "wired.info.application.name", content => "$0", type => "string" },
 		{ name => "wired.info.application.version", content => "1.0", type => "string" },
-		{ name => "wired.info.os.name", content => "Perl", type => "string" },
-		{ name => "wired.info.os.version", content => "$]", type => "string" },
-		{ name => "wired.info.arch", content => "i386", type => "string" },
+		{ name => "wired.info.os.name", content => $os_name, type => "string" },
+		{ name => "wired.info.os.version", content => $os_version, type => "string" },
+		{ name => "wired.info.arch", content => $arch, type => "string" },
 	);
 	
 	my $message = p7readmessage($socket);
@@ -47,7 +50,7 @@ sub main {
 	
 	print "Listing files at /...\n";
 	
-	p7sendmessage($socket, "wired.file.list_path",
+	p7sendmessage($socket, "wired.file.list_directory",
 		{ name => "wired.file.path", content => "/", type => "string" }
 	);
 	
@@ -79,7 +82,7 @@ sub p7connect {
 	p7sendmessage($socket, "p7.handshake.client_handshake",
 		{ name => "p7.handshake.version", content => "1.0", type => "string" },
 		{ name => "p7.handshake.protocol.name", content => "Wired", type => "string" },
-		{ name => "p7.handshake.protocol.version", content => "2.0.1a", type => "string" },
+		{ name => "p7.handshake.protocol.version", content => "2.0", type => "string" },
 	);
 	
 	my $message = p7readmessage($socket);
@@ -127,7 +130,10 @@ sub p7readmessage {
 		}
 	}
 	
-	if($message->{"name"} eq "wired.error") {
+	if(!$message) {
+		die "No message received from server\n";
+	}
+	elsif($message->{"name"} eq "wired.error") {
 		die "Received Wired error $message->{'p7:field'}->{'content'}\n";
 	}
 	
