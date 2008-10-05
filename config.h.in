@@ -55,6 +55,9 @@
 /* Define to 1 if you have the <ifaddrs.h> header file. */
 #undef HAVE_IFADDRS_H
 
+/* Define to 1 if you have the <inotifytools/inotify.h> header file. */
+#undef HAVE_INOTIFYTOOLS_INOTIFY_H
+
 /* Define to 1 if the system has the type `intmax_t'. */
 #undef HAVE_INTMAX_T
 

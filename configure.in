@@ -205,6 +205,7 @@ AC_CHECK_HEADERS([ \
 	sys/statvfs.h \
 	netinet/in_systm.h \
 	netinet/ip.h \
+	inotifytools/inotify.h \
 	getopt.h \
 	ifaddrs.h \
 	net/if_dl.h \

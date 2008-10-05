@@ -40,12 +40,24 @@
 #include <sys/inotify.h>
 #endif
 
+#ifdef HAVE_INOTIFYTOOLS_INOTIFY_H
+#include <inotifytools/inotify.h>
+#endif
+
 #include <wired/wi-error.h>
 #include <wired/wi-fsevents.h>
 #include <wired/wi-private.h>
 #include <wired/wi-string.h>
 
-#ifdef HAVE_SYS_INOTIFY_H
+#if defined(HAVE_SYS_EVENT_H)
+#define _WI_FSEVENTS_KQUEUE				1
+#define _WI_FSEVENTS_ANY				1
+#elif defined(HAVE_SYS_INOTIFY_H) or defined(HAVE_INOTIFYTOOLS_INOTIFY_H)
+#define _WI_FSEVENTS_INOTIFY			1
+#define _WI_FSEVENTS_ANY				1
+#endif
+
+#ifdef _WI_FSEVENTS_INOTIFY
 #define _WI_FSEVENTS_INOTIFY_MASK		(IN_CREATE | IN_DELETE | IN_MOVE)
 #endif
 
@@ -53,9 +65,9 @@
 struct _wi_fsevents {
 	wi_runtime_base_t					base;
 	
-#if defined(HAVE_SYS_EVENT_H)
+#if defined(_WI_FSEVENTS_KQUEUE)
 	int									kqueue;
-#elif defined(HAVE_SYS_INOTIFY_H)
+#elif defined(_WI_FSEVENTS_INOTIFY)
 	int									inotify;
 #endif
 	
@@ -63,7 +75,7 @@ struct _wi_fsevents {
 	wi_set_t							*paths;
 	wi_dictionary_t						*fds_for_paths;
 
-#ifdef HAVE_SYS_INOTIFY_H
+#ifdef _WI_FSEVENTS_INOTIFY
 	wi_dictionary_t						*paths_for_fds;
 #endif
 };
@@ -112,7 +124,7 @@ wi_fsevents_t * wi_fsevents_alloc(void) {
 
 
 wi_fsevents_t * wi_fsevents_init(wi_fsevents_t *fsevents) {
-#if defined(HAVE_SYS_EVENT_H)
+#if defined(_WI_FSEVENTS_KQUEUE)
 	fsevents->kqueue = kqueue();
 	
 	if(fsevents->kqueue < 0) {
@@ -122,7 +134,7 @@ wi_fsevents_t * wi_fsevents_init(wi_fsevents_t *fsevents) {
 		
 		return NULL;
 	}
-#elif defined(HAVE_SYS_INOTIFY_H)
+#elif defined(_WI_FSEVENTS_INOTIFY)
 	fsevents->inotify = inotify_init();
 
 	if(fsevents->inotify < 0) {
@@ -144,7 +156,7 @@ wi_fsevents_t * wi_fsevents_init(wi_fsevents_t *fsevents) {
 	fsevents->fds_for_paths	= wi_dictionary_init_with_capacity_and_callbacks(wi_dictionary_alloc(), 0,
 		wi_dictionary_default_key_callbacks, wi_dictionary_null_value_callbacks);
 
-#ifdef HAVE_SYS_INOTIFY_H
+#ifdef _WI_FSEVENTS_INOTIFY
 	fsevents->paths_for_fds	= wi_dictionary_init_with_capacity_and_callbacks(wi_dictionary_alloc(), 0,
 		wi_dictionary_null_key_callbacks, wi_dictionary_default_value_callbacks);
 #endif
@@ -159,16 +171,16 @@ static void _wi_fsevents_dealloc(wi_runtime_instance_t *instance) {
 	
 	wi_fsevents_remove_all_paths(fsevents);
 	
-#if defined(HAVE_SYS_EVENT_H)
+#if defined(_WI_FSEVENTS_KQUEUE)
 	close(fsevents->kqueue);
-#elif defined(HAVE_SYS_INOTIFY_H)
+#elif defined(_WI_FSEVENTS_INOTIFY)
 	close(fsevents->inotify);
 #endif
 	
 	wi_release(fsevents->paths);
 	wi_release(fsevents->fds_for_paths);
 
-#ifdef HAVE_SYS_INOTIFY_H
+#ifdef _WI_FSEVENTS_INOTIFY
 	wi_release(fsevents->paths_for_fds);
 #endif
 }
@@ -178,11 +190,11 @@ static void _wi_fsevents_dealloc(wi_runtime_instance_t *instance) {
 #pragma mark -
 
 wi_boolean_t wi_fsevents_run_with_timeout(wi_fsevents_t *fsevents, wi_time_interval_t timeout) {
-#if defined(HAVE_SYS_EVENT_H)
+#if defined(_WI_FSEVENTS_KQUEUE)
 	struct kevent			event;
 	struct timespec			ts;
 	int						result;
-#elif defined(HAVE_SYS_INOTIFY_H)
+#elif defined(_WI_FSEVENTS_INOTIFY)
 	wi_string_t				*path;
 	struct inotify_event	*event;
 	struct timeval			tv;
@@ -192,7 +204,7 @@ wi_boolean_t wi_fsevents_run_with_timeout(wi_fsevents_t *fsevents, wi_time_inter
 	int						state;
 #endif
 	
-#if defined(HAVE_SYS_EVENT_H)
+#if defined(_WI_FSEVENTS_KQUEUE)
 	do {
 		ts = wi_dtots(timeout);
 		result = kevent(fsevents->kqueue, NULL, 0, &event, 1, (timeout > 0.0) ? &ts : NULL);
@@ -209,7 +221,7 @@ wi_boolean_t wi_fsevents_run_with_timeout(wi_fsevents_t *fsevents, wi_time_inter
 			}
 		}
 	} while(timeout == 0.0);
-#elif defined(HAVE_SYS_INOTIFY_H)
+#elif defined(_WI_FSEVENTS_INOTIFY)
 
 	do {
 		FD_ZERO(&rfds);
@@ -264,14 +276,14 @@ void wi_fsevents_set_callback(wi_fsevents_t *fsevents, wi_fsevents_callback_t *c
 #pragma mark -
 
 wi_boolean_t wi_fsevents_add_path(wi_fsevents_t *fsevents, wi_string_t *path) {
-#if defined(HAVE_SYS_EVENT_H)
+#if defined(_WI_FSEVENTS_KQUEUE)
 	struct kevent	ev;
 	int				fd;
-#elif defined(HAVE_SYS_INOTIFY_H)
+#elif defined(_WI_FSEVENTS_INOTIFY)
 	int				fd;
 #endif
 	
-#if defined(HAVE_SYS_EVENT_H)
+#if defined(_WI_FSEVENTS_KQUEUE)
 	if(!wi_set_contains_data(fsevents->paths, path)) {
 		fd = open(wi_string_cstring(path),
 #ifdef O_EVTONLY
@@ -301,7 +313,7 @@ wi_boolean_t wi_fsevents_add_path(wi_fsevents_t *fsevents, wi_string_t *path) {
 	}
 	
 	wi_set_add_data(fsevents->paths, path);
-#elif defined(HAVE_SYS_INOTIFY_H)
+#elif defined(_WI_FSEVENTS_INOTIFY)
 	if(!wi_set_contains_data(fsevents->paths, path)) {
 		fd = inotify_add_watch(fsevents->inotify, wi_string_cstring(path), _WI_FSEVENTS_INOTIFY_MASK);
 
@@ -324,7 +336,7 @@ wi_boolean_t wi_fsevents_add_path(wi_fsevents_t *fsevents, wi_string_t *path) {
 
 
 void wi_fsevents_remove_path(wi_fsevents_t *fsevents, wi_string_t *path) {
-#if defined(HAVE_SYS_EVENT_H) || defined(HAVE_SYS_INOTIFY_H)
+#ifdef _WI_FSEVENTS_ANY
 	int			fd;
 	
 	if(wi_set_count_for_data(fsevents->paths, path) == 1) {
@@ -333,9 +345,9 @@ void wi_fsevents_remove_path(wi_fsevents_t *fsevents, wi_string_t *path) {
 		if(fd == 0)
 			return;
 		
-#if defined(HAVE_SYS_EVENT_H)
+#if defined(_WI_FSEVENTS_KQUEUE)
 		close(fd);
-#elif defined(HAVE_SYS_INOTIFY_H)
+#elif defined(_WI_FSEVENTS_INOTIFY)
 		inotify_rm_watch(fsevents->inotify, fd);
 
 		wi_dictionary_remove_data_for_key(fsevents->fds_for_paths, (void *) (intptr_t) path);
@@ -351,16 +363,16 @@ void wi_fsevents_remove_path(wi_fsevents_t *fsevents, wi_string_t *path) {
 
 
 void wi_fsevents_remove_all_paths(wi_fsevents_t *fsevents) {
-#if defined(HAVE_SYS_EVENT_H) || defined(HAVE_SYS_INOTIFY_H)
+#ifdef _WI_FSEVENTS_ANY
 	wi_enumerator_t		*enumerator;
 	int					fd;
 	
 	enumerator = wi_dictionary_data_enumerator(fsevents->fds_for_paths);
 	
 	while((fd = (int) (intptr_t) wi_enumerator_next_data(enumerator))) {
-#if defined(HAVE_SYS_EVENT_H)
+#if defined(_WI_FSEVENTS_KQUEUE)
 		close(fd);
-#elif defined(HAVE_SYS_INOTIFY_H)
+#elif defined(_WI_FSEVENTS_INOTIFY)
 		inotify_rm_watch(fsevents->inotify, fd);
 #endif
 	}
@@ -368,7 +380,7 @@ void wi_fsevents_remove_all_paths(wi_fsevents_t *fsevents) {
 	wi_set_remove_all_data(fsevents->paths);
 	wi_dictionary_remove_all_data(fsevents->fds_for_paths);
 
-#ifdef HAVE_SYS_INOTIFY_H
+#ifdef _WI_FSEVENTS_INOTIFY
 	wi_dictionary_remove_all_data(fsevents->paths_for_fds);
 #endif
 #endif
