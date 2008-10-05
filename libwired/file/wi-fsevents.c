@@ -52,7 +52,7 @@
 #if defined(HAVE_SYS_EVENT_H)
 #define _WI_FSEVENTS_KQUEUE				1
 #define _WI_FSEVENTS_ANY				1
-#elif defined(HAVE_SYS_INOTIFY_H) or defined(HAVE_INOTIFYTOOLS_INOTIFY_H)
+#elif defined(HAVE_SYS_INOTIFY_H) || defined(HAVE_INOTIFYTOOLS_INOTIFY_H)
 #define _WI_FSEVENTS_INOTIFY			1
 #define _WI_FSEVENTS_ANY				1
 #endif
