@@ -160,7 +160,7 @@ static wi_process_t * _wi_process_init_with_argv(wi_process_t *process, int argc
 	
 	process->arch = wi_string_init_with_cstring(wi_string_alloc(), arch_info->name);
 #else
-	process->arch = wi_string_init_with_cstring(wi_string_alloc(), WI_CPU);
+	process->arch = wi_string_init_with_cstring(wi_string_alloc(), name.machine);
 #endif
 
 	return process;

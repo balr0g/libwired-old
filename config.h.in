@@ -227,9 +227,6 @@
 /* Define to 1 if you have the ANSI C header files. */
 #undef STDC_HEADERS
 
-/* Host CPU */
-#undef WI_CPU
-
 /* Application version */
 #undef WI_VERSION
 

@@ -12,7 +12,6 @@ AC_CANONICAL_HOST
 
 # These are used in the source code
 AC_DEFINE([WI_VERSION], ["AC_PACKAGE_VERSION"], [Application version])
-AC_DEFINE_UNQUOTED([WI_CPU], ["$host_cpu"], [Host CPU])
 
 # These are used in the Makefile
 AC_SUBST([WI_VERSION], ["AC_PACKAGE_VERSION"])
