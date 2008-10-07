@@ -316,4 +316,3 @@ wi_string_t * wi_address_hostname(wi_address_t *address) {
 
 	return wi_string_with_cstring(string);
 }
-
