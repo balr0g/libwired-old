@@ -61,10 +61,6 @@ static wi_boolean_t									_wi_p7_message_get_binary_buffer_for_reading_for_id(
 static wi_boolean_t									_wi_p7_message_get_binary_buffer_for_reading_for_name(wi_p7_message_t *, wi_string_t *, unsigned char **, uint32_t *);
 static wi_boolean_t									_wi_p7_message_get_binary_buffer_for_writing_for_id(wi_p7_message_t *, uint32_t, uint32_t, unsigned char **);
 static wi_boolean_t									_wi_p7_message_get_binary_buffer_for_writing_for_name(wi_p7_message_t *, wi_string_t *, uint32_t, unsigned char **, uint32_t *);
-static void											_wi_p7_message_set_xml_field(wi_p7_message_t *, wi_string_t *, wi_string_t *, wi_p7_spec_type_t *);
-static xmlNodePtr									_wi_p7_message_xml_node_for_name(wi_p7_message_t *, const char *);
-static wi_string_t *								_wi_p7_message_xml_copy_value_for_name(wi_p7_message_t *, wi_string_t *);
-static wi_p7_spec_type_t *							_wi_p7_message_xml_type_for_name(wi_p7_message_t *, wi_string_t *);
 
 
 wi_boolean_t										wi_p7_message_debug;
@@ -128,9 +124,8 @@ wi_p7_message_t * wi_p7_message_alloc(void) {
 
 
 
-wi_p7_message_t * wi_p7_message_init_with_serialization(wi_p7_message_t *p7_message, wi_p7_serialization_t serialization, wi_p7_spec_t *p7_spec) {
-	p7_message->spec			= wi_retain(p7_spec);
-	p7_message->serialization	= serialization;
+wi_p7_message_t * wi_p7_message_init(wi_p7_message_t *p7_message, wi_p7_spec_t *p7_spec) {
+	p7_message->spec = wi_retain(p7_spec);
 
 	return p7_message;
 }
@@ -139,7 +134,6 @@ wi_p7_message_t * wi_p7_message_init_with_serialization(wi_p7_message_t *p7_mess
 
 wi_p7_message_t * wi_p7_message_init_with_name(wi_p7_message_t *p7_message, wi_string_t *message_name, wi_p7_spec_t *p7_spec) {
 	p7_message->spec			= wi_retain(p7_spec);
-	p7_message->serialization	= WI_P7_BINARY;
 	p7_message->binary_capacity	= _WI_P7_MESSAGE_BINARY_BUFFER_INITIAL_SIZE;
 	p7_message->binary_buffer	= wi_malloc(p7_message->binary_capacity);
 	p7_message->binary_size		= WI_P7_MESSAGE_BINARY_HEADER_SIZE;
@@ -163,24 +157,14 @@ wi_p7_message_t * wi_p7_message_init_with_data(wi_p7_message_t *p7_message, wi_d
 
 wi_p7_message_t * wi_p7_message_init_with_bytes(wi_p7_message_t *p7_message, const void *bytes, wi_uinteger_t length, wi_p7_serialization_t serialization, wi_p7_spec_t *p7_spec) {
 	p7_message->spec			= wi_retain(p7_spec);
-	p7_message->serialization	= serialization;
+
+	p7_message->binary_size		= length;
+	p7_message->binary_capacity	= p7_message->binary_size;
+	p7_message->binary_buffer	= wi_malloc(p7_message->binary_capacity);
 	
-	if(serialization == WI_P7_BINARY) {
-		p7_message->binary_size		= length;
-		p7_message->binary_capacity	= p7_message->binary_size;
-		p7_message->binary_buffer	= wi_malloc(p7_message->binary_capacity);
-		
-		memcpy(p7_message->binary_buffer, bytes, p7_message->binary_size);
-	} else {
-		p7_message->xml_length		= length;
-		p7_message->xml_buffer		= wi_malloc(p7_message->xml_length + 1);
-		
-		memcpy(p7_message->xml_buffer, bytes, p7_message->xml_length);
-		
-		p7_message->xml_buffer[p7_message->xml_length] = '\0';
-	}
+	memcpy(p7_message->binary_buffer, bytes, p7_message->binary_size);
 	
-	wi_p7_message_deserialize(p7_message);
+	wi_p7_message_deserialize(p7_message, WI_P7_BINARY);
 	
 	if(!p7_message->name) {
 		wi_error_set_libwired_error(WI_ERROR_P7_UNKNOWNMESSAGE);
@@ -208,81 +192,49 @@ static void _wi_p7_message_dealloc(wi_runtime_instance_t *instance) {
 		xmlFree(p7_message->xml_buffer);
 	
 	wi_release(p7_message->xml_string);
-	
-	if(p7_message->xml_doc)
-		xmlFreeDoc(p7_message->xml_doc);
 }
 
 
 
 static wi_string_t * _wi_p7_message_description(wi_runtime_instance_t *instance) {
 	wi_p7_message_t			*p7_message = instance;
-	wi_string_t				*description, *xml_string, *field_name, *field_value;
+	wi_string_t				*description, *field_name, *field_value;
 	wi_p7_spec_field_t		*field;
-	xmlNodePtr				node;
 	unsigned char			*buffer, *start;
 	uint32_t				message_size, field_id, field_size;
 	
-	description = wi_string_init_with_format(wi_string_alloc(), WI_STR("<%@ %p>{name = %@, serialization = %@"),
+	description = wi_string_init_with_format(wi_string_alloc(), WI_STR("<%@ %p>{name = %@, buffer = %@, fields = (\n"),
         wi_runtime_class_name(p7_message),
         p7_message,
 		p7_message->name,
-		p7_message->serialization == WI_P7_BINARY ? WI_STR("binary") : WI_STR("xml"));
+		wi_data_with_bytes_no_copy(p7_message->binary_buffer, p7_message->binary_size, false));
 	
-	if(p7_message->serialization == WI_P7_BINARY) {
-		wi_string_append_format(description, WI_STR(", buffer = %@, fields = (\n"),
-			wi_data_with_bytes_no_copy(p7_message->binary_buffer, p7_message->binary_size, false));
-	} else {
-		if(p7_message->xml_string)
-			xml_string = p7_message->xml_string;
-		else
-			xml_string = wi_string_with_bytes(p7_message->xml_buffer, p7_message->xml_length);
-			
-		wi_string_append_format(description, WI_STR(", xml = \"%@\", fields = (\n"),
-			xml_string);
-	}
+	message_size = p7_message->binary_size - WI_P7_MESSAGE_BINARY_HEADER_SIZE;
+	buffer = start = p7_message->binary_buffer + WI_P7_MESSAGE_BINARY_HEADER_SIZE;
 	
-	if(p7_message->serialization == WI_P7_BINARY) {
-		message_size = p7_message->binary_size - WI_P7_MESSAGE_BINARY_HEADER_SIZE;
-		buffer = start = p7_message->binary_buffer + WI_P7_MESSAGE_BINARY_HEADER_SIZE;
+	while((uint32_t) (buffer - start) < message_size) {
+		field_id	= wi_read_swap_big_to_host_int32(buffer, 0);
+		buffer		+= sizeof(field_id);
+		field		= wi_p7_spec_field_with_id(p7_message->spec, field_id);
 		
-		while((uint32_t) (buffer - start) < message_size) {
-			field_id	= wi_read_swap_big_to_host_int32(buffer, 0);
-			buffer		+= sizeof(field_id);
-			field		= wi_p7_spec_field_with_id(p7_message->spec, field_id);
+		if(!field)
+			continue;
+		
+		field_size	= wi_p7_spec_field_size(field);
+		
+		if(field_size == 0) {
+			field_size = wi_read_swap_big_to_host_int32(buffer, 0);
 			
-			if(!field)
-				continue;
-			
-			field_size	= wi_p7_spec_field_size(field);
-			
-			if(field_size == 0) {
-				field_size = wi_read_swap_big_to_host_int32(buffer, 0);
-				
-				buffer += sizeof(field_size);
-			}
-			
-			field_name		= wi_p7_spec_field_name(field);
-			field_value		= _wi_p7_message_field_string_value(p7_message, field);
-
-			wi_string_append_format(description, WI_STR("    %@ = %@\n"),
-				field_name, field_value);
-
-			buffer += field_size;
+			buffer += sizeof(field_size);
 		}
-	} else {
-		if(p7_message->xml_root_node) {
-			for(node = p7_message->xml_root_node->children; node != NULL; node = node->next) {
-				if(node->type == XML_ELEMENT_NODE) {
-					field_name		= wi_xml_node_attribute_with_name(node, WI_STR("name"));
-					field			= wi_p7_spec_field_with_name(p7_message->spec, field_name);
-					field_value		= _wi_p7_message_field_string_value(p7_message, field);
-					
-					wi_string_append_format(description, WI_STR("    %@ = %@\n"),
-						field_name, field_value);
-				}
-			}
-		}
+		
+		field_name		= wi_p7_spec_field_name(field);
+		field_value		= _wi_p7_message_field_string_value(p7_message, field);
+
+		wi_string_append_format(description, WI_STR("    %@ = %@\n"),
+			field_name, field_value);
+
+		buffer += field_size;
 	}
 
 	wi_string_append_string(description, WI_STR(")}"));
@@ -680,98 +632,14 @@ static wi_boolean_t _wi_p7_message_get_binary_buffer_for_writing_for_name(wi_p7_
 
 
 
-static void _wi_p7_message_set_xml_field(wi_p7_message_t *p7_message, wi_string_t *field_name, wi_string_t *field_value, wi_p7_spec_type_t *type) {
-	xmlNodePtr		node;
-	
-	node = _wi_p7_message_xml_node_for_name(p7_message, wi_string_cstring(field_name));
-	
-	if(!node) {
-		node = xmlNewNode(p7_message->xml_ns, (xmlChar *) "field");
-		xmlSetProp(node, (xmlChar *) "name", (xmlChar *) wi_string_cstring(field_name));
-		xmlSetProp(node, (xmlChar *) "type", (xmlChar *) wi_string_cstring(wi_p7_spec_type_name(type)));
-		xmlAddChild(p7_message->xml_root_node, node);
-	}
-	
-	xmlNodeSetContent(node, (xmlChar *) wi_string_cstring(field_value));
-}
-
-
-
-static xmlNodePtr _wi_p7_message_xml_node_for_name(wi_p7_message_t *p7_message, const char *field_name) {
-	xmlNodePtr		node, found_node = NULL;
-	xmlChar			*prop;
-	
-	for(node = p7_message->xml_root_node->children; node != NULL; node = node->next) {
-		if(node->type == XML_ELEMENT_NODE) {
-			prop = xmlGetProp(node, (xmlChar *) "name");
-
-			if(prop) {
-				if(strcmp((const char *) prop, field_name) == 0)
-					found_node = node;
-
-				xmlFree(prop);
-			}
-			
-			if(found_node)
-				return found_node;
-		}
-	}
-	
-	return NULL;
-}
-
-
-
-static wi_string_t * _wi_p7_message_xml_copy_value_for_name(wi_p7_message_t *p7_message, wi_string_t *field_name) {
-	xmlNodePtr		node;
-	xmlChar			*content;
-	
-	node = _wi_p7_message_xml_node_for_name(p7_message, wi_string_cstring(field_name));
-	
-	if(!node)
-		return NULL;
-	
-	content = xmlNodeGetContent(node);
-	
-	if(!content)
-		return NULL;
-	
-	return wi_string_init_with_cstring_no_copy(wi_string_alloc(), (char *) content, true);
-}
-
-
-
-static wi_p7_spec_type_t * _wi_p7_message_xml_type_for_name(wi_p7_message_t *p7_message, wi_string_t *field_name) {
-	wi_p7_spec_type_t	*type;
-	xmlNodePtr			node;
-	xmlChar				*prop;
-	
-	node = _wi_p7_message_xml_node_for_name(p7_message, wi_string_cstring(field_name));
-	
-	if(!node)
-		return NULL;
-	
-	prop = xmlGetProp(node, (xmlChar *) "type");
-	
-	if(prop) {
-		type = wi_p7_spec_type_with_name(p7_message->spec, wi_string_with_cstring_no_copy((char *) prop, false));
-		
-		xmlFree(prop);
-		
-		return type;
-	}
-	
-	return NULL;
-}
-
-
-
 #pragma mark -
 
 void wi_p7_message_serialize(wi_p7_message_t *p7_message, wi_p7_serialization_t serialization) {
-	xmlNodePtr				listnode, itemnode;
+	xmlDocPtr				doc;
+	xmlNsPtr				ns;
+	xmlNodePtr				root_node, list_node, item_node;
 	wi_p7_spec_field_t		*field;
-	wi_p7_spec_type_t		*type, *listtype;
+	wi_p7_spec_type_t		*type, *list_type;
 	wi_runtime_instance_t	*instance;
 	wi_string_t				*field_name, *field_value;
 	unsigned char			*buffer, *start;
@@ -790,169 +658,176 @@ void wi_p7_message_serialize(wi_p7_message_t *p7_message, wi_p7_serialization_t 
 	wi_uinteger_t			i, count;
 	uint32_t				message_size, field_id, field_size;
 
-	if(serialization == WI_P7_XML) {
-		if(p7_message->xml_buffer) {
-			xmlFree(p7_message->xml_buffer);
+	if(serialization == WI_P7_XML && !p7_message->xml_buffer) {
+		doc			= xmlNewDoc((xmlChar *) "1.0");
+		root_node	= xmlNewNode(NULL, (xmlChar *) "message");
 		
-			p7_message->xml_buffer = NULL;
-		}
+		xmlDocSetRootElement(doc, root_node);
 		
-		if(!p7_message->serialization != WI_P7_BINARY) {
-			p7_message->xml_doc			= xmlNewDoc((xmlChar *) "1.0");
-			p7_message->xml_root_node	= xmlNewNode(NULL, (xmlChar *) "message");
-			
-			xmlDocSetRootElement(p7_message->xml_doc, p7_message->xml_root_node);
-			
-			p7_message->xml_ns = xmlNewNs(p7_message->xml_root_node,
-				(xmlChar *) "http://www.zankasoftware.com/P7/Message", (xmlChar *) "p7");
-			xmlSetNs(p7_message->xml_root_node, p7_message->xml_ns);
-			
-			xmlSetProp(p7_message->xml_root_node, (xmlChar *) "name",
-				(xmlChar *) wi_string_cstring(p7_message->name));
-			
-			message_size = p7_message->binary_size - WI_P7_MESSAGE_BINARY_HEADER_SIZE;
-			buffer = start = p7_message->binary_buffer + WI_P7_MESSAGE_BINARY_HEADER_SIZE;
-			
-			while((uint32_t) (buffer - start) < message_size) {
-				field_id		= wi_read_swap_big_to_host_int32(buffer, 0);
-				buffer			+= sizeof(field_id);
-				field			= wi_p7_spec_field_with_id(p7_message->spec, field_id);
+		ns = xmlNewNs(root_node, (xmlChar *) "http://www.zankasoftware.com/P7/Message", (xmlChar *) "p7");
+		xmlSetNs(root_node, ns);
+		
+		xmlSetProp(root_node, (xmlChar *) "name", (xmlChar *) wi_string_cstring(p7_message->name));
+		
+		message_size = p7_message->binary_size - WI_P7_MESSAGE_BINARY_HEADER_SIZE;
+		buffer = start = p7_message->binary_buffer + WI_P7_MESSAGE_BINARY_HEADER_SIZE;
+		
+		while((uint32_t) (buffer - start) < message_size) {
+			field_id		= wi_read_swap_big_to_host_int32(buffer, 0);
+			buffer			+= sizeof(field_id);
+			field			= wi_p7_spec_field_with_id(p7_message->spec, field_id);
 
-				if(!field)
-					continue;
+			if(!field)
+				continue;
+			
+			field_size		= wi_p7_spec_field_size(field);
+			
+			if(field_size == 0) {
+				field_size = wi_read_swap_big_to_host_int32(buffer, 0);
 				
-				field_size		= wi_p7_spec_field_size(field);
-				
-				if(field_size == 0) {
-					field_size = wi_read_swap_big_to_host_int32(buffer, 0);
-					
-					buffer += sizeof(field_size);
-				}
-				
-				field_name		= wi_p7_spec_field_name(field);
-				field_value		= NULL;
-				type			= wi_p7_spec_field_type(field);
-
-				switch(wi_p7_spec_type_id(type)) {
-					case WI_P7_BOOL:
-						if(wi_p7_message_get_bool_for_name(p7_message, &p7_bool, field_name))
-							field_value = wi_string_with_format(WI_STR("%u"), p7_bool ? 1 : 0);
-						break;
-						
-					case WI_P7_ENUM:
-						string = wi_p7_message_enum_name_for_name(p7_message, field_name);
-						
-						if(string)
-							field_value = string;
-						break;
-						
-					case WI_P7_INT32:
-						if(wi_p7_message_get_int32_for_name(p7_message, &p7_int32, field_name))
-							field_value = wi_string_with_format(WI_STR("%u"), p7_int32);
-						break;
-						
-					case WI_P7_UINT32:
-						if(wi_p7_message_get_uint32_for_name(p7_message, &p7_uint32, field_name))
-							field_value = wi_string_with_format(WI_STR("%u"), p7_uint32);
-						break;
-						
-					case WI_P7_INT64:
-						if(wi_p7_message_get_int64_for_name(p7_message, &p7_int64, field_name))
-							field_value = wi_string_with_format(WI_STR("%lld"), p7_int64);
-						break;
-						
-					case WI_P7_UINT64:
-						if(wi_p7_message_get_uint64_for_name(p7_message, &p7_uint64, field_name))
-							field_value = wi_string_with_format(WI_STR("%llu"), p7_uint64);
-						break;
-						
-					case WI_P7_DOUBLE:
-						if(wi_p7_message_get_double_for_name(p7_message, &p7_double, field_name))
-							field_value = wi_string_with_format(WI_STR("%f"), p7_double);
-						break;
-						
-					case WI_P7_STRING:
-						string = wi_p7_message_string_for_name(p7_message, field_name);
-						
-						if(string)
-							field_value = string;
-						break;
-						
-					case WI_P7_UUID:
-						uuid = wi_p7_message_uuid_for_name(p7_message, field_name);
-						
-						if(uuid)
-							field_value = wi_uuid_string(uuid);
-						break;
-						
-					case WI_P7_DATE:
-						date = wi_p7_message_date_for_name(p7_message, field_name);
-						
-						if(date)
-							field_value = wi_date_rfc3339_string(date);
-						break;
-						
-					case WI_P7_DATA:
-						data = wi_p7_message_data_for_name(p7_message, field_name);
-						
-						if(data)
-							field_value = wi_data_base64(data);
-						break;
-						
-					case WI_P7_OOBDATA:
-						if(wi_p7_message_get_oobdata_for_name(p7_message, &p7_oobdata, field_name))
-							field_value = wi_string_with_format(WI_STR("%llu"), p7_oobdata);
-						break;
-						
-					case WI_P7_LIST:
-						list = wi_p7_message_list_for_name(p7_message, field_name);
-						
-						if(list) {
-							listnode = _wi_p7_message_xml_node_for_name(p7_message, wi_string_cstring(field_name));
-							
-							if(!listnode) {
-								listtype = wi_p7_spec_field_listtype(field);
-								listnode = xmlNewNode(p7_message->xml_ns, (xmlChar *) "field");
-								xmlSetProp(listnode, (xmlChar *) "name", (xmlChar *) wi_string_cstring(field_name));
-								xmlSetProp(listnode, (xmlChar *) "type", (xmlChar *) wi_string_cstring(wi_p7_spec_type_name(type)));
-								xmlSetProp(listnode, (xmlChar *) "listtype", (xmlChar *) wi_string_cstring(wi_p7_spec_type_name(listtype)));
-								xmlAddChild(p7_message->xml_root_node, listnode);
-							}
-							
-							count = wi_array_count(list);
-							
-							for(i = 0; i < count; i++) {
-								itemnode = xmlNewNode(p7_message->xml_ns, (xmlChar *) "item");
-								instance = WI_ARRAY(list, i);
-
-								if(wi_runtime_id(instance) == wi_string_runtime_id())
-									xmlNodeSetContent(itemnode, (xmlChar *) wi_string_cstring(instance));
-								
-								xmlAddChild(listnode, itemnode);
-							}
-						}
-						break;
-				}
-				
-				if(field_value)
-					_wi_p7_message_set_xml_field(p7_message, field_name, field_value, type);
-				
-				buffer += field_size;
+				buffer += sizeof(field_size);
 			}
+			
+			field_name		= wi_p7_spec_field_name(field);
+			field_value		= NULL;
+			type			= wi_p7_spec_field_type(field);
 
-			p7_message->serialization = WI_P7_XML;
+			switch(wi_p7_spec_type_id(type)) {
+				case WI_P7_BOOL:
+					if(wi_p7_message_get_bool_for_name(p7_message, &p7_bool, field_name))
+						field_value = wi_string_with_format(WI_STR("%u"), p7_bool ? 1 : 0);
+					break;
+					
+				case WI_P7_ENUM:
+					string = wi_p7_message_enum_name_for_name(p7_message, field_name);
+					
+					if(string)
+						field_value = string;
+					break;
+					
+				case WI_P7_INT32:
+					if(wi_p7_message_get_int32_for_name(p7_message, &p7_int32, field_name))
+						field_value = wi_string_with_format(WI_STR("%u"), p7_int32);
+					break;
+					
+				case WI_P7_UINT32:
+					if(wi_p7_message_get_uint32_for_name(p7_message, &p7_uint32, field_name))
+						field_value = wi_string_with_format(WI_STR("%u"), p7_uint32);
+					break;
+					
+				case WI_P7_INT64:
+					if(wi_p7_message_get_int64_for_name(p7_message, &p7_int64, field_name))
+						field_value = wi_string_with_format(WI_STR("%lld"), p7_int64);
+					break;
+					
+				case WI_P7_UINT64:
+					if(wi_p7_message_get_uint64_for_name(p7_message, &p7_uint64, field_name))
+						field_value = wi_string_with_format(WI_STR("%llu"), p7_uint64);
+					break;
+					
+				case WI_P7_DOUBLE:
+					if(wi_p7_message_get_double_for_name(p7_message, &p7_double, field_name))
+						field_value = wi_string_with_format(WI_STR("%f"), p7_double);
+					break;
+					
+				case WI_P7_STRING:
+					string = wi_p7_message_string_for_name(p7_message, field_name);
+					
+					if(string)
+						field_value = string;
+					break;
+					
+				case WI_P7_UUID:
+					uuid = wi_p7_message_uuid_for_name(p7_message, field_name);
+					
+					if(uuid)
+						field_value = wi_uuid_string(uuid);
+					break;
+					
+				case WI_P7_DATE:
+					date = wi_p7_message_date_for_name(p7_message, field_name);
+					
+					if(date)
+						field_value = wi_date_rfc3339_string(date);
+					break;
+					
+				case WI_P7_DATA:
+					data = wi_p7_message_data_for_name(p7_message, field_name);
+					
+					if(data)
+						field_value = wi_data_base64(data);
+					break;
+					
+				case WI_P7_OOBDATA:
+					if(wi_p7_message_get_oobdata_for_name(p7_message, &p7_oobdata, field_name))
+						field_value = wi_string_with_format(WI_STR("%llu"), p7_oobdata);
+					break;
+					
+				case WI_P7_LIST:
+					list = wi_p7_message_list_for_name(p7_message, field_name);
+					
+					if(list) {
+						list_node = wi_xml_node_child_with_name(p7_message, field_name);
+						
+						if(!list_node) {
+							list_type = wi_p7_spec_field_listtype(field);
+							list_node = xmlNewNode(ns, (xmlChar *) "field");
+							xmlSetProp(list_node, (xmlChar *) "name", (xmlChar *) wi_string_cstring(field_name));
+							xmlSetProp(list_node, (xmlChar *) "type", (xmlChar *) wi_string_cstring(wi_p7_spec_type_name(type)));
+							xmlSetProp(list_node, (xmlChar *) "listtype", (xmlChar *) wi_string_cstring(wi_p7_spec_type_name(list_type)));
+							xmlAddChild(root_node, list_node);
+						}
+						
+						count = wi_array_count(list);
+						
+						for(i = 0; i < count; i++) {
+							item_node = xmlNewNode(ns, (xmlChar *) "item");
+							instance = WI_ARRAY(list, i);
+
+							if(wi_runtime_id(instance) == wi_string_runtime_id())
+								xmlNodeSetContent(item_node, (xmlChar *) wi_string_cstring(instance));
+							
+							xmlAddChild(list_node, item_node);
+						}
+					}
+					break;
+			}
+			
+			if(field_value) {
+				item_node = wi_xml_node_child_with_name(p7_message, field_name);
+				
+				if(!item_node) {
+					item_node = xmlNewNode(ns, (xmlChar *) "field");
+					xmlSetProp(item_node, (xmlChar *) "name", (xmlChar *) wi_string_cstring(field_name));
+					xmlSetProp(item_node, (xmlChar *) "type", (xmlChar *) wi_string_cstring(wi_p7_spec_type_name(type)));
+					xmlAddChild(root_node, item_node);
+				}
+				
+				xmlNodeSetContent(item_node, (xmlChar *) wi_string_cstring(field_value));
+
+			}
+			
+			buffer += field_size;
 		}
 		
-		xmlDocDumpMemoryEnc(p7_message->xml_doc, &p7_message->xml_buffer, &p7_message->xml_length, "UTF-8");
+		xmlDocDumpMemoryEnc(doc, &p7_message->xml_buffer, &p7_message->xml_length, "UTF-8");
+		xmlFreeDoc(doc);
 	}
 }
 
 
 
-void wi_p7_message_deserialize(wi_p7_message_t *p7_message) {
+void wi_p7_message_deserialize(wi_p7_message_t *p7_message, wi_p7_serialization_t serialization) {
+	xmlDocPtr					doc;
+	xmlNodePtr					root_node, field_node;
+	wi_string_t					*field_name, *field_value, *field_type;
 	wi_p7_spec_message_t		*message;
+	wi_p7_spec_type_t			*type;
+	wi_uuid_t					*uuid;
+	wi_date_t					*date;
+	wi_data_t					*data;
 	
-	if(p7_message->serialization == WI_P7_BINARY) {
+	if(serialization == WI_P7_BINARY) {
 		p7_message->binary_id = wi_read_swap_big_to_host_int32(p7_message->binary_buffer, 0);
 		
 		message = wi_p7_spec_message_with_id(p7_message->spec, p7_message->binary_id);
@@ -960,14 +835,97 @@ void wi_p7_message_deserialize(wi_p7_message_t *p7_message) {
 		if(message)
 			p7_message->name = wi_retain(wi_p7_spec_message_name(message));
 	} else {
-		p7_message->xml_doc = xmlParseDoc((xmlChar *) wi_string_cstring(p7_message->xml_string));
+		doc			= xmlParseDoc((xmlChar *) wi_string_cstring(p7_message->xml_string));
+		root_node	= xmlDocGetRootElement(doc);
 		
-		if(p7_message->xml_doc) {
-			p7_message->xml_root_node = xmlDocGetRootElement(p7_message->xml_doc);
-			
-			if(p7_message->xml_root_node)
-				p7_message->name = wi_retain(wi_xml_node_attribute_with_name(p7_message->xml_root_node, WI_STR("name")));
+		p7_message->binary_capacity	= _WI_P7_MESSAGE_BINARY_BUFFER_INITIAL_SIZE;
+		p7_message->binary_buffer	= wi_malloc(p7_message->binary_capacity);
+		p7_message->binary_size		= WI_P7_MESSAGE_BINARY_HEADER_SIZE;
+		
+		wi_p7_message_set_name(p7_message, wi_xml_node_attribute_with_name(root_node, WI_STR("name")));
+		
+		for(field_node = root_node->children; field_node != NULL; field_node = field_node->next) {
+			if(field_node->type == XML_ELEMENT_NODE) {
+				if(wi_is_equal(wi_xml_node_name(field_node), WI_STR("field"))) {
+					field_name		= wi_xml_node_attribute_with_name(field_node, WI_STR("name"));
+					field_type		= wi_xml_node_attribute_with_name(field_node, WI_STR("type"));
+					field_value		= wi_xml_node_content(field_node);
+					
+					if(!field_name || !field_type || !field_value)
+						continue;
+					
+					type = wi_p7_spec_type_with_name(p7_message->spec, field_type);
+					
+					if(!type)
+						continue;
+					
+					switch(wi_p7_spec_type_id(type)) {
+						case WI_P7_BOOL:
+							wi_p7_message_set_bool_for_name(p7_message, wi_string_bool(field_value), field_name);
+							break;
+							
+						case WI_P7_ENUM:
+							wi_p7_message_set_enum_for_name(p7_message, wi_string_uint32(field_value), field_name);
+							break;
+							
+						case WI_P7_INT32:
+							wi_p7_message_set_int32_for_name(p7_message, wi_string_int32(field_value), field_name);
+							break;
+							
+						case WI_P7_UINT32:
+							wi_p7_message_set_uint32_for_name(p7_message, wi_string_uint32(field_value), field_name);
+							break;
+							
+						case WI_P7_INT64:
+							wi_p7_message_set_int64_for_name(p7_message, wi_string_int64(field_value), field_name);
+							break;
+							
+						case WI_P7_UINT64:
+							wi_p7_message_set_uint64_for_name(p7_message, wi_string_uint64(field_value), field_name);
+							break;
+							
+						case WI_P7_DOUBLE:
+							wi_p7_message_set_double_for_name(p7_message, wi_string_double(field_value), field_name);
+							break;
+							
+						case WI_P7_STRING:
+							wi_p7_message_set_string_for_name(p7_message, field_value, field_name);
+							break;
+							
+						case WI_P7_UUID:
+							uuid = wi_uuid_with_string(field_value);
+
+							if(uuid)
+								wi_p7_message_set_uuid_for_name(p7_message, uuid, field_name);
+							break;
+							
+						case WI_P7_DATE:
+							date = wi_date_with_rfc3339_string(field_value);
+							
+							if(date)
+								wi_p7_message_set_date_for_name(p7_message, date, field_name);
+							break;
+							
+						case WI_P7_DATA:
+							data = wi_autorelease(wi_data_init_with_base64(wi_data_alloc(), field_value));
+							
+							if(data)
+								wi_p7_message_set_data_for_name(p7_message, data, field_name);
+							break;
+						
+						case WI_P7_OOBDATA:
+							wi_p7_message_set_oobdata_for_name(p7_message, wi_string_uint64(field_value), field_name);
+							break;
+						
+						case WI_P7_LIST:
+							WI_ASSERT(0, "Can't deserialize XML with lists at the moment");
+							break;
+					}
+				}
+			}
 		}
+		
+		xmlFreeDoc(doc);
 	}
 }
 
@@ -978,23 +936,21 @@ void wi_p7_message_deserialize(wi_p7_message_t *p7_message) {
 wi_boolean_t wi_p7_message_set_name(wi_p7_message_t *p7_message, wi_string_t *name) {
 	wi_p7_spec_message_t		*message;
 	
-	if(p7_message->serialization == WI_P7_BINARY) {
-		message = wi_p7_spec_message_with_name(p7_message->spec, name);
+	message = wi_p7_spec_message_with_name(p7_message->spec, name);
 
-		if(!message) {
-			wi_error_set_libwired_error_with_format(WI_ERROR_P7_UNKNOWNMESSAGE,
-				WI_STR("No id found for message \"%@\""), name);
-			
-			if(wi_p7_message_debug)
-				wi_log_debug(WI_STR("wi_p7_message_set_name: %m"));
+	if(!message) {
+		wi_error_set_libwired_error_with_format(WI_ERROR_P7_UNKNOWNMESSAGE,
+			WI_STR("No id found for message \"%@\""), name);
+		
+		if(wi_p7_message_debug)
+			wi_log_debug(WI_STR("wi_p7_message_set_name: %m"));
 
-			return false;
-		}
-		
-		p7_message->binary_id = wi_p7_spec_message_id(message);
-		
-		wi_write_swap_host_to_big_int32(p7_message->binary_buffer, 0, p7_message->binary_id);
+		return false;
 	}
+	
+	p7_message->binary_id = wi_p7_spec_message_id(message);
+	
+	wi_write_swap_host_to_big_int32(p7_message->binary_buffer, 0, p7_message->binary_id);
 	
 	wi_retain(name);
 	wi_release(p7_message->name);
@@ -1014,61 +970,40 @@ wi_string_t * wi_p7_message_name(wi_p7_message_t *p7_message) {
 
 #pragma mark -
 
-wi_p7_serialization_t wi_p7_message_serialization(wi_p7_message_t *p7_message) {
-	return p7_message->serialization;
-}
-
-
-
 wi_dictionary_t * wi_p7_message_fields(wi_p7_message_t *p7_message) {
 	wi_p7_spec_field_t		*field;
 	wi_dictionary_t			*fields;
 	wi_string_t				*field_name, *field_value;
-	xmlNodePtr				node;
 	unsigned char			*buffer, *start;
 	uint32_t				message_size, field_id, field_size;
 	
 	fields = wi_dictionary_init(wi_dictionary_alloc());
 
-	if(p7_message->serialization == WI_P7_BINARY) {
-		message_size = p7_message->binary_size - WI_P7_MESSAGE_BINARY_HEADER_SIZE;
-		buffer = start = p7_message->binary_buffer + WI_P7_MESSAGE_BINARY_HEADER_SIZE;
+	message_size = p7_message->binary_size - WI_P7_MESSAGE_BINARY_HEADER_SIZE;
+	buffer = start = p7_message->binary_buffer + WI_P7_MESSAGE_BINARY_HEADER_SIZE;
+	
+	while((uint32_t) (buffer - start) < message_size) {
+		field_id	= wi_read_swap_big_to_host_int32(buffer, 0);
+		buffer		+= sizeof(field_id);
+		field		= wi_p7_spec_field_with_id(p7_message->spec, field_id);
+
+		if(!field)
+			continue;
 		
-		while((uint32_t) (buffer - start) < message_size) {
-			field_id	= wi_read_swap_big_to_host_int32(buffer, 0);
-			buffer		+= sizeof(field_id);
-			field		= wi_p7_spec_field_with_id(p7_message->spec, field_id);
-
-			if(!field)
-				continue;
+		field_size	= wi_p7_spec_field_size(field);
+		
+		if(field_size == 0) {
+			field_size = wi_read_swap_big_to_host_int32(buffer, 0);
 			
-			field_size	= wi_p7_spec_field_size(field);
-			
-			if(field_size == 0) {
-				field_size = wi_read_swap_big_to_host_int32(buffer, 0);
-				
-				buffer += sizeof(field_size);
-			}
-			
-			field_name		= wi_p7_spec_field_name(field);
-			field_value		= _wi_p7_message_field_string_value(p7_message, field);
-
-			wi_dictionary_set_data_for_key(fields, field_value, field_name);
-
-			buffer += field_size;
+			buffer += sizeof(field_size);
 		}
-	} else {
-		if(p7_message->xml_root_node) {
-			for(node = p7_message->xml_root_node->children; node != NULL; node = node->next) {
-				if(node->type == XML_ELEMENT_NODE) {
-					field_name		= wi_xml_node_attribute_with_name(node, WI_STR("name"));
-					field			= wi_p7_spec_field_with_name(p7_message->spec, field_name);
-					field_value		= _wi_p7_message_field_string_value(p7_message, field);
-					
-					wi_dictionary_set_data_for_key(fields, field_value, field_name);
-				}
-			}
-		}
+		
+		field_name		= wi_p7_spec_field_name(field);
+		field_value		= _wi_p7_message_field_string_value(p7_message, field);
+
+		wi_dictionary_set_data_for_key(fields, field_value, field_name);
+
+		buffer += field_size;
 	}
 	
 	return wi_autorelease(fields);
@@ -1093,8 +1028,6 @@ wi_boolean_t wi_p7_message_set_bool_for_name(wi_p7_message_t *p7_message, wi_p7_
 	unsigned char	*binary;
 	uint32_t		field_id;
 
-	WI_ASSERT(p7_message->serialization == WI_P7_BINARY, "Message is not editable");
-	
 	if(!_wi_p7_message_get_binary_buffer_for_writing_for_name(p7_message, field_name, 0, &binary, &field_id))
 		return false;
 	
@@ -1108,24 +1041,12 @@ wi_boolean_t wi_p7_message_set_bool_for_name(wi_p7_message_t *p7_message, wi_p7_
 
 
 wi_boolean_t wi_p7_message_get_bool_for_name(wi_p7_message_t *p7_message, wi_p7_boolean_t *value, wi_string_t *field_name) {
-	wi_string_t		*string;
 	unsigned char	*binary;
 	
-	if(p7_message->serialization == WI_P7_BINARY) {
-		if(!_wi_p7_message_get_binary_buffer_for_reading_for_name(p7_message, field_name, &binary, NULL))
-			return false;
-		
-		*value = (binary[0] == 1) ? true : false;
-	} else {
-		string = _wi_p7_message_xml_copy_value_for_name(p7_message, field_name);
-		
-		if(!string)
-			return false;
-		
-		*value = wi_string_bool(string);
-		
-		wi_release(string);
-	}
+	if(!_wi_p7_message_get_binary_buffer_for_reading_for_name(p7_message, field_name, &binary, NULL))
+		return false;
+	
+	*value = (binary[0] == 1) ? true : false;
 	
 	return true;
 }
@@ -1139,24 +1060,12 @@ wi_boolean_t wi_p7_message_set_enum_for_name(wi_p7_message_t *p7_message, wi_p7_
 
 
 wi_boolean_t wi_p7_message_get_enum_for_name(wi_p7_message_t *p7_message, wi_p7_enum_t *value, wi_string_t *field_name) {
-	wi_string_t		*string;
 	wi_p7_uint32_t	p7_uint32;
 	
-	if(p7_message->serialization == WI_P7_BINARY) {
-		if(!wi_p7_message_get_uint32_for_name(p7_message, &p7_uint32, field_name))
-			return false;
-		
-		*value = (wi_p7_enum_t) p7_uint32;
-	} else {
-		string = _wi_p7_message_xml_copy_value_for_name(p7_message, field_name);
-		
-		if(!string)
-			return false;
-		
-		*value = wi_string_uint32(string);
-		
-		wi_release(string);
-	}
+	if(!wi_p7_message_get_uint32_for_name(p7_message, &p7_uint32, field_name))
+		return false;
+	
+	*value = (wi_p7_enum_t) p7_uint32;
 	
 	return true;
 }
@@ -1167,8 +1076,6 @@ wi_boolean_t wi_p7_message_set_int32_for_name(wi_p7_message_t *p7_message, wi_p7
 	unsigned char	*binary;
 	uint32_t		field_id;
 
-	WI_ASSERT(p7_message->serialization == WI_P7_BINARY, "Message is not editable");
-	
 	if(!_wi_p7_message_get_binary_buffer_for_writing_for_name(p7_message, field_name, 0, &binary, &field_id))
 		return false;
 	
@@ -1181,24 +1088,12 @@ wi_boolean_t wi_p7_message_set_int32_for_name(wi_p7_message_t *p7_message, wi_p7
 
 
 wi_boolean_t wi_p7_message_get_int32_for_name(wi_p7_message_t *p7_message, wi_p7_int32_t *value, wi_string_t *field_name) {
-	wi_string_t		*string;
 	unsigned char	*binary;
 	
-	if(p7_message->serialization == WI_P7_BINARY) {
-		if(!_wi_p7_message_get_binary_buffer_for_reading_for_name(p7_message, field_name, &binary, NULL))
-			return false;
-		
-		*value = wi_read_swap_big_to_host_int32(binary, 0);
-	} else {
-		string = _wi_p7_message_xml_copy_value_for_name(p7_message, field_name);
-		
-		if(!string)
-			return false;
-		
-		*value = wi_string_int32(string);
-		
-		wi_release(string);
-	}
+	if(!_wi_p7_message_get_binary_buffer_for_reading_for_name(p7_message, field_name, &binary, NULL))
+		return false;
+	
+	*value = wi_read_swap_big_to_host_int32(binary, 0);
 	
 	return true;
 }
@@ -1212,24 +1107,12 @@ wi_boolean_t wi_p7_message_set_uint32_for_name(wi_p7_message_t *p7_message, wi_p
 
 
 wi_boolean_t wi_p7_message_get_uint32_for_name(wi_p7_message_t *p7_message, wi_p7_uint32_t *value, wi_string_t *field_name) {
-	wi_string_t		*string;
 	wi_p7_int32_t	p7_int32;
 	
-	if(p7_message->serialization == WI_P7_BINARY) {
-		if(!wi_p7_message_get_int32_for_name(p7_message, &p7_int32, field_name))
-			return false;
-		
-		*value = (wi_p7_uint32_t) p7_int32;
-	} else {
-		string = _wi_p7_message_xml_copy_value_for_name(p7_message, field_name);
-		
-		if(!string)
-			return false;
-		
-		*value = wi_string_uint32(string);
-		
-		wi_release(string);
-	}
+	if(!wi_p7_message_get_int32_for_name(p7_message, &p7_int32, field_name))
+		return false;
+	
+	*value = (wi_p7_uint32_t) p7_int32;
 	
 	return true;
 }
@@ -1240,8 +1123,6 @@ wi_boolean_t wi_p7_message_set_int64_for_name(wi_p7_message_t *p7_message, wi_p7
 	unsigned char	*binary;
 	uint32_t		field_id;
 
-	WI_ASSERT(p7_message->serialization == WI_P7_BINARY, "Message is not editable");
-	
 	if(!_wi_p7_message_get_binary_buffer_for_writing_for_name(p7_message, field_name, 0, &binary, &field_id))
 		return false;
 	
@@ -1254,24 +1135,12 @@ wi_boolean_t wi_p7_message_set_int64_for_name(wi_p7_message_t *p7_message, wi_p7
 
 
 wi_boolean_t wi_p7_message_get_int64_for_name(wi_p7_message_t *p7_message, wi_p7_int64_t *value, wi_string_t *field_name) {
-	wi_string_t		*string;
 	unsigned char	*binary;
 	
-	if(p7_message->serialization == WI_P7_BINARY) {
-		if(!_wi_p7_message_get_binary_buffer_for_reading_for_name(p7_message, field_name, &binary, NULL))
-			return false;
-		
-		*value = wi_read_swap_big_to_host_int64(binary, 0);
-	} else {
-		string = _wi_p7_message_xml_copy_value_for_name(p7_message, field_name);
-		
-		if(!string)
-			return false;
-		
-		*value = wi_string_int64(string);
-		
-		wi_release(string);
-	}
+	if(!_wi_p7_message_get_binary_buffer_for_reading_for_name(p7_message, field_name, &binary, NULL))
+		return false;
+	
+	*value = wi_read_swap_big_to_host_int64(binary, 0);
 	
 	return true;
 }
@@ -1285,24 +1154,12 @@ wi_boolean_t wi_p7_message_set_uint64_for_name(wi_p7_message_t *p7_message, wi_p
 
 
 wi_boolean_t wi_p7_message_get_uint64_for_name(wi_p7_message_t *p7_message, wi_p7_uint64_t *value, wi_string_t *field_name) {
-	wi_string_t		*string;
 	wi_p7_int64_t	p7_int64;
 	
-	if(p7_message->serialization == WI_P7_BINARY) {
-		if(!wi_p7_message_get_int64_for_name(p7_message, &p7_int64, field_name))
-			return false;
-		
-		*value = (wi_p7_uint64_t) p7_int64;
-	} else {
-		string = _wi_p7_message_xml_copy_value_for_name(p7_message, field_name);
-		
-		if(!string)
-			return false;
-		
-		*value = wi_string_uint64(string);
-		
-		wi_release(string);
-	}
+	if(!wi_p7_message_get_int64_for_name(p7_message, &p7_int64, field_name))
+		return false;
+	
+	*value = (wi_p7_uint64_t) p7_int64;
 	
 	return true;
 }
@@ -1326,24 +1183,12 @@ wi_boolean_t wi_p7_message_set_double_for_name(wi_p7_message_t *p7_message, wi_p
 
 
 wi_boolean_t wi_p7_message_get_double_for_name(wi_p7_message_t *p7_message, wi_p7_double_t *value, wi_string_t *field_name) {
-	wi_string_t		*string;
 	unsigned char	*binary;
 	
-	if(p7_message->serialization == WI_P7_BINARY) {
-		if(!_wi_p7_message_get_binary_buffer_for_reading_for_name(p7_message, field_name, &binary, NULL))
-			return false;
-		
-		*value = _wi_p7_message_ieee754_to_double(binary);
-	} else {
-		string = _wi_p7_message_xml_copy_value_for_name(p7_message, field_name);
-		
-		if(!string)
-			return false;
-		
-		*value = wi_string_double(string);
-		
-		wi_release(string);
-	}
+	if(!_wi_p7_message_get_binary_buffer_for_reading_for_name(p7_message, field_name, &binary, NULL))
+		return false;
+	
+	*value = _wi_p7_message_ieee754_to_double(binary);
 	
 	return true;
 }
@@ -1354,8 +1199,6 @@ wi_boolean_t wi_p7_message_set_oobdata_for_name(wi_p7_message_t *p7_message, wi_
 	unsigned char	*binary;
 	uint32_t		field_id;
 
-	WI_ASSERT(p7_message->serialization == WI_P7_BINARY, "Message is not editable");
-	
 	if(!_wi_p7_message_get_binary_buffer_for_writing_for_name(p7_message, field_name, 0, &binary, &field_id))
 		return false;
 	
@@ -1368,24 +1211,12 @@ wi_boolean_t wi_p7_message_set_oobdata_for_name(wi_p7_message_t *p7_message, wi_
 
 
 wi_boolean_t wi_p7_message_get_oobdata_for_name(wi_p7_message_t *p7_message, wi_p7_oobdata_t *value, wi_string_t *field_name) {
-	wi_string_t		*string;
 	unsigned char	*binary;
 	
-	if(p7_message->serialization == WI_P7_BINARY) {
-		if(!_wi_p7_message_get_binary_buffer_for_reading_for_name(p7_message, field_name, &binary, NULL))
-			return false;
-		
-		*value = wi_read_swap_big_to_host_int64(binary, 0);
-	} else {
-		string = _wi_p7_message_xml_copy_value_for_name(p7_message, field_name);
-		
-		if(!string)
-			return false;
-		
-		*value = wi_string_uint64(string);
-		
-		wi_release(string);
-	}
+	if(!_wi_p7_message_get_binary_buffer_for_reading_for_name(p7_message, field_name, &binary, NULL))
+		return false;
+	
+	*value = wi_read_swap_big_to_host_int64(binary, 0);
 	
 	return true;
 }
@@ -1397,8 +1228,6 @@ wi_boolean_t wi_p7_message_get_oobdata_for_name(wi_p7_message_t *p7_message, wi_
 wi_boolean_t wi_p7_message_set_string_for_name(wi_p7_message_t *p7_message, wi_string_t *string, wi_string_t *field_name) {
 	unsigned char	*binary;
 	uint32_t		field_size, field_id;
-	
-	WI_ASSERT(p7_message->serialization == WI_P7_BINARY, "Message is not editable");
 	
 	if(!string)
 		string = WI_STR("");
@@ -1419,23 +1248,13 @@ wi_boolean_t wi_p7_message_set_string_for_name(wi_p7_message_t *p7_message, wi_s
 
 
 wi_string_t * wi_p7_message_string_for_name(wi_p7_message_t *p7_message, wi_string_t *field_name) {
-	wi_string_t		*string;
 	unsigned char	*binary;
 	uint32_t		field_size;
 	
-	if(p7_message->serialization == WI_P7_BINARY) {
-		if(!_wi_p7_message_get_binary_buffer_for_reading_for_name(p7_message, field_name, &binary, &field_size))
-			return NULL;
-		
-		return wi_string_with_bytes(binary, field_size - 1);
-	} else {
-		string = wi_autorelease(_wi_p7_message_xml_copy_value_for_name(p7_message, field_name));
-		
-		if(!string)
-			return NULL;
-		
-		return string;
-	}
+	if(!_wi_p7_message_get_binary_buffer_for_reading_for_name(p7_message, field_name, &binary, &field_size))
+		return NULL;
+	
+	return wi_string_with_bytes(binary, field_size - 1);
 }
 
 
@@ -1443,8 +1262,6 @@ wi_string_t * wi_p7_message_string_for_name(wi_p7_message_t *p7_message, wi_stri
 wi_boolean_t wi_p7_message_set_data_for_name(wi_p7_message_t *p7_message, wi_data_t *data, wi_string_t *field_name) {
 	unsigned char	*binary;
 	uint32_t		field_size, field_id;
-	
-	WI_ASSERT(p7_message->serialization == WI_P7_BINARY, "Message is not editable");
 	
 	if(!data)
 		data = wi_data();
@@ -1465,23 +1282,13 @@ wi_boolean_t wi_p7_message_set_data_for_name(wi_p7_message_t *p7_message, wi_dat
 
 
 wi_data_t * wi_p7_message_data_for_name(wi_p7_message_t *p7_message, wi_string_t *field_name) {
-	wi_string_t		*string;
 	unsigned char	*binary;
 	uint32_t		field_size;
 	
-	if(p7_message->serialization == WI_P7_BINARY) {
-		if(!_wi_p7_message_get_binary_buffer_for_reading_for_name(p7_message, field_name, &binary, &field_size))
-			return NULL;
-		
-		return wi_data_with_bytes(binary, field_size);
-	} else {
-		string = wi_autorelease(_wi_p7_message_xml_copy_value_for_name(p7_message, field_name));
-		
-		if(!string)
-			return NULL;
-		
-		return wi_autorelease(wi_data_init_with_base64(wi_data_alloc(), string));
-	}
+	if(!_wi_p7_message_get_binary_buffer_for_reading_for_name(p7_message, field_name, &binary, &field_size))
+		return NULL;
+	
+	return wi_data_with_bytes(binary, field_size);
 }
 
 
@@ -1527,16 +1334,12 @@ wi_number_t * wi_p7_message_number_for_name(wi_p7_message_t *p7_message, wi_stri
 	wi_p7_uint64_t			p7_uint64;
 	wi_p7_double_t			p7_double;
 	
-	if(p7_message->serialization == WI_P7_BINARY) {
-		field = wi_p7_spec_field_with_name(p7_message->spec, field_name);
-		
-		if(!field)
-			return NULL;
-		
-		type = wi_p7_spec_field_type(field);
-	} else {
-		type = _wi_p7_message_xml_type_for_name(p7_message, field_name);
-	}
+	field = wi_p7_spec_field_with_name(p7_message->spec, field_name);
+	
+	if(!field)
+		return NULL;
+	
+	type = wi_p7_spec_field_type(field);
 	
 	if(!type)
 		return NULL;
@@ -1647,8 +1450,6 @@ wi_boolean_t wi_p7_message_set_uuid_for_name(wi_p7_message_t *p7_message, wi_uui
 	unsigned char	*binary;
 	uint32_t		field_id;
 	
-	WI_ASSERT(p7_message->serialization == WI_P7_BINARY, "Message is not editable");
-	
 	if(!uuid)
 		return false;
 	
@@ -1665,22 +1466,12 @@ wi_boolean_t wi_p7_message_set_uuid_for_name(wi_p7_message_t *p7_message, wi_uui
 
 
 wi_uuid_t * wi_p7_message_uuid_for_name(wi_p7_message_t *p7_message, wi_string_t *field_name) {
-	wi_string_t		*string;
 	unsigned char	*binary;
 	
-	if(p7_message->serialization == WI_P7_BINARY) {
-		if(!_wi_p7_message_get_binary_buffer_for_reading_for_name(p7_message, field_name, &binary, NULL))
-			return false;
-		
-		return wi_uuid_with_bytes(binary);
-	} else {
-		string = wi_autorelease(_wi_p7_message_xml_copy_value_for_name(p7_message, field_name));
-		
-		if(!string)
-			return NULL;
-		
-		return wi_uuid_with_string(string);
-	}
+	if(!_wi_p7_message_get_binary_buffer_for_reading_for_name(p7_message, field_name, &binary, NULL))
+		return false;
+	
+	return wi_uuid_with_bytes(binary);
 	
 	return NULL;
 }
@@ -1691,8 +1482,6 @@ wi_boolean_t wi_p7_message_set_date_for_name(wi_p7_message_t *p7_message, wi_dat
 	wi_string_t		*string;
 	unsigned char	*binary;
 	uint32_t		field_id, field_size;
-	
-	WI_ASSERT(p7_message->serialization == WI_P7_BINARY, "Message is not editable");
 	
 	if(!date)
 		date = wi_date();
@@ -1713,23 +1502,13 @@ wi_boolean_t wi_p7_message_set_date_for_name(wi_p7_message_t *p7_message, wi_dat
 
 
 wi_date_t * wi_p7_message_date_for_name(wi_p7_message_t *p7_message, wi_string_t *field_name) {
-	wi_string_t		*string;
 	unsigned char	*binary;
 	uint32_t		field_size;
 	
-	if(p7_message->serialization == WI_P7_BINARY) {
-		if(!_wi_p7_message_get_binary_buffer_for_reading_for_name(p7_message, field_name, &binary, &field_size))
-			return NULL;
-		
-		return wi_date_with_rfc3339_string(wi_string_with_bytes_no_copy(binary, field_size - 1, false));
-	} else {
-		string = wi_autorelease(_wi_p7_message_xml_copy_value_for_name(p7_message, field_name));
-		
-		if(!string)
-			return NULL;
-		
-		return wi_date_with_rfc3339_string(string);
-	}
+	if(!_wi_p7_message_get_binary_buffer_for_reading_for_name(p7_message, field_name, &binary, &field_size))
+		return NULL;
+	
+	return wi_date_with_rfc3339_string(wi_string_with_bytes_no_copy(binary, field_size - 1, false));
 	
 	return NULL;
 }
@@ -1741,8 +1520,6 @@ wi_boolean_t wi_p7_message_set_list_for_name(wi_p7_message_t *p7_message, wi_arr
 	unsigned char			*binary;
 	wi_uinteger_t			i, count, offset;
 	uint32_t				field_id, field_size, string_size;
-	
-	WI_ASSERT(p7_message->serialization == WI_P7_BINARY, "Message is not editable");
 	
 	count = wi_array_count(list);
 	field_size = 0;
@@ -1790,8 +1567,6 @@ wi_boolean_t wi_p7_message_set_list_for_name(wi_p7_message_t *p7_message, wi_arr
 
 
 wi_array_t * wi_p7_message_list_for_name(wi_p7_message_t *p7_message, wi_string_t *field_name) {
-	xmlNodePtr				listnode, itemnode;
-	xmlChar					*content;
 	wi_p7_spec_field_t		*field;
 	wi_p7_spec_type_t		*listtype;
 	wi_array_t				*list;
@@ -1827,41 +1602,23 @@ wi_array_t * wi_p7_message_list_for_name(wi_p7_message_t *p7_message, wi_string_
 	
 	list = wi_array();
 		
-	if(p7_message->serialization == WI_P7_BINARY) {
-		if(!_wi_p7_message_get_binary_buffer_for_reading_for_name(p7_message, field_name, &binary, &field_size))
-			return NULL;
-		
-		list_size = 0;
-		
-		while(list_size < field_size) {
-			if(listtype_id == WI_P7_STRING) {
-				string_size = wi_read_swap_big_to_host_int32(binary, list_size);
-				
-				list_size += 4;
-				
-				instance = wi_string_with_bytes(binary + list_size, string_size - 1);
-				
-				list_size += string_size;
-			}
+	if(!_wi_p7_message_get_binary_buffer_for_reading_for_name(p7_message, field_name, &binary, &field_size))
+		return NULL;
+	
+	list_size = 0;
+	
+	while(list_size < field_size) {
+		if(listtype_id == WI_P7_STRING) {
+			string_size = wi_read_swap_big_to_host_int32(binary, list_size);
 			
-			wi_array_add_data(list, instance);
+			list_size += 4;
+			
+			instance = wi_string_with_bytes(binary + list_size, string_size - 1);
+			
+			list_size += string_size;
 		}
-	} else {
-		listnode = _wi_p7_message_xml_node_for_name(p7_message, wi_string_cstring(field_name));
 		
-		for(itemnode = listnode->children; itemnode != NULL; itemnode = itemnode->next) {
-			if(itemnode->type == XML_ELEMENT_NODE) {
-				content = xmlNodeGetContent(itemnode);
-				
-				if(!content)
-					continue;
-				
-				if(listtype_id == WI_P7_STRING)
-					instance = wi_string_with_cstring_no_copy((char *) content, true);
-				
-				wi_array_add_data(list, instance);
-			}
-		}
+		wi_array_add_data(list, instance);
 	}
 	
 	return list;
@@ -1874,9 +1631,6 @@ wi_array_t * wi_p7_message_list_for_name(wi_p7_message_t *p7_message, wi_string_
 wi_boolean_t wi_p7_message_write_binary(wi_p7_message_t *p7_message, const void *buffer, uint32_t field_size, wi_uinteger_t field_id) {
 	wi_p7_spec_field_t	*field;
 	unsigned char		*binary;
-	
-	if(p7_message->serialization != WI_P7_BINARY)
-		return false;
 	
 	if(!_wi_p7_message_get_binary_buffer_for_writing_for_id(p7_message, field_id, field_size, &binary))
 		return false;
@@ -1899,29 +1653,7 @@ wi_boolean_t wi_p7_message_write_binary(wi_p7_message_t *p7_message, const void 
 
 
 wi_boolean_t wi_p7_message_read_binary(wi_p7_message_t *p7_message, unsigned char **buffer, uint32_t *field_size, wi_uinteger_t field_id) {
-	if(p7_message->serialization != WI_P7_BINARY)
-		return false;
-	
 	return _wi_p7_message_get_binary_buffer_for_reading_for_id(p7_message, field_id, buffer, field_size);
-}
-
-
-
-char * wi_p7_message_copy_xml_for_name(wi_p7_message_t *p7_message, const char *field_name) {
-	xmlNodePtr		node;
-	xmlChar			*content;
-	
-	node = _wi_p7_message_xml_node_for_name(p7_message, field_name);
-	
-	if(!node)
-		return NULL;
-	
-	content = xmlNodeGetContent(node);
-	
-	if(!content)
-		return NULL;
-	
-	return (char *) content;
 }
 
 #endif

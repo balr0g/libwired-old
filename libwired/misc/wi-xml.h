@@ -33,6 +33,7 @@
 #include <wired/wi-runtime.h>
 
 WI_EXPORT wi_string_t *				wi_xml_node_name(void *);
+void *								wi_xml_node_child_with_name(void *, wi_string_t *);
 WI_EXPORT wi_string_t *				wi_xml_node_attribute_with_name(void *, wi_string_t *);
 WI_EXPORT wi_integer_t				wi_xml_node_integer_attribute_with_name(void *, wi_string_t *);
 WI_EXPORT void						wi_xml_node_set_content(void *, wi_string_t *);

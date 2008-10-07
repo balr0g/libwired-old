@@ -1534,74 +1534,48 @@ wi_p7_spec_message_t * wi_p7_spec_message_with_id(wi_p7_spec_t *p7_spec, wi_uint
 #pragma mark -
 
 wi_boolean_t wi_p7_spec_verify_message(wi_p7_spec_t *p7_spec, wi_p7_message_t *p7_message) {
-	wi_string_t				*field_name;
 	wi_p7_spec_message_t	*message;
 	wi_p7_spec_field_t		*field;
 	wi_p7_spec_parameter_t	*parameter;
-	xmlNodePtr				node;
 	unsigned char			*buffer, *start;
 	wi_uinteger_t			required_parameters = 0;
 	uint32_t				message_size, field_id, field_size;
 	
-	if(p7_message->serialization == WI_P7_BINARY) {
-		message = wi_dictionary_data_for_key(p7_spec->messages_id, (void *) (intptr_t) p7_message->binary_id);
+	message = wi_dictionary_data_for_key(p7_spec->messages_id, (void *) (intptr_t) p7_message->binary_id);
+	
+	if(!message) {
+		wi_error_set_libwired_error_with_format(WI_ERROR_P7_UNKNOWNMESSAGE,
+			WI_STR("Message with id %u not recognized"),
+			p7_message->binary_id);
 		
-		if(!message) {
-			wi_error_set_libwired_error_with_format(WI_ERROR_P7_UNKNOWNMESSAGE,
-				WI_STR("Message with id %u not recognized"),
-				p7_message->binary_id);
-			
-			return false;
-		}
+		return false;
+	}
 
-		message_size = p7_message->binary_size - WI_P7_MESSAGE_BINARY_HEADER_SIZE;
-		buffer = start = p7_message->binary_buffer + WI_P7_MESSAGE_BINARY_HEADER_SIZE;
-		
-		while((uint32_t) (buffer - start) < message_size) {
-			field_id	= wi_read_swap_big_to_host_int32(buffer, 0);
-			buffer		+= sizeof(field_id);
-			field		= wi_p7_spec_field_with_id(p7_message->spec, field_id);
-		
-			if(!field)
-				continue;
+	message_size = p7_message->binary_size - WI_P7_MESSAGE_BINARY_HEADER_SIZE;
+	buffer = start = p7_message->binary_buffer + WI_P7_MESSAGE_BINARY_HEADER_SIZE;
+	
+	while((uint32_t) (buffer - start) < message_size) {
+		field_id	= wi_read_swap_big_to_host_int32(buffer, 0);
+		buffer		+= sizeof(field_id);
+		field		= wi_p7_spec_field_with_id(p7_spec, field_id);
+	
+		if(!field)
+			continue;
 
-			field_size	= wi_p7_spec_field_size(field);
-			
-			if(field_size == 0) {
-				field_size = wi_read_swap_big_to_host_int32(buffer, 0);
-				
-				buffer += sizeof(field_size);
-			}
-			
-			parameter = wi_dictionary_data_for_key(message->parameters_id, (void *) (intptr_t) field_id);
-			
-			if(parameter && parameter->required)
-				required_parameters++;
-			
-			buffer += field_size;
-		}
-	} else {
-		message = wi_dictionary_data_for_key(p7_spec->messages_name, p7_message->name);
+		field_size	= wi_p7_spec_field_size(field);
 		
-		if(!message) {
-			wi_error_set_libwired_error_with_format(WI_ERROR_P7_UNKNOWNMESSAGE,
-				WI_STR("Message with name \"%@\" not recognized"),
-				p7_message->name);
+		if(field_size == 0) {
+			field_size = wi_read_swap_big_to_host_int32(buffer, 0);
 			
-			return false;
+			buffer += sizeof(field_size);
 		}
-
-		if(p7_message->xml_root_node) {
-			for(node = p7_message->xml_root_node->children; node != NULL; node = node->next) {
-				if(node->type == XML_ELEMENT_NODE) {
-					field_name = wi_xml_node_attribute_with_name(node, WI_STR("name"));
-					parameter = wi_dictionary_data_for_key(message->parameters_name, field_name);
-					
-					if(parameter && parameter->required)
-						required_parameters++;
-				}
-			}
-		}
+		
+		parameter = wi_dictionary_data_for_key(message->parameters_id, (void *) (intptr_t) field_id);
+		
+		if(parameter && parameter->required)
+			required_parameters++;
+		
+		buffer += field_size;
 	}
 	
 	if(required_parameters != message->required_parameters) {

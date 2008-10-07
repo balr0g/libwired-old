@@ -1280,8 +1280,7 @@ static wi_p7_message_t * _wi_p7_socket_read_binary_message(wi_p7_socket_t *p7_so
 		return NULL;
 	}
 
-	p7_message = wi_autorelease(wi_p7_message_init_with_serialization(wi_p7_message_alloc(),
-		WI_P7_BINARY, wi_p7_socket_spec(p7_socket)));
+	p7_message = wi_autorelease(wi_p7_message_init(wi_p7_message_alloc(), wi_p7_socket_spec(p7_socket)));
 	p7_message->binary_capacity = message_size;
 	p7_message->binary_buffer = wi_malloc(p7_message->binary_capacity);
 	
@@ -1368,8 +1367,7 @@ static wi_p7_message_t * _wi_p7_socket_read_xml_message(wi_p7_socket_t *p7_socke
 	wi_p7_message_t		*p7_message;
 	wi_uinteger_t		length;
 	
-	p7_message = wi_autorelease(wi_p7_message_init_with_serialization(wi_p7_message_alloc(),
-		WI_P7_XML, wi_p7_socket_spec(p7_socket)));
+	p7_message = wi_autorelease(wi_p7_message_init(wi_p7_message_alloc(), wi_p7_socket_spec(p7_socket)));
 	
 	while(true) {
 		string = wi_socket_read_to_string(p7_socket->socket, timeout, WI_STR(">"));
@@ -1708,7 +1706,7 @@ wi_p7_message_t * wi_p7_socket_read_message(wi_p7_socket_t *p7_socket, wi_time_i
 		return NULL;
 	}
 	
-	wi_p7_message_deserialize(p7_message);
+	wi_p7_message_deserialize(p7_message, p7_socket->serialization);
 	
 	if(wi_p7_socket_debug) {
 		wi_log_debug(WI_STR("Received %@"), p7_message);

@@ -50,6 +50,34 @@ wi_string_t * wi_xml_node_name(void *node) {
 
 
 
+void * wi_xml_node_child_with_name(void *node, wi_string_t *name) {
+	xmlNodePtr		found_node = NULL;
+	xmlChar			*prop;
+	const char		*string;
+	
+	string = wi_string_cstring(name);
+	
+	for(node = ((xmlNodePtr) node)->children; node != NULL; node = ((xmlNodePtr) node)->next) {
+		if(((xmlNodePtr) node)->type == XML_ELEMENT_NODE) {
+			prop = xmlGetProp(node, (xmlChar *) "name");
+			
+			if(prop) {
+				if(strcmp((const char *) prop, string) == 0)
+					found_node = node;
+				
+				xmlFree(prop);
+			}
+			
+			if(found_node)
+				return found_node;
+		}
+	}
+	
+	return NULL;
+}
+
+
+
 wi_string_t * wi_xml_node_attribute_with_name(void *node, wi_string_t *attribute) {
 	xmlChar			*prop;
 	wi_string_t		*string;

@@ -41,8 +41,6 @@ struct _wi_p7_message {
 	
 	wi_p7_spec_t							*spec;
 	
-	wi_p7_serialization_t					serialization;
-	
 	wi_string_t								*name;
 
 	unsigned char							*binary_buffer;
@@ -53,15 +51,12 @@ struct _wi_p7_message {
 	xmlChar									*xml_buffer;
 	int										xml_length;
 	wi_string_t								*xml_string;
-	xmlDocPtr								xml_doc;
-	xmlNsPtr								xml_ns;
-	xmlNodePtr								xml_root_node;
 };
 
 
-wi_p7_message_t *							wi_p7_message_init_with_serialization(wi_p7_message_t *, wi_p7_serialization_t, wi_p7_spec_t *);
+wi_p7_message_t *							wi_p7_message_init(wi_p7_message_t *, wi_p7_spec_t *);
 WI_EXPORT void								wi_p7_message_serialize(wi_p7_message_t *, wi_p7_serialization_t);
-WI_EXPORT void								wi_p7_message_deserialize(wi_p7_message_t *);
+WI_EXPORT void								wi_p7_message_deserialize(wi_p7_message_t *, wi_p7_serialization_t);
 
 WI_EXPORT wi_boolean_t						wi_p7_spec_is_compatible_with_protocol(wi_p7_spec_t *, wi_string_t *, wi_string_t *);
 

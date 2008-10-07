@@ -86,7 +86,6 @@ WI_EXPORT wi_p7_message_t *			wi_p7_message_init_with_bytes(wi_p7_message_t *, c
 WI_EXPORT wi_boolean_t				wi_p7_message_set_name(wi_p7_message_t *, wi_string_t *);
 WI_EXPORT wi_string_t *				wi_p7_message_name(wi_p7_message_t *);
 
-WI_EXPORT wi_p7_serialization_t		wi_p7_message_serialization(wi_p7_message_t *);
 WI_EXPORT wi_dictionary_t *			wi_p7_message_fields(wi_p7_message_t *);
 WI_EXPORT wi_data_t *				wi_p7_message_data_with_serialization(wi_p7_message_t *, wi_p7_serialization_t);
 
@@ -124,7 +123,6 @@ WI_EXPORT wi_array_t *				wi_p7_message_list_for_name(wi_p7_message_t *, wi_stri
 
 WI_EXPORT wi_boolean_t				wi_p7_message_write_binary(wi_p7_message_t *, const void *, uint32_t, wi_uinteger_t);
 WI_EXPORT wi_boolean_t				wi_p7_message_read_binary(wi_p7_message_t *, unsigned char **, uint32_t *, wi_uinteger_t);
-WI_EXPORT char *					wi_p7_message_copy_xml_for_name(wi_p7_message_t *, const char *);
 
 
 extern wi_boolean_t					wi_p7_message_debug;
