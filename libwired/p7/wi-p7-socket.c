@@ -1375,6 +1375,8 @@ static wi_p7_message_t * _wi_p7_socket_read_xml_message(wi_p7_socket_t *p7_socke
 		if(!string || wi_string_length(string) == 0)
 			return NULL;
 		
+		wi_string_delete_surrounding_whitespace(wi_socket_buffered_string(p7_socket->socket));
+
 		wi_string_delete_surrounding_whitespace(string);
 		
 		if(!p7_message->xml_string)

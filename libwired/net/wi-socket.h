@@ -141,4 +141,6 @@ WI_EXPORT wi_string_t *					wi_socket_read(wi_socket_t *, wi_time_interval_t, si
 WI_EXPORT wi_string_t *					wi_socket_read_to_string(wi_socket_t *, wi_time_interval_t, wi_string_t *);
 WI_EXPORT wi_integer_t					wi_socket_read_buffer(wi_socket_t *, wi_time_interval_t, void *, size_t);
 
+WI_EXPORT wi_string_t *					wi_socket_buffered_string(wi_socket_t *);
+
 #endif /* WI_SOCKET_H */

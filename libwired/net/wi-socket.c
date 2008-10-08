@@ -843,7 +843,7 @@ int wi_socket_error(wi_socket_t *socket) {
 
 wi_socket_t * wi_socket_wait_multiple(wi_array_t *array, wi_time_interval_t timeout) {
 	wi_enumerator_t		*enumerator;
-	wi_socket_t			*socket, *accept_socket = NULL;
+	wi_socket_t			*socket, *waiting_socket = NULL;
 	struct timeval		tv;
 	fd_set				rfds, wfds;
 	int					state, max_sd;
@@ -860,7 +860,7 @@ wi_socket_t * wi_socket_wait_multiple(wi_array_t *array, wi_time_interval_t time
 	
 	while((socket = wi_enumerator_next_data(enumerator))) {
 		if(wi_string_length(socket->buffer) > 0) {
-			accept_socket = socket;
+			waiting_socket = socket;
 			
 			break;
 		}
@@ -877,8 +877,8 @@ wi_socket_t * wi_socket_wait_multiple(wi_array_t *array, wi_time_interval_t time
 
 	wi_array_unlock(array);
 	
-	if(accept_socket)
-		return accept_socket;
+	if(waiting_socket)
+		return waiting_socket;
 	
 	state = select(max_sd + 1, &rfds, &wfds, NULL, (timeout > 0.0) ? &tv : NULL);
 	
@@ -894,7 +894,7 @@ wi_socket_t * wi_socket_wait_multiple(wi_array_t *array, wi_time_interval_t time
 	
 	while((socket = wi_enumerator_next_data(enumerator))) {
 		if(FD_ISSET(socket->sd, &rfds) || FD_ISSET(socket->sd, &wfds)) {
-			accept_socket = socket;
+			waiting_socket = socket;
 
 			break;
 		}
@@ -902,7 +902,7 @@ wi_socket_t * wi_socket_wait_multiple(wi_array_t *array, wi_time_interval_t time
 	
 	wi_array_unlock(array);
 	
-	return accept_socket;
+	return waiting_socket;
 }
 
 
@@ -1564,4 +1564,12 @@ wi_integer_t wi_socket_read_buffer(wi_socket_t *socket, wi_time_interval_t timeo
 #endif
 
 	return bytes;
+}
+
+
+
+#pragma mark -
+
+wi_string_t * wi_socket_buffered_string(wi_socket_t *socket) {
+	return socket->buffer;
 }
