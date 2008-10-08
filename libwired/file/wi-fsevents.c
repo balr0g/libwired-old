@@ -299,7 +299,7 @@ wi_boolean_t wi_fsevents_add_path(wi_fsevents_t *fsevents, wi_string_t *path) {
 			return false;
 		}
 		
-		EV_SET(&ev, fd, EVFILT_VNODE, EV_ADD | EV_ENABLE | EV_CLEAR, NOTE_WRITE, 0, path);
+		EV_SET(&ev, fd, EVFILT_VNODE, EV_ADD | EV_ENABLE | EV_CLEAR, NOTE_WRITE | NOTE_DELETE | NOTE_RENAME, 0, path);
 		
 		if(kevent(fsevents->kqueue, &ev, 1, NULL, 0, NULL) < 0) {
 			wi_error_set_errno(errno);
