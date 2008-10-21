@@ -120,8 +120,6 @@ wi_boolean_t wi_fs_change_directory(wi_string_t *path) {
 
 #pragma mark -
 
-#pragma mark -
-
 wi_boolean_t wi_fs_delete_path(wi_string_t *path) {
 	wi_fs_stat_t	sb;
 	wi_boolean_t	result;
