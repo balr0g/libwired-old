@@ -1341,7 +1341,7 @@ static void _wi_string_resolve_mac_alias_in_path(wi_string_t *path) {
 	if(!isAlias)
 		return;
 
-	if(FSResolveAliasFileWithMountFlags(&fsRef, true, &isDir, &isAlias, kResolveAliasFileNoUI) != noErr)
+	if(FSResolveAliasFileWithMountFlags(&fsRef, true, &isDir, &isAlias, kResolveAliasFileNoUI | kResolveAliasTryFileIDFirst) != noErr)
 		return;
 
 	if(FSRefMakePath(&fsRef, (UInt8 *) path->string, WI_PATH_SIZE) != noErr)
