@@ -24,10 +24,10 @@ HEADERS			= $(addprefix $(headerdir)/,$(notdir $(shell find $(abs_top_srcdir)/li
 DEFS			= @DEFS@
 CC				= @CC@
 CFLAGS			= @CFLAGS@
-CPPFLAGS		= @CPPFLAGS@
+CPPFLAGS		= @CPPFLAGS@ -DWI_TEST_ROOT=\"$(abs_top_srcdir)/test\"
 LDFLAGS			= -L$(rundir)/lib @LDFLAGS@
 LIBS			= -lwired @LIBS@
-INCLUDES		= -I$(abs_top_srcdir) -I$(rundir)/include
+INCLUDES		= -I$(abs_top_srcdir) -I$(rundir)/include -I$(abs_top_srcdir)/test
 
 COMPILE			= $(CC) $(DEFS) $(INCLUDES) $(CPPFLAGS) $(CFLAGS)
 PREPROCESS		= $(CC) -E $(DEFS) $(INCLUDES) $(CPPFLAGS) $(CFLAGS)
