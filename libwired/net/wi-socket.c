@@ -1400,6 +1400,7 @@ wi_integer_t wi_socket_write_format(wi_socket_t *socket, wi_time_interval_t time
 
 
 wi_integer_t wi_socket_write_buffer(wi_socket_t *socket, wi_time_interval_t timeout, const void *buffer, size_t length) {
+	wi_time_interval_t	interval;
 	wi_socket_state_t	state;
 	wi_integer_t		bytes;
 	
@@ -1416,13 +1417,30 @@ wi_integer_t wi_socket_write_buffer(wi_socket_t *socket, wi_time_interval_t time
 
 #ifdef HAVE_OPENSSL_SSL_H
 	if(socket->ssl) {
-		bytes = SSL_write(socket->ssl, buffer, length);
+		interval = 0.0;
+		
+		do {
+			bytes = SSL_write(socket->ssl, buffer, length);
 
-		if(bytes <= 0) {
-			wi_error_set_openssl_ssl_error_with_result(socket->ssl, bytes);
+			if(bytes <= 0) {
+				if(bytes < 0 && SSL_get_error(socket->ssl, bytes) == SSL_ERROR_WANT_WRITE) {
+					wi_thread_sleep(0.1);
+					
+					if(timeout > 0.0) {
+						interval += 0.1;
 
-			socket->broken = true;
-		}
+						if(interval >= timeout)
+							wi_error_set_errno(ETIMEDOUT);
+					}
+				} else {
+					wi_error_set_openssl_ssl_error_with_result(socket->ssl, bytes);
+
+					socket->broken = true;
+
+					break;
+				}
+			}
+		} while(bytes <= 0 && interval <= timeout);
 	} else {
 #endif
 		bytes = write(socket->sd, buffer, length);
@@ -1524,6 +1542,7 @@ wi_string_t * wi_socket_read_to_string(wi_socket_t *socket, wi_time_interval_t t
 
 
 wi_integer_t wi_socket_read_buffer(wi_socket_t *socket, wi_time_interval_t timeout, void *buffer, size_t length) {
+	wi_time_interval_t	interval;
 	wi_socket_state_t	state;
 	wi_integer_t		bytes;
 	
@@ -1546,13 +1565,31 @@ wi_integer_t wi_socket_read_buffer(wi_socket_t *socket, wi_time_interval_t timeo
 
 #ifdef HAVE_OPENSSL_SSL_H
 	if(socket->ssl) {
-		bytes = SSL_read(socket->ssl, buffer, length);
+		interval = 0.0;
 		
-		if(bytes <= 0) {
-			wi_error_set_openssl_ssl_error_with_result(socket->ssl, bytes);
+		do {
+			bytes = SSL_read(socket->ssl, buffer, length);
+			
+			if(bytes <= 0) {
+				if(bytes < 0 && SSL_get_error(socket->ssl, bytes) == SSL_ERROR_WANT_READ) {
+					wi_log_info(WI_STR("sleeping and trying again"));
+					wi_thread_sleep(0.1);
+					
+					if(timeout > 0.0) {
+						interval += 0.1;
+						
+						if(interval >= timeout)
+							wi_error_set_errno(ETIMEDOUT);
+					}
+				} else {
+					wi_error_set_openssl_ssl_error_with_result(socket->ssl, bytes);
 
-			socket->broken = true;
-		}
+					socket->broken = true;
+					
+					break;
+				}
+			}
+		} while(bytes <= 0 && interval <= timeout);
 	} else {
 #endif
 		bytes = read(socket->sd, buffer, length);
