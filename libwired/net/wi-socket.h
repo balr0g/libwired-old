@@ -109,7 +109,7 @@ WI_EXPORT void							wi_socket_set_direction(wi_socket_t *, wi_uinteger_t);
 WI_EXPORT wi_uinteger_t					wi_socket_direction(wi_socket_t *);
 WI_EXPORT void							wi_socket_set_data(wi_socket_t *, void *);
 WI_EXPORT void *						wi_socket_data(wi_socket_t *);
-WI_EXPORT void							wi_socket_set_blocking(wi_socket_t *, wi_boolean_t);
+WI_EXPORT wi_boolean_t					wi_socket_set_blocking(wi_socket_t *, wi_boolean_t);
 WI_EXPORT wi_boolean_t					wi_socket_blocking(wi_socket_t *);
 WI_EXPORT wi_boolean_t					wi_socket_set_timeout(wi_socket_t *, wi_time_interval_t);
 WI_EXPORT wi_time_interval_t			wi_socket_timeout(wi_socket_t *);

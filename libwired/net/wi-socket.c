@@ -727,7 +727,7 @@ void * wi_socket_data(wi_socket_t *socket) {
 
 
 
-void wi_socket_set_blocking(wi_socket_t *socket, wi_boolean_t blocking) {
+wi_boolean_t wi_socket_set_blocking(wi_socket_t *socket, wi_boolean_t blocking) {
 	int		flags;
 
 	flags = fcntl(socket->sd, F_GETFL);
@@ -735,7 +735,7 @@ void wi_socket_set_blocking(wi_socket_t *socket, wi_boolean_t blocking) {
 	if(flags < 0) {
 		wi_error_set_errno(errno);
 
-		return;
+		return false;
 	}
 
 	if(blocking)
@@ -746,8 +746,10 @@ void wi_socket_set_blocking(wi_socket_t *socket, wi_boolean_t blocking) {
 	if(fcntl(socket->sd, F_SETFL, flags) < 0) {
 		wi_error_set_errno(errno);
 
-		return;
+		return false;
 	}
+	
+	return true;
 }
 
 
