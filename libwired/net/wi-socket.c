@@ -1572,7 +1572,6 @@ wi_integer_t wi_socket_read_buffer(wi_socket_t *socket, wi_time_interval_t timeo
 			
 			if(bytes <= 0) {
 				if(bytes < 0 && SSL_get_error(socket->ssl, bytes) == SSL_ERROR_WANT_READ) {
-					wi_log_info(WI_STR("sleeping and trying again"));
 					wi_thread_sleep(0.1);
 					
 					if(timeout > 0.0) {
