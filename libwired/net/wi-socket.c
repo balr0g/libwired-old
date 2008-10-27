@@ -1067,26 +1067,26 @@ wi_boolean_t wi_socket_connect_tls(wi_socket_t *socket, wi_socket_tls_t *tls, wi
 	int					err, result;
 	wi_boolean_t		blocking;
 	
+	socket->ssl = SSL_new(tls->ssl_ctx);
+	
+	if(!socket->ssl) {
+		wi_error_set_openssl_error();
+		
+		return false;
+	}
+	
+	if(SSL_set_fd(socket->ssl, socket->sd) != 1) {
+		wi_error_set_openssl_error();
+		
+		return false;
+	}
+	
 	if(timeout > 0.0) {
 		blocking = wi_socket_blocking(socket);
 
 		if(blocking)
 			wi_socket_set_blocking(socket, false);
 
-		socket->ssl = SSL_new(tls->ssl_ctx);
-		
-		if(!socket->ssl) {
-			wi_error_set_openssl_error();
-			
-			return false;
-		}
-		
-		if(SSL_set_fd(socket->ssl, socket->sd) != 1) {
-			wi_error_set_openssl_error();
-
-			return false;
-		}
-		
 		result = SSL_connect(socket->ssl);
 		
 		if(result != 1) {
@@ -1094,7 +1094,7 @@ wi_boolean_t wi_socket_connect_tls(wi_socket_t *socket, wi_socket_tls_t *tls, wi
 				err = SSL_get_error(socket->ssl, result);
 
 				if(err != SSL_ERROR_WANT_READ && err != SSL_ERROR_WANT_WRITE) {
-					wi_error_set_openssl_error();
+					wi_error_set_openssl_ssl_error_with_result(socket->ssl, result);
 					
 					return false;
 				}
@@ -1126,20 +1126,6 @@ wi_boolean_t wi_socket_connect_tls(wi_socket_t *socket, wi_socket_tls_t *tls, wi
 		if(blocking)
 			wi_socket_set_blocking(socket, true);
 	} else {
-		socket->ssl = SSL_new(tls->ssl_ctx);
-		
-		if(!socket->ssl) {
-			wi_error_set_openssl_error();
-			
-			return false;
-		}
-		
-		if(SSL_set_fd(socket->ssl, socket->sd) != 1) {
-			wi_error_set_openssl_error();
-
-			return false;
-		}
-		
 		result = SSL_connect(socket->ssl);
 		
 		if(result != 1) {
@@ -1206,60 +1192,87 @@ wi_socket_t * wi_socket_accept(wi_socket_t *accept_socket, wi_time_interval_t ti
 #ifdef HAVE_OPENSSL_SSL_H
 
 wi_boolean_t wi_socket_accept_tls(wi_socket_t *socket, wi_socket_tls_t *tls, wi_time_interval_t timeout) {
-	SSL					*ssl;
 	wi_socket_state_t	state;
-	int					result;
+	int					err, result;
+	wi_boolean_t		blocking;
 	
-	ssl = SSL_new(tls->ssl_ctx);
-
-	if(!ssl) {
+	socket->ssl = SSL_new(tls->ssl_ctx);
+	
+	if(!socket->ssl) {
 		wi_error_set_openssl_error();
 		
-		goto err;
+		return false;
 	}
-
-	if(SSL_set_fd(ssl, socket->sd) != 1) {
+	
+	if(SSL_set_fd(socket->ssl, socket->sd) != 1) {
 		wi_error_set_openssl_error();
 		
-		goto err;
+		return false;
 	}
-
+	
 	if(!tls->private_key && tls->dh) {
-		if(SSL_set_tmp_dh(ssl, tls->dh) != 1) {
+		if(SSL_set_tmp_dh(socket->ssl, tls->dh) != 1) {
 			wi_error_set_openssl_error();
 			
-			goto err;
+			return false;
 		}
 	}
 	
 	if(timeout > 0.0) {
-		state = wi_socket_wait_descriptor(socket->sd, timeout, true, false);
+		blocking = wi_socket_blocking(socket);
 		
-		if(state != WI_SOCKET_READY) {
-			if(state == WI_SOCKET_TIMEOUT)
-				wi_error_set_errno(ETIMEDOUT);
+		if(blocking)
+			wi_socket_set_blocking(socket, false);
+		
+		result = SSL_accept(socket->ssl);
+		
+		if(result != 1) {
+			do {
+				err = SSL_get_error(socket->ssl, result);
+				
+				if(err != SSL_ERROR_WANT_READ && err != SSL_ERROR_WANT_WRITE) {
+					wi_error_set_openssl_ssl_error_with_result(socket->ssl, result);
+					
+					return false;
+				}
+
+				state = wi_socket_wait_descriptor(socket->sd, 1.0, (err == SSL_ERROR_WANT_READ), (err == SSL_ERROR_WANT_WRITE));
+
+				if(state == WI_SOCKET_ERROR)
+					break;
+				else if(state == WI_SOCKET_READY) {
+					result = SSL_accept(socket->ssl);
+					
+					if(result == 1)
+						break;
+				}
+				
+				timeout -= 1.0;
+			} while(timeout >= 0.0);
+
+			if(state == WI_SOCKET_ERROR)
+				return false;
 			
-			goto err;
+			if(timeout <= 0.0) {
+				wi_error_set_errno(ETIMEDOUT);
+				
+				return false;
+			}
+		}
+		
+		if(blocking)
+			wi_socket_set_blocking(socket, true);
+	} else {
+		result = SSL_accept(socket->ssl);
+		
+		if(result != 1) {
+			wi_error_set_openssl_ssl_error_with_result(socket->ssl, result);
+			
+			return false;
 		}
 	}
 	
-	result = SSL_accept(ssl);
-	
-	if(result != 1) {
-		wi_error_set_openssl_ssl_error_with_result(ssl, result);
-		
-		goto err;
-	}
-
-	socket->ssl = ssl;
-	
 	return true;
-	
-err:
-	if(ssl)
-		SSL_free(ssl);
-
-	return false;
 }
 
 #endif
