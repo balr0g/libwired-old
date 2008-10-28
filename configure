@@ -10733,6 +10733,7 @@ cat confdefs.h >>conftest.$ac_ext
 cat >>conftest.$ac_ext <<_ACEOF
 /* end confdefs.h.  */
 
+	#define _DARWIN_USE_64_BIT_INODE
 	#include <sys/types.h>
 	#include <sys/stat.h>
 
@@ -10776,6 +10777,7 @@ cat confdefs.h >>conftest.$ac_ext
 cat >>conftest.$ac_ext <<_ACEOF
 /* end confdefs.h.  */
 
+	#define _DARWIN_USE_64_BIT_INODE
 	#include <sys/types.h>
 	#include <sys/stat.h>
 
@@ -10842,6 +10844,7 @@ cat confdefs.h >>conftest.$ac_ext
 cat >>conftest.$ac_ext <<_ACEOF
 /* end confdefs.h.  */
 
+	#define _DARWIN_USE_64_BIT_INODE
 	#include <sys/types.h>
 	#include <sys/stat.h>
 
@@ -10885,6 +10888,7 @@ cat confdefs.h >>conftest.$ac_ext
 cat >>conftest.$ac_ext <<_ACEOF
 /* end confdefs.h.  */
 
+	#define _DARWIN_USE_64_BIT_INODE
 	#include <sys/types.h>
 	#include <sys/stat.h>
 

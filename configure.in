@@ -186,6 +186,7 @@ AC_CHECK_MEMBERS([DIR.d_fd, DIR.dd_fd], [], [], [
 
 # Check if stat struct has st_birthtime member
 AC_CHECK_MEMBERS([struct stat.st_birthtime, struct stat64.st_birthtime], [], [], [
+	#define _DARWIN_USE_64_BIT_INODE
 	#include <sys/types.h>
 	#include <sys/stat.h>
 ])
