@@ -28,6 +28,8 @@
 
 #include "config.h"
 
+#define _DARWIN_USE_64_BIT_INODE
+
 #ifdef HAVE_CARBON_CARBON_H
 #include <Carbon/Carbon.h>
 #endif
@@ -385,7 +387,7 @@ wi_boolean_t wi_fs_set_mode_for_path(wi_string_t *path, uint32_t mode) {
 #pragma mark -
 
 static wi_boolean_t _wi_fs_stat_path(wi_string_t *path, wi_fs_stat_t *sp, wi_boolean_t link) {
-#ifdef HAVE_STAT64
+#if defined(HAVE_STAT64) && !defined(_DARWIN_FEATURE_64_BIT_INODE)
 	struct stat64		sb;
 	
 	if((link && lstat64(wi_string_cstring(path), &sb) < 0) ||
