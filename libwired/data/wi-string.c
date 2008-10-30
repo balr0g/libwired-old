@@ -1760,12 +1760,8 @@ void wi_string_convert_encoding(wi_string_t *string, wi_string_encoding_t *from,
 	in = string->string;
 	out = buffer;
 
-#ifdef _LIBICONV_VERSION
-	bytes = iconv(conv, (const char **) &in, &inbytesleft, &out, &outbytesleft);
-#else
-	bytes = iconv(conv, &in, &inbytesleft, &out, &outbytesleft);
-#endif
-	
+	bytes = iconv(conv, (void *) &in, &inbytesleft, (void *) &out, &outbytesleft);
+
 	if(bytes == (size_t) -1) {
 		wi_error_set_errno(errno);
 	} else {
