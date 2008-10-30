@@ -1413,7 +1413,9 @@ wi_integer_t wi_socket_write_format(wi_socket_t *socket, wi_time_interval_t time
 
 
 wi_integer_t wi_socket_write_buffer(wi_socket_t *socket, wi_time_interval_t timeout, const void *buffer, size_t length) {
+#ifdef HAVE_OPENSSL_SSL_H
 	wi_time_interval_t	interval;
+#endif
 	wi_socket_state_t	state;
 	wi_integer_t		bytes;
 	
@@ -1555,7 +1557,9 @@ wi_string_t * wi_socket_read_to_string(wi_socket_t *socket, wi_time_interval_t t
 
 
 wi_integer_t wi_socket_read_buffer(wi_socket_t *socket, wi_time_interval_t timeout, void *buffer, size_t length) {
+#ifdef HAVE_OPENSSL_SSL_H
 	wi_time_interval_t	interval;
+#endif
 	wi_socket_state_t	state;
 	wi_integer_t		bytes;
 	
