@@ -198,6 +198,7 @@ AC_CHECK_MEMBERS([struct stat.st_birthtime, struct stat64.st_birthtime], [], [],
 AC_CHECK_HEADERS([ \
 	mach-o/arch.h \
 	machine/param.h \
+	sys/attr.h \
 	sys/event.h \
 	sys/inotify.h \
 	sys/sockio.h \
@@ -230,6 +231,7 @@ AC_CHECK_TYPES([ptrdiff_t])
 
 AC_FUNC_FSEEKO
 AC_CHECK_FUNCS([ \
+	MDItemCreate \
 	backtrace \
 	dirfd \
 	getifaddrs \

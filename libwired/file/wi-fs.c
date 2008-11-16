@@ -39,6 +39,10 @@
 #include <sys/stat.h>
 #include <sys/mount.h>
 
+#ifdef HAVE_SYS_ATTR_H
+#include <sys/attr.h>
+#endif
+
 #ifdef HAVE_SYS_STATVFS_H
 #include <sys/statvfs.h>
 #endif
@@ -688,7 +692,7 @@ wi_boolean_t wi_fs_set_finder_comment_for_path(wi_string_t *path, wi_string_t *c
 
 
 wi_string_t * wi_fs_finder_comment_for_path(wi_string_t *path) {
-#ifdef HAVE_CARBON_CARBON_H
+#if defined(HAVE_CARBON_CARBON_H) && defined(HAVE_MDITEMCREATE)
 	MDItemRef		item;
 	CFStringRef		cfPath, cfComment = NULL;
 	wi_string_t		*comment = NULL;

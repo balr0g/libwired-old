@@ -73,6 +73,9 @@
 /* Define to 1 if you have the <mach-o/arch.h> header file. */
 #undef HAVE_MACH_O_ARCH_H
 
+/* Define to 1 if you have the `MDItemCreate' function. */
+#undef HAVE_MDITEMCREATE
+
 /* Define to 1 if you have the <memory.h> header file. */
 #undef HAVE_MEMORY_H
 
@@ -166,6 +169,9 @@
 /* Define to 1 if you have the declartion of 'facilitynames' and to 0 if you
    don't. */
 #undef HAVE_SYSLOG_FACILITYNAMES
+
+/* Define to 1 if you have the <sys/attr.h> header file. */
+#undef HAVE_SYS_ATTR_H
 
 /* Define to 1 if you have the <sys/event.h> header file. */
 #undef HAVE_SYS_EVENT_H

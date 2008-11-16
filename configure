@@ -10964,9 +10964,11 @@ fi
 
 
 
+
 for ac_header in  \
 	mach-o/arch.h \
 	machine/param.h \
+	sys/attr.h \
 	sys/event.h \
 	sys/inotify.h \
 	sys/sockio.h \
@@ -11729,7 +11731,9 @@ fi
 
 
 
+
 for ac_func in  \
+	MDItemCreate \
 	backtrace \
 	dirfd \
 	getifaddrs \
