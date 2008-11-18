@@ -222,7 +222,6 @@ wi_boolean_t wi_fsevents_run_with_timeout(wi_fsevents_t *fsevents, wi_time_inter
 		}
 	} while(timeout == 0.0);
 #elif defined(_WI_FSEVENTS_INOTIFY)
-
 	do {
 		FD_ZERO(&rfds);
 		FD_SET(fsevents->inotify, &rfds);
