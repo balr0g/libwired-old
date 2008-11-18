@@ -84,6 +84,7 @@ void wi_test_fsevents(void) {
 	
 	wi_release(wi_test_fsevents_lock);
 	wi_release(wi_test_fsevents_fsevents);
+	wi_release(wi_test_fsevents_path);
 #endif
 }
 
@@ -92,11 +93,17 @@ void wi_test_fsevents(void) {
 #ifdef WI_PTHREADS
 
 static void wi_test_fsevents_thread(wi_runtime_instance_t *instance) {
+	wi_pool_t		*pool;
+	
+	pool = wi_string_init(wi_string_alloc());
+	
 	if(!wi_fsevents_run_with_timeout(wi_test_fsevents_fsevents, 1.0))
-		WI_TEST_FAIL("%m");
+		wi_log_warn(WI_STR("wi_fsevents_run_with_timeout: %m"));
 	
 	wi_condition_lock_lock(wi_test_fsevents_lock);
 	wi_condition_lock_unlock_with_condition(wi_test_fsevents_lock, 1);
+	
+	wi_release(pool);
 }
 
 
@@ -104,7 +111,7 @@ static void wi_test_fsevents_thread(wi_runtime_instance_t *instance) {
 static void wi_test_fsevents_callback(wi_string_t *path) {
 	wi_condition_lock_lock(wi_test_fsevents_lock);
 	wi_test_fsevents_path = wi_retain(path);
-	wi_condition_lock_unlock_with_condition(wi_test_fsevents_lock, 1);
+	wi_condition_lock_unlock(wi_test_fsevents_lock);
 }
 
 #endif
