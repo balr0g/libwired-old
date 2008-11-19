@@ -95,7 +95,7 @@ void wi_test_fsevents(void) {
 static void wi_test_fsevents_thread(wi_runtime_instance_t *instance) {
 	wi_pool_t		*pool;
 	
-	pool = wi_string_init(wi_string_alloc());
+	pool = wi_pool_init(wi_pool_alloc());
 	
 	if(!wi_fsevents_run_with_timeout(wi_test_fsevents_fsevents, 1.0))
 		wi_log_warn(WI_STR("wi_fsevents_run_with_timeout: %m"));
