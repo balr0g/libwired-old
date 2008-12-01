@@ -1430,6 +1430,8 @@ wi_integer_t wi_socket_write_buffer(wi_socket_t *socket, wi_time_interval_t time
 		}
 	}
 
+	WI_ASSERT(buffer != NULL, "buffer of length %u should not be NULL", length);
+		
 #ifdef HAVE_OPENSSL_SSL_H
 	if(socket->ssl) {
 		interval = 0.0;
@@ -1582,6 +1584,8 @@ wi_integer_t wi_socket_read_buffer(wi_socket_t *socket, wi_time_interval_t timeo
 		}
 #endif
 	}
+
+	WI_ASSERT(buffer != NULL, "buffer of length %u should not be NULL", length);
 
 #ifdef HAVE_OPENSSL_SSL_H
 	if(socket->ssl) {
