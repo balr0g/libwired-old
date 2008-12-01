@@ -1444,8 +1444,11 @@ wi_integer_t wi_socket_write_buffer(wi_socket_t *socket, wi_time_interval_t time
 					if(timeout > 0.0) {
 						interval += 0.1;
 
-						if(interval >= timeout)
+						if(interval >= timeout) {
 							wi_error_set_errno(ETIMEDOUT);
+							
+							break;
+						}
 					}
 				} else {
 					wi_error_set_openssl_ssl_error_with_result(socket->ssl, bytes);
@@ -1455,7 +1458,7 @@ wi_integer_t wi_socket_write_buffer(wi_socket_t *socket, wi_time_interval_t time
 					break;
 				}
 			}
-		} while(bytes <= 0 && interval <= timeout);
+		} while(bytes <= 0);
 	} else {
 #endif
 		bytes = write(socket->sd, buffer, length);
@@ -1594,8 +1597,11 @@ wi_integer_t wi_socket_read_buffer(wi_socket_t *socket, wi_time_interval_t timeo
 					if(timeout > 0.0) {
 						interval += 0.1;
 						
-						if(interval >= timeout)
+						if(interval >= timeout) {
 							wi_error_set_errno(ETIMEDOUT);
+							
+							break;
+						}
 					}
 				} else {
 					wi_error_set_openssl_ssl_error_with_result(socket->ssl, bytes);
@@ -1605,7 +1611,7 @@ wi_integer_t wi_socket_read_buffer(wi_socket_t *socket, wi_time_interval_t timeo
 					break;
 				}
 			}
-		} while(bytes <= 0 && interval <= timeout);
+		} while(bytes <= 0);
 	} else {
 #endif
 		bytes = read(socket->sd, buffer, length);
