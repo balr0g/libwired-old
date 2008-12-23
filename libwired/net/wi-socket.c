@@ -1481,7 +1481,21 @@ wi_integer_t wi_socket_write_buffer(wi_socket_t *socket, wi_time_interval_t time
 			}
 			
 			offset += bytes;
-		} while(offset != length);
+			
+			if(offset < length) {
+				wi_thread_sleep(0.1);
+				
+				if(timeout > 0.0) {
+					interval += 0.1;
+					
+					if(interval >= timeout) {
+						wi_error_set_errno(ETIMEDOUT);
+						
+						return -1;
+					}
+				}
+			}
+		} while(offset < length);
 		
 		return offset;
 #ifdef HAVE_OPENSSL_SSL_H
@@ -1639,6 +1653,7 @@ wi_integer_t wi_socket_read_buffer(wi_socket_t *socket, wi_time_interval_t timeo
 	} else {
 #endif
 		offset = 0;
+		interval = 0.0;
 		
 		do {
 			bytes = read(socket->sd, buffer + offset, length - offset);
@@ -1653,7 +1668,21 @@ wi_integer_t wi_socket_read_buffer(wi_socket_t *socket, wi_time_interval_t timeo
 			}
 			
 			offset += bytes;
-		} while(offset != length);
+			
+			if(offset < length) {
+				wi_thread_sleep(0.1);
+				
+				if(timeout > 0.0) {
+					interval += 0.1;
+					
+					if(interval >= timeout) {
+						wi_error_set_errno(ETIMEDOUT);
+						
+						return -1;
+					}
+				}
+			}
+		} while(offset < length);
 		
 		return offset;
 #ifdef HAVE_OPENSSL_SSL_H
