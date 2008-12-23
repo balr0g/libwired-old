@@ -1413,9 +1413,7 @@ wi_integer_t wi_socket_write_format(wi_socket_t *socket, wi_time_interval_t time
 
 
 wi_integer_t wi_socket_write_buffer(wi_socket_t *socket, wi_time_interval_t timeout, const void *buffer, size_t length) {
-#ifdef HAVE_OPENSSL_SSL_H
 	wi_time_interval_t	interval;
-#endif
 	wi_socket_state_t	state;
 	wi_uinteger_t		offset;
 	wi_integer_t		bytes;
@@ -1433,10 +1431,10 @@ wi_integer_t wi_socket_write_buffer(wi_socket_t *socket, wi_time_interval_t time
 		}
 	}
 
+	interval = 0.0;
+		
 #ifdef HAVE_OPENSSL_SSL_H
 	if(socket->ssl) {
-		interval = 0.0;
-		
 		do {
 			bytes = SSL_write(socket->ssl, buffer, length);
 
@@ -1593,9 +1591,7 @@ wi_string_t * wi_socket_read_to_string(wi_socket_t *socket, wi_time_interval_t t
 
 
 wi_integer_t wi_socket_read_buffer(wi_socket_t *socket, wi_time_interval_t timeout, void *buffer, size_t length) {
-#ifdef HAVE_OPENSSL_SSL_H
 	wi_time_interval_t	interval;
-#endif
 	wi_socket_state_t	state;
 	wi_uinteger_t		offset;
 	wi_integer_t		bytes;
@@ -1619,10 +1615,10 @@ wi_integer_t wi_socket_read_buffer(wi_socket_t *socket, wi_time_interval_t timeo
 #endif
 	}
 	
+	interval = 0.0;
+		
 #ifdef HAVE_OPENSSL_SSL_H
 	if(socket->ssl) {
-		interval = 0.0;
-		
 		do {
 			bytes = SSL_read(socket->ssl, buffer, length);
 			
@@ -1653,7 +1649,6 @@ wi_integer_t wi_socket_read_buffer(wi_socket_t *socket, wi_time_interval_t timeo
 	} else {
 #endif
 		offset = 0;
-		interval = 0.0;
 		
 		do {
 			bytes = read(socket->sd, buffer + offset, length - offset);
