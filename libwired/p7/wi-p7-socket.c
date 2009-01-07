@@ -301,6 +301,10 @@ static void _wi_p7_socket_dealloc(wi_runtime_instance_t *instance) {
 	wi_release(p7_socket->spec);
 	wi_release(p7_socket->remote_name);
 	wi_release(p7_socket->remote_version);
+	
+#ifdef WI_SSL
+	wi_release(p7_socket->tls);
+#endif
 
 #ifdef WI_RSA
 	wi_release(p7_socket->private_key);
