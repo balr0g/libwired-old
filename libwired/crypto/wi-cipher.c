@@ -152,8 +152,8 @@ wi_cipher_t * wi_cipher_init_with_random_key(wi_cipher_t *cipher, wi_cipher_type
 		return NULL;
 	}
 	
-	key = wi_data_init_with_random_bytes(wi_data_alloc(), wi_cipher_bits(cipher) / 8);
-	iv = wi_data_init_with_random_bytes(wi_data_alloc(), wi_cipher_block_size(cipher));
+	key = wi_data_with_random_bytes(wi_cipher_bits(cipher) / 8);
+	iv = wi_data_with_random_bytes(wi_cipher_block_size(cipher));
 	
 	return _wi_cipher_init_with_key(cipher, key, iv);
 }
