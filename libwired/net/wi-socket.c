@@ -1436,9 +1436,14 @@ wi_integer_t wi_socket_write_buffer(wi_socket_t *socket, wi_time_interval_t time
 #ifdef HAVE_OPENSSL_SSL_H
 	if(socket->ssl) {
 		do {
+			errno = 0;
 			bytes = SSL_write(socket->ssl, buffer, length);
 
-			if(bytes <= 0) {
+			if(bytes > 0) {
+				interval = 0.0;
+			} else {
+				wi_log_info(WI_STR("SSL_write() -> %d, errno = %d %s, interval = %f"), bytes, errno, strerror(errno), interval);
+				wi_log_info(WI_STR("SSL_get_error() -> %d"), SSL_get_error(socket->ssl, bytes));
 				if(bytes < 0 && SSL_get_error(socket->ssl, bytes) == SSL_ERROR_WANT_WRITE) {
 					wi_thread_sleep(0.1);
 					
@@ -1469,7 +1474,9 @@ wi_integer_t wi_socket_write_buffer(wi_socket_t *socket, wi_time_interval_t time
 		do {
 			bytes = write(socket->sd, buffer + offset, length - offset);
 			
-			if(bytes <= 0) {
+			if(bytes > 0) {
+				interval = 0.0;
+			} else {
 				if(bytes < 0)
 					wi_error_set_errno(errno);
 				else
@@ -1622,7 +1629,9 @@ wi_integer_t wi_socket_read_buffer(wi_socket_t *socket, wi_time_interval_t timeo
 		do {
 			bytes = SSL_read(socket->ssl, buffer, length);
 			
-			if(bytes <= 0) {
+			if(bytes > 0) {
+				interval = 0.0;
+			} else {
 				if(bytes < 0 && SSL_get_error(socket->ssl, bytes) == SSL_ERROR_WANT_READ) {
 					wi_thread_sleep(0.1);
 					
@@ -1653,7 +1662,9 @@ wi_integer_t wi_socket_read_buffer(wi_socket_t *socket, wi_time_interval_t timeo
 		do {
 			bytes = read(socket->sd, buffer + offset, length - offset);
 			
-			if(bytes <= 0) {
+			if(bytes > 0) {
+				interval = 0.0;
+			} else {
 				if(bytes < 0)
 					wi_error_set_errno(errno);
 				else
