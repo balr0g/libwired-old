@@ -1442,8 +1442,6 @@ wi_integer_t wi_socket_write_buffer(wi_socket_t *socket, wi_time_interval_t time
 			if(bytes > 0) {
 				interval = 0.0;
 			} else {
-				wi_log_info(WI_STR("SSL_write() -> %d, errno = %d %s, interval = %f"), bytes, errno, strerror(errno), interval);
-				wi_log_info(WI_STR("SSL_get_error() -> %d"), SSL_get_error(socket->ssl, bytes));
 				if(bytes < 0 && SSL_get_error(socket->ssl, bytes) == SSL_ERROR_WANT_WRITE) {
 					wi_thread_sleep(0.1);
 					
