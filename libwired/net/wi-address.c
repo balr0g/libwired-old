@@ -187,6 +187,22 @@ wi_address_t * wi_address_init_wildcard_for_family(wi_address_t *address, wi_add
 
 
 
+wi_address_t * wi_address_init_with_ipv4_address(wi_address_t *address, uint32_t ipv4_address) {
+	struct sockaddr_in      sa;
+	struct sockaddr_in6     sa6;
+
+	memset(&sa, 0, sizeof(sa));
+	sa.sin_family       = AF_INET;
+	sa.sin_addr.s_addr  = ipv4_address;
+#ifdef HAVE_STRUCT_SOCKADDR_IN_SIN_LEN
+	sa.sin_len          = sizeof(sa);
+#endif
+	
+	return wi_address_init_with_sa(address, (struct sockaddr *) &sa);
+}
+
+
+
 static wi_runtime_instance_t * _wi_address_copy(wi_runtime_instance_t *instance) {
 	wi_address_t		*address = instance;
 	
