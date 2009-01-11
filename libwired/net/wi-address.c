@@ -189,7 +189,6 @@ wi_address_t * wi_address_init_wildcard_for_family(wi_address_t *address, wi_add
 
 wi_address_t * wi_address_init_with_ipv4_address(wi_address_t *address, uint32_t ipv4_address) {
 	struct sockaddr_in      sa;
-	struct sockaddr_in6     sa6;
 
 	memset(&sa, 0, sizeof(sa));
 	sa.sin_family       = AF_INET;
