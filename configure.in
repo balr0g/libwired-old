@@ -224,6 +224,7 @@ AC_CHECK_DECLS([optreset])
 AC_SYS_LARGEFILE
 AC_CHECK_TYPES([intmax_t])
 AC_CHECK_TYPES([ptrdiff_t])
+AC_DEFINE([_DARWIN_USE_64_BIT_INODE], [1], [64-bit ino_t on Darwin])
 
 
 #######################################################################

@@ -28,8 +28,6 @@
 
 #include "config.h"
 
-#define _DARWIN_USE_64_BIT_INODE
-
 #ifdef HAVE_CARBON_CARBON_H
 #include <Carbon/Carbon.h>
 #endif
@@ -164,13 +162,15 @@ static wi_boolean_t _wi_fs_delete_directory(wi_string_t *path) {
 	char			*paths[2];
 	wi_boolean_t	result = true;
 	int				err = 0;
-
+	
 	paths[0] = (char *) wi_string_cstring(path);
 	paths[1] = NULL;
+	
+	errno = 0;
 
-	fts = wi_fts_open(paths, WI_FTS_LOGICAL | WI_FTS_NOSTAT, NULL);
+	fts = wi_fts_open(paths, WI_FTS_NOSTAT | WI_FTS_LOGICAL, NULL);
 
-	if(!fts)
+	if(!fts || errno != 0)
 		return false;
 	
 	while((p = wi_fts_read(fts))) {
@@ -181,11 +181,16 @@ static wi_boolean_t _wi_fs_delete_directory(wi_string_t *path) {
 				err = p->fts_errno;
 				result = false;
 				break;
+				
+			case WI_FTS_DC:
+				err = ELOOP;
+				
+				result = false;
+				break;
 
 			case WI_FTS_D:
 				break;
 
-			case WI_FTS_DC:
 			case WI_FTS_DP:
 				if(rmdir(p->fts_path) < 0) {
 					err = errno;
