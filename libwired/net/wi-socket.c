@@ -106,7 +106,6 @@ struct _wi_socket {
 	
 	wi_boolean_t						interactive;
 	wi_boolean_t						close;
-	wi_boolean_t						broken;
 };
 
 
@@ -1466,8 +1465,6 @@ wi_integer_t wi_socket_write_buffer(wi_socket_t *socket, wi_time_interval_t time
 				} else {
 					wi_error_set_openssl_ssl_error_with_result(socket->ssl, bytes);
 
-					socket->broken = true;
-
 					break;
 				}
 			}
@@ -1655,8 +1652,6 @@ wi_integer_t wi_socket_read_buffer(wi_socket_t *socket, wi_time_interval_t timeo
 					}
 				} else {
 					wi_error_set_openssl_ssl_error_with_result(socket->ssl, bytes);
-
-					socket->broken = true;
 					
 					break;
 				}
