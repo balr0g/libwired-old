@@ -1281,13 +1281,21 @@ wi_boolean_t wi_socket_accept_tls(wi_socket_t *socket, wi_socket_tls_t *tls, wi_
 
 void wi_socket_close(wi_socket_t *socket) {
 #ifdef HAVE_OPENSSL_SSL_H
+	int			result;
+#endif
+	
+#ifdef HAVE_OPENSSL_SSL_H
 	if(socket->ssl) {
-		if(!socket->broken) {
-			if(SSL_shutdown(socket->ssl) == 0)
-				SSL_shutdown(socket->ssl);
-		}
+		ERR_clear_error();
+		
+		result = SSL_shutdown(socket->ssl);
+		
+		if(result == 0)
+			SSL_shutdown(socket->ssl);
 
 		SSL_free(socket->ssl);
+		
+		ERR_clear_error();
 		
 		socket->ssl = NULL;
 	}
@@ -1436,7 +1444,8 @@ wi_integer_t wi_socket_write_buffer(wi_socket_t *socket, wi_time_interval_t time
 #ifdef HAVE_OPENSSL_SSL_H
 	if(socket->ssl) {
 		do {
-			errno = 0;
+			ERR_clear_error();
+			
 			bytes = SSL_write(socket->ssl, buffer, length);
 
 			if(bytes > 0) {
@@ -1625,6 +1634,8 @@ wi_integer_t wi_socket_read_buffer(wi_socket_t *socket, wi_time_interval_t timeo
 #ifdef HAVE_OPENSSL_SSL_H
 	if(socket->ssl) {
 		do {
+			ERR_clear_error();
+			
 			bytes = SSL_read(socket->ssl, buffer, length);
 			
 			if(bytes > 0) {
