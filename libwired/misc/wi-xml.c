@@ -134,7 +134,7 @@ wi_string_t * wi_xml_node_content(void *node) {
 
 
 void * wi_xml_node_new_child(void *node, wi_string_t *name, wi_string_t *content) {
-	return xmlNewChild(node, NULL, (xmlChar *) wi_string_cstring(name), content ? (xmlChar *) wi_string_cstring(content) : NULL);
+	return xmlNewTextChild(node, NULL, (xmlChar *) wi_string_cstring(name), content ? (xmlChar *) wi_string_cstring(content) : NULL);
 }
 
 #endif
