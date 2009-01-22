@@ -300,6 +300,8 @@ void wi_error_set_openssl_error(void) {
 			ERR_reason_error_string(error->code),
 			ERR_GET_REASON(error->code));
 	}
+	
+	ERR_clear_error();
 }
 
 #endif
@@ -363,6 +365,8 @@ void wi_error_set_openssl_ssl_error_with_result(void *ssl, int result) {
 				break;
 		}
 	}
+	
+	ERR_clear_error();
 }
 
 #endif
