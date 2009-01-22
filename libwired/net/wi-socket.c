@@ -1086,6 +1086,8 @@ wi_boolean_t wi_socket_connect_tls(wi_socket_t *socket, wi_socket_tls_t *tls, wi
 		if(blocking)
 			wi_socket_set_blocking(socket, false);
 
+		ERR_clear_error();
+		
 		result = SSL_connect(socket->ssl);
 		
 		if(result != 1) {
@@ -1094,6 +1096,8 @@ wi_boolean_t wi_socket_connect_tls(wi_socket_t *socket, wi_socket_tls_t *tls, wi
 
 				if(err != SSL_ERROR_WANT_READ && err != SSL_ERROR_WANT_WRITE) {
 					wi_error_set_openssl_ssl_error_with_result(socket->ssl, result);
+		
+					ERR_clear_error();
 					
 					return false;
 				}
@@ -1125,10 +1129,14 @@ wi_boolean_t wi_socket_connect_tls(wi_socket_t *socket, wi_socket_tls_t *tls, wi
 		if(blocking)
 			wi_socket_set_blocking(socket, true);
 	} else {
+		ERR_clear_error();
+		
 		result = SSL_connect(socket->ssl);
 		
 		if(result != 1) {
 			wi_error_set_openssl_ssl_error_with_result(socket->ssl, result);
+		
+			ERR_clear_error();
 
 			return false;
 		}
@@ -1223,6 +1231,8 @@ wi_boolean_t wi_socket_accept_tls(wi_socket_t *socket, wi_socket_tls_t *tls, wi_
 		if(blocking)
 			wi_socket_set_blocking(socket, false);
 		
+		ERR_clear_error();
+		
 		result = SSL_accept(socket->ssl);
 		
 		if(result != 1) {
@@ -1231,6 +1241,8 @@ wi_boolean_t wi_socket_accept_tls(wi_socket_t *socket, wi_socket_tls_t *tls, wi_
 				
 				if(err != SSL_ERROR_WANT_READ && err != SSL_ERROR_WANT_WRITE) {
 					wi_error_set_openssl_ssl_error_with_result(socket->ssl, result);
+		
+					ERR_clear_error();
 					
 					return false;
 				}
@@ -1262,10 +1274,14 @@ wi_boolean_t wi_socket_accept_tls(wi_socket_t *socket, wi_socket_tls_t *tls, wi_
 		if(blocking)
 			wi_socket_set_blocking(socket, true);
 	} else {
+		ERR_clear_error();
+		
 		result = SSL_accept(socket->ssl);
 		
 		if(result != 1) {
 			wi_error_set_openssl_ssl_error_with_result(socket->ssl, result);
+		
+			ERR_clear_error();
 			
 			return false;
 		}
@@ -1470,6 +1486,8 @@ wi_integer_t wi_socket_write_buffer(wi_socket_t *socket, wi_time_interval_t time
 			}
 		} while(bytes <= 0);
 		
+		ERR_clear_error();
+
 		return bytes;
 	} else {
 #endif
@@ -1657,6 +1675,8 @@ wi_integer_t wi_socket_read_buffer(wi_socket_t *socket, wi_time_interval_t timeo
 				}
 			}
 		} while(bytes <= 0);
+		
+		ERR_clear_error();
 		
 		return bytes;
 	} else {
