@@ -1279,7 +1279,8 @@ static wi_p7_message_t * _wi_p7_socket_read_binary_message(wi_p7_socket_t *p7_so
 	int32_t				length;
 	
 	if(message_size > _WI_P7_SOCKET_MAX_BINARY_SIZE) {
-		wi_error_set_libwired_error(WI_ERROR_P7_MESSAGETOOLARGE);
+		wi_error_set_libwired_error_with_format(WI_ERROR_P7_MESSAGETOOLARGE,
+			WI_STR("%u bytes"), message_size);
 		
 		return NULL;
 	}
@@ -1820,7 +1821,8 @@ wi_integer_t wi_p7_socket_read_oobdata(wi_p7_socket_t *p7_socket, wi_time_interv
 	receive_size = wi_read_swap_big_to_host_int32(length_buffer, 0);
 	
 	if(receive_size > _WI_P7_SOCKET_MAX_BINARY_SIZE) {
-		wi_error_set_libwired_error(WI_ERROR_P7_MESSAGETOOLARGE);
+		wi_error_set_libwired_error_with_format(WI_ERROR_P7_MESSAGETOOLARGE,
+			WI_STR("%u bytes"), receive_size);
 		
 		return -1;
 	}
