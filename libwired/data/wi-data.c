@@ -33,10 +33,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#ifdef HAVE_OPENSSL_SHA_H
-#include <openssl/rand.h>
-#endif
-
 #include <wired/wi-data.h>
 #include <wired/wi-digest.h>
 #include <wired/wi-file.h>
@@ -119,13 +115,9 @@ wi_data_t * wi_data_with_bytes_no_copy(void *bytes, wi_uinteger_t length, wi_boo
 
 
 
-#ifdef HAVE_OPENSSL_SHA_H
-
 wi_data_t * wi_data_with_random_bytes(wi_uinteger_t length) {
 	return wi_autorelease(wi_data_init_with_random_bytes(wi_data_alloc(), length));
 }
-
-#endif
 
 
 
