@@ -388,9 +388,7 @@ void wi_log_err(wi_string_t *fmt, ...) {
 void wi_log_fatal(wi_string_t *fmt, ...) {
 	va_list     ap;
 
-	if(wi_log_level >= WI_LOG_FATAL) {
-		va_start(ap, fmt);
-		_wi_log_vlog(WI_LOG_FATAL, fmt, ap);
-		va_end(ap);
-	}
+	va_start(ap, fmt);
+	_wi_log_vlog(WI_LOG_FATAL, fmt, ap);
+	va_end(ap);
 }
