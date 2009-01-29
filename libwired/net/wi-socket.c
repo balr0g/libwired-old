@@ -930,7 +930,8 @@ wi_socket_state_t wi_socket_wait_descriptor(int sd, wi_time_interval_t timeout, 
 	FD_ZERO(&rfds);
 	FD_ZERO(&wfds);
 	
-	WI_ASSERT(sd < FD_SETSIZE, "%d should be less than %d", sd, FD_SETSIZE);
+	WI_ASSERT(sd >= 0, "%d should be positive", sd);
+	WI_ASSERT(sd < (int) FD_SETSIZE, "%d should be less than %d", sd, FD_SETSIZE);
 	WI_ASSERT(read || write, "read and write can't both be false");
 	
 	if(read)
