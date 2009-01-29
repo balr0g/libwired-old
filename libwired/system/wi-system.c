@@ -172,6 +172,19 @@ wi_uinteger_t wi_page_size(void) {
 
 #pragma mark -
 
+pid_t wi_fork(void) {
+	pid_t		pid;
+	
+	pid = fork();
+	
+	if(pid < 0)
+		wi_error_set_errno(errno);
+	
+	return pid;
+}
+
+
+
 void * wi_malloc(size_t size) {
 	void		*pointer;
 	

@@ -180,6 +180,11 @@ static void _wi_log_vlog(wi_log_level_t level, wi_string_t *fmt, va_list ap) {
 			prefix = "Error";
 			break;
 			
+		case WI_LOG_FATAL:
+			priority = LOG_CRIT;
+			prefix = "Fatal";
+			break;
+			
 		case WI_LOG_DEBUG:
 			priority = LOG_DEBUG;
 			prefix = "Debug";
@@ -191,11 +196,6 @@ static void _wi_log_vlog(wi_log_level_t level, wi_string_t *fmt, va_list ap) {
 
 		fprintf(fp, "%s %s[%u]: %s: %s\n", date, name, (uint32_t) getpid(), prefix, cstring);
 	}
-	else if(wi_log_startup && level < WI_LOG_INFO) {
-		fp = stderr;
-
-		fprintf(fp, "%s: %s\n", name, cstring);
-	}
 	else if(wi_log_tool) {
 		fp = (level < WI_LOG_INFO) ? stderr : stdout;
 
@@ -205,6 +205,11 @@ static void _wi_log_vlog(wi_log_level_t level, wi_string_t *fmt, va_list ap) {
 		fp = (level < WI_LOG_INFO) ? stderr : stdout;
 
 		fprintf(fp, "%s\n", cstring);
+	}
+	else if(level == WI_LOG_FATAL) {
+		fp = stderr;
+
+		fprintf(fp, "%s: %s\n", name, cstring);
 	}
 
 	if(fp)
@@ -245,8 +250,8 @@ static void _wi_log_vlog(wi_log_level_t level, wi_string_t *fmt, va_list ap) {
 		(*wi_log_callback)(level, string);
 		_wi_log_in_callback = false;
 	}
-
-	if((wi_log_startup || wi_log_tool) && level == WI_LOG_ERR)
+	
+	if(level == WI_LOG_FATAL)
 		exit(1);
 
 	wi_release(string);
@@ -347,9 +352,11 @@ void wi_log_debug(wi_string_t *fmt, ...) {
 void wi_log_info(wi_string_t *fmt, ...) {
 	va_list     ap;
 
-	va_start(ap, fmt);
-	_wi_log_vlog(WI_LOG_INFO, fmt, ap);
-	va_end(ap);
+	if(wi_log_level >= WI_LOG_INFO) {
+		va_start(ap, fmt);
+		_wi_log_vlog(WI_LOG_INFO, fmt, ap);
+		va_end(ap);
+	}
 }
 
 
@@ -357,9 +364,11 @@ void wi_log_info(wi_string_t *fmt, ...) {
 void wi_log_warn(wi_string_t *fmt, ...) {
 	va_list     ap;
 
-	va_start(ap, fmt);
-	_wi_log_vlog(WI_LOG_WARN, fmt, ap);
-	va_end(ap);
+	if(wi_log_level >= WI_LOG_WARN) {
+		va_start(ap, fmt);
+		_wi_log_vlog(WI_LOG_WARN, fmt, ap);
+		va_end(ap);
+	}
 }
 
 
@@ -367,27 +376,21 @@ void wi_log_warn(wi_string_t *fmt, ...) {
 void wi_log_err(wi_string_t *fmt, ...) {
 	va_list     ap;
 
-	va_start(ap, fmt);
-	_wi_log_vlog(WI_LOG_ERR, fmt, ap);
-	va_end(ap);
+	if(wi_log_level >= WI_LOG_ERR) {
+		va_start(ap, fmt);
+		_wi_log_vlog(WI_LOG_ERR, fmt, ap);
+		va_end(ap);
+	}
 }
 
 
 
-void wi_log_l(wi_string_t *fmt, ...) {
+void wi_log_fatal(wi_string_t *fmt, ...) {
 	va_list     ap;
 
-	va_start(ap, fmt);
-	_wi_log_vlog(WI_LOG_INFO, fmt, ap);
-	va_end(ap);
-}
-
-
-
-void wi_log_ll(wi_string_t *fmt, ...) {
-	va_list     ap;
-
-	va_start(ap, fmt);
-	_wi_log_vlog(WI_LOG_INFO, fmt, ap);
-	va_end(ap);
+	if(wi_log_level >= WI_LOG_FATAL) {
+		va_start(ap, fmt);
+		_wi_log_vlog(WI_LOG_FATAL, fmt, ap);
+		va_end(ap);
+	}
 }
