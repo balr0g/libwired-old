@@ -34,7 +34,6 @@
 #include <wired/wi-runtime.h>
 
 #define WI_ARRAY(array, i)				wi_array_data_at_index((array), (i))
-#define wi_array_argv					wi_array_create_argv
 
 
 struct _wi_array_callbacks {

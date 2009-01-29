@@ -185,6 +185,31 @@ pid_t wi_fork(void) {
 
 
 
+wi_boolean_t wi_execv(wi_string_t *program, wi_array_t *arguments) {
+	wi_array_t		*argv;
+	const char		**xargv;
+	
+	argv = wi_autorelease(wi_copy(arguments));
+	
+	if(wi_array_count(argv) == 0)
+		wi_array_add_data(argv, program);
+	else
+		wi_array_insert_data_at_index(argv, program, 0);
+	
+	xargv = wi_array_create_argv(argv);
+	
+	if(execv(xargv[0], (char * const *) xargv) < 0) {
+		wi_error_set_errno(errno);
+		
+		wi_array_destroy_argv(wi_array_count(argv), xargv);
+		
+		return false;
+	}
+	
+	return true;
+}
+
+
 void * wi_malloc(size_t size) {
 	void		*pointer;
 	

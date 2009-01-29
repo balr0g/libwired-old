@@ -45,6 +45,7 @@ WI_EXPORT wi_string_t *			wi_group_name(void);
 WI_EXPORT wi_uinteger_t			wi_page_size(void);
 
 WI_EXPORT pid_t					wi_fork(void);
+WI_EXPORT wi_boolean_t			wi_execv(wi_string_t *, wi_array_t *);
 
 WI_EXPORT void *				wi_malloc(size_t);
 WI_EXPORT void *				wi_realloc(void *, size_t);
