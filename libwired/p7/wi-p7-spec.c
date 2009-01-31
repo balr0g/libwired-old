@@ -912,6 +912,24 @@ static wi_boolean_t _wi_p7_spec_load_fields(wi_p7_spec_t *p7_spec, xmlNodePtr no
 				
 				return false;
 			}
+			
+			if(_wi_p7_spec_builtin_spec) {
+				if(wi_dictionary_data_for_key(_wi_p7_spec_builtin_spec->fields_name, field->name)) {
+					wi_error_set_libwired_error_with_format(WI_ERROR_P7_INVALIDSPEC,
+						WI_STR("Field with name \"%@\" already exists"),
+						field->name);
+					
+					return false;
+				}
+				
+				if(wi_dictionary_data_for_key(_wi_p7_spec_builtin_spec->fields_id, (void *) field->id)) {
+					wi_error_set_libwired_error_with_format(WI_ERROR_P7_INVALIDSPEC,
+						WI_STR("Field with id %lu (name \"%@\") already exists"),
+						field->id, field->name);
+					
+					return false;
+				}
+			}
 
 			wi_dictionary_set_data_for_key(p7_spec->fields_name, field, field->name);
 			wi_dictionary_set_data_for_key(p7_spec->fields_id, field, (void *) field->id);
@@ -992,6 +1010,24 @@ static wi_boolean_t _wi_p7_spec_load_messages(wi_p7_spec_t *p7_spec, xmlNodePtr 
 					message->id, message->name);
 				
 				return false;
+			}
+			
+			if(_wi_p7_spec_builtin_spec) {
+				if(wi_dictionary_data_for_key(_wi_p7_spec_builtin_spec->messages_name, message->name)) {
+					wi_error_set_libwired_error_with_format(WI_ERROR_P7_INVALIDSPEC,
+						WI_STR("Message with name \"%@\" already exists"),
+						message->name);
+					
+					return false;
+				}
+				
+				if(wi_dictionary_data_for_key(_wi_p7_spec_builtin_spec->messages_id, (void *) message->id)) {
+					wi_error_set_libwired_error_with_format(WI_ERROR_P7_INVALIDSPEC,
+						WI_STR("Message with id %lu (name \"%@\") already exists"),
+						message->id, message->name);
+					
+					return false;
+				}
 			}
 
 			wi_dictionary_set_data_for_key(p7_spec->messages_name, message, message->name);
