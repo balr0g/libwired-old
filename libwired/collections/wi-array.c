@@ -45,6 +45,10 @@
 #include <wired/wi-string.h>
 #include <wired/wi-system.h>
 
+#if defined(HAVE_QSORT_R) && !defined(HAVE_GLIBC)
+#define _WI_ARRAY_USE_QSORT_R
+#endif
+
 #define _WI_ARRAY_MIN_COUNT				10
 #define _WI_ARRAY_MAX_COUNT				16777213
 
@@ -122,7 +126,7 @@ static void								_wi_array_remove_item(wi_array_t *, _wi_array_item_t *);
 static void								_wi_array_add_item(wi_array_t *, _wi_array_item_t *);
 static void								_wi_array_add_item_sorted(wi_array_t *, _wi_array_item_t *, wi_compare_func_t *);
 static void								_wi_array_insert_item_at_index(wi_array_t *, _wi_array_item_t *, wi_uinteger_t);
-#ifdef HAVE_QSORT_R
+#ifdef _WI_ARRAY_USE_QSORT_R
 static int								_wi_array_compare_data(void *, const void *, const void *);
 #else
 static int								_wi_array_compare_data(const void *, const void *);
@@ -145,7 +149,7 @@ const wi_array_callbacks_t				wi_array_null_callbacks = {
 
 static wi_uinteger_t					_wi_array_items_per_page;
 
-#ifndef HAVE_QSORT_R
+#ifndef _WI_ARRAY_USE_QSORT_R
 static wi_lock_t						*_wi_array_sort_lock;
 static wi_compare_func_t				*_wi_array_sort_function;
 #endif
@@ -171,7 +175,7 @@ void wi_array_register(void) {
 void wi_array_initialize(void) {
 	_wi_array_items_per_page = wi_page_size() / sizeof(_wi_array_item_t);
 	
-#ifndef HAVE_QSORT_R
+#ifndef _WI_ARRAY_USE_QSORT_R
 	_wi_array_sort_lock = wi_lock_init(wi_lock_alloc());
 #endif
 }
@@ -823,7 +827,7 @@ static void _wi_array_insert_item_at_index(wi_array_t *array, _wi_array_item_t *
 
 
 
-#ifdef HAVE_QSORT_R
+#ifdef _WI_ARRAY_USE_QSORT_R
 
 static int _wi_array_compare_data(void *context, const void *p1, const void *p2) {
 	return (*(wi_compare_func_t *) context)(*(void **) p1, *(void **) p2);
@@ -851,7 +855,7 @@ void wi_array_sort(wi_array_t *array, wi_compare_func_t *compare) {
 	data = wi_malloc(sizeof(void *) * array->data_count);
 	wi_array_get_data(array, data);
 
-#ifdef HAVE_QSORT_R
+#ifdef _WI_ARRAY_USE_QSORT_R
 	qsort_r(data, array->data_count, sizeof(void *), compare, _wi_array_compare_data);
 #else
 	wi_lock_lock(_wi_array_sort_lock);
