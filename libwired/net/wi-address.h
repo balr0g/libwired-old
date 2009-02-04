@@ -54,6 +54,8 @@ WI_EXPORT wi_address_t *			wi_address_init_with_sa(wi_address_t *, struct sockad
 WI_EXPORT wi_address_t *			wi_address_init_wildcard_for_family(wi_address_t *, wi_address_family_t);
 WI_EXPORT wi_address_t *			wi_address_init_with_ipv4_address(wi_address_t *, uint32_t);
 
+WI_EXPORT wi_integer_t				wi_address_compare_family(wi_runtime_instance_t *, wi_runtime_instance_t *);
+
 WI_EXPORT struct sockaddr *			wi_address_sa(wi_address_t *);
 WI_EXPORT wi_uinteger_t				wi_address_sa_length(wi_address_t *);
 WI_EXPORT wi_address_family_t		wi_address_family(wi_address_t *);

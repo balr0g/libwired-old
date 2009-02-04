@@ -241,6 +241,8 @@ static wi_array_t * _wi_host_addresses_for_interface_string(wi_string_t *string)
 
 	freeifaddrs(ifap);
 	
+	wi_array_sort(array, wi_address_compare_family);
+	
 	if(wi_array_count(array) == 0) {
 		wi_error_set_libwired_error(WI_ERROR_HOST_NOAVAILABLEADDRESSES);
 		
@@ -253,8 +255,8 @@ static wi_array_t * _wi_host_addresses_for_interface_string(wi_string_t *string)
 	wi_array_t				*array;
 
 	array = wi_array_init(wi_array_alloc());
-	wi_array_add_data(array, wi_address_wildcard_for_family(WI_ADDRESS_IPV4));
 	wi_array_add_data(array, wi_address_wildcard_for_family(WI_ADDRESS_IPV6));
+	wi_array_add_data(array, wi_address_wildcard_for_family(WI_ADDRESS_IPV4));
 
 	return wi_autorelease(array);
 #endif
@@ -295,6 +297,8 @@ static wi_array_t * _wi_host_addresses_for_host_string(wi_string_t *string) {
 
 	freeaddrinfo(aiap);
 
+	wi_array_sort(array, wi_address_compare_family);
+	
 	if(wi_array_count(array) == 0) {
 		wi_error_set_libwired_error(WI_ERROR_HOST_NOAVAILABLEADDRESSES);
 		

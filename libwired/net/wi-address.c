@@ -258,6 +258,25 @@ static wi_hash_code_t _wi_address_hash(wi_runtime_instance_t *instance) {
 
 #pragma mark -
 
+wi_integer_t wi_address_compare_family(wi_runtime_instance_t *instance1, wi_runtime_instance_t *instance2) {
+	wi_address_t			*address1 = instance1;
+	wi_address_t			*address2 = instance2;
+	wi_address_family_t		family1;
+	wi_address_family_t		family2;
+	
+	family1 = wi_address_family(address1);
+	family2 = wi_address_family(address2);
+	
+	if(family1 == WI_ADDRESS_IPV4 && family2 == WI_ADDRESS_IPV6)
+		return 1;
+	else if(family1 == WI_ADDRESS_IPV6 && family2 == WI_ADDRESS_IPV4)
+		return -1;
+	
+	return 0;
+}
+
+
+
 struct sockaddr * wi_address_sa(wi_address_t *address) {
 	return (struct sockaddr *) &address->ss;
 }
