@@ -138,6 +138,8 @@ struct _wi_p7_socket {
 	wi_p7_serialization_t					serialization;
 	wi_uinteger_t							options;
 	
+	uint32_t								message_binary_size;
+	
 #ifdef WI_SSL
 	wi_boolean_t							tls_enabled;
 	wi_socket_tls_t							*tls;
@@ -1294,8 +1296,9 @@ static wi_p7_message_t * _wi_p7_socket_read_binary_message(wi_p7_socket_t *p7_so
 	if(length <= 0)
 		return NULL;
 	
-	p7_message->binary_size = length;
-	p7_socket->read_raw_bytes += p7_message->binary_size;
+	p7_message->binary_size			= length;
+	p7_socket->message_binary_size	= 0;
+	p7_socket->read_raw_bytes		+= p7_message->binary_size;
 
 #ifdef WI_RSA
 	if(p7_socket->encryption_enabled) {
@@ -1673,27 +1676,28 @@ wi_p7_message_t * wi_p7_socket_read_message(wi_p7_socket_t *p7_socket, wi_time_i
 	wi_p7_message_t		*p7_message;
 	wi_string_t			*prefix = NULL;
 	char				length_buffer[_WI_P7_SOCKET_LENGTH_SIZE];
-	uint32_t			length = 0;
 	
 	if(p7_socket->serialization == WI_P7_UNKNOWN || p7_socket->serialization == WI_P7_BINARY) {
-		if(wi_socket_read_buffer(p7_socket->socket, timeout, length_buffer, sizeof(length_buffer)) <= 0)
-			return NULL;
-		
-		length = wi_read_swap_big_to_host_int32(length_buffer, 0);
+		if(p7_socket->message_binary_size == 0) {
+			if(wi_socket_read_buffer(p7_socket->socket, timeout, length_buffer, sizeof(length_buffer)) <= 0)
+				return NULL;
+			
+			p7_socket->message_binary_size = wi_read_swap_big_to_host_int32(length_buffer, 0);
+		}
 		
 		if(p7_socket->serialization == WI_P7_UNKNOWN) {
-			if(length == _WI_P7_SOCKET_XML_MAGIC) {
+			if(p7_socket->message_binary_size == _WI_P7_SOCKET_XML_MAGIC) {
 				p7_socket->serialization = WI_P7_XML;
 				prefix = WI_STR("<?xm");
 			}
-			else if(length < _WI_P7_SOCKET_MAX_BINARY_SIZE) {
+			else if(p7_socket->message_binary_size < _WI_P7_SOCKET_MAX_BINARY_SIZE) {
 				p7_socket->serialization = WI_P7_BINARY;
 			}
 		}
 	}
 	
 	if(p7_socket->serialization == WI_P7_BINARY)
-		p7_message = _wi_p7_socket_read_binary_message(p7_socket, timeout, length);
+		p7_message = _wi_p7_socket_read_binary_message(p7_socket, timeout, p7_socket->message_binary_size);
 	else if(p7_socket->serialization == WI_P7_XML)
 		p7_message = _wi_p7_socket_read_xml_message(p7_socket, timeout, prefix);
 	else {
