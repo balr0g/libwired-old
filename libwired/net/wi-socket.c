@@ -1445,6 +1445,7 @@ wi_integer_t wi_socket_write_buffer(wi_socket_t *socket, wi_time_interval_t time
 	wi_integer_t		bytes;
 	
 	WI_ASSERT(buffer != NULL, "buffer of length %u should not be NULL", length);
+	WI_ASSERT(socket->sd >= 0, "socket %@ should be valid", socket);
 	
 #ifdef HAVE_OPENSSL_SSL_H
 	if(socket->ssl) {
@@ -1610,6 +1611,7 @@ wi_integer_t wi_socket_read_buffer(wi_socket_t *socket, wi_time_interval_t timeo
 	wi_integer_t		bytes;
 	
 	WI_ASSERT(buffer != NULL, "buffer of length %u should not be NULL", length);
+	WI_ASSERT(socket->sd >= 0, "socket %@ should be valid", socket);
 
 #ifdef HAVE_OPENSSL_SSL_H
 	if(socket->ssl) {
