@@ -137,6 +137,24 @@ wi_number_t * wi_number_with_bool(wi_boolean_t value) {
 
 
 
+wi_number_t * wi_number_with_char(char value) {
+	return wi_autorelease(wi_number_init_with_char(wi_number_alloc(), value));
+}
+
+
+
+wi_number_t * wi_number_with_short(short value) {
+	return wi_autorelease(wi_number_init_with_short(wi_number_alloc(), value));
+}
+
+
+
+wi_number_t * wi_number_with_int(int value) {
+	return wi_autorelease(wi_number_init_with_int(wi_number_alloc(), value));
+}
+
+
+
 wi_number_t * wi_number_with_int32(int32_t value) {
 	return wi_autorelease(wi_number_init_with_int32(wi_number_alloc(), value));
 }
@@ -151,6 +169,18 @@ wi_number_t * wi_number_with_int64(int64_t value) {
 
 wi_number_t * wi_number_with_integer(wi_integer_t value) {
 	return wi_autorelease(wi_number_init_with_integer(wi_number_alloc(), value));
+}
+
+
+
+wi_number_t * wi_number_with_long(long value) {
+	return wi_autorelease(wi_number_init_with_long(wi_number_alloc(), value));
+}
+
+
+
+wi_number_t * wi_number_with_long_long(long long value) {
+	return wi_autorelease(wi_number_init_with_long_long(wi_number_alloc(), value));
 }
 
 
@@ -192,6 +222,24 @@ wi_number_t * wi_number_init_with_bool(wi_number_t *number, wi_boolean_t value) 
 
 
 
+wi_number_t * wi_number_init_with_char(wi_number_t *number, char value) {
+	return wi_number_init_with_value(number, WI_NUMBER_CHAR, &value);
+}
+
+
+
+wi_number_t * wi_number_init_with_short(wi_number_t *number, short value) {
+	return wi_number_init_with_value(number, WI_NUMBER_SHORT, &value);
+}
+
+
+
+wi_number_t * wi_number_init_with_int(wi_number_t *number, int value) {
+	return wi_number_init_with_value(number, WI_NUMBER_INT, &value);
+}
+
+
+
 wi_number_t * wi_number_init_with_int32(wi_number_t *number, int32_t value) {
 	return wi_number_init_with_value(number, WI_NUMBER_INT32, &value);
 }
@@ -210,6 +258,18 @@ wi_number_t * wi_number_init_with_integer(wi_number_t *number, wi_integer_t valu
 #else
 	return wi_number_init_with_value(number, WI_NUMBER_INT64, &value);
 #endif
+}
+
+
+
+wi_number_t * wi_number_init_with_long(wi_number_t *number, long value) {
+	return wi_number_init_with_value(number, WI_NUMBER_LONG, &value);
+}
+
+
+
+wi_number_t * wi_number_init_with_long_long(wi_number_t *number, long long value) {
+	return wi_number_init_with_value(number, WI_NUMBER_LONG_LONG, &value);
 }
 
 
@@ -366,6 +426,36 @@ wi_boolean_t wi_number_bool(wi_number_t *number) {
 
 
 
+char wi_number_char(wi_number_t *number) {
+	char		value;
+	
+	wi_number_get_value(number, WI_NUMBER_CHAR, &value);
+	
+	return value;
+}
+
+
+
+short wi_number_short(wi_number_t *number) {
+	short		value;
+	
+	wi_number_get_value(number, WI_NUMBER_SHORT, &value);
+	
+	return value;
+}
+
+
+
+int wi_number_int(wi_number_t *number) {
+	int		value;
+	
+	wi_number_get_value(number, WI_NUMBER_INT, &value);
+	
+	return value;
+}
+
+
+
 int32_t wi_number_int32(wi_number_t *number) {
 	int32_t		value;
 	
@@ -392,6 +482,26 @@ wi_integer_t wi_number_integer(wi_number_t *number) {
 #else
 	return wi_number_int64(number);
 #endif
+}
+
+
+
+long wi_number_long(wi_number_t *number) {
+	long		value;
+	
+	wi_number_get_value(number, WI_NUMBER_LONG, &value);
+	
+	return value;
+}
+
+
+
+long long wi_number_long_long(wi_number_t *number) {
+	long long		value;
+	
+	wi_number_get_value(number, WI_NUMBER_LONG_LONG, &value);
+	
+	return value;
 }
 
 

@@ -67,18 +67,28 @@ WI_EXPORT wi_runtime_id_t				wi_number_runtime_id(void);
 
 WI_EXPORT wi_number_t *					wi_number_with_value(wi_number_type_t, const void *);
 WI_EXPORT wi_number_t *					wi_number_with_bool(wi_boolean_t);
+WI_EXPORT wi_number_t *					wi_number_with_char(char);
+WI_EXPORT wi_number_t *					wi_number_with_short(short);
+WI_EXPORT wi_number_t *					wi_number_with_int(int);
 WI_EXPORT wi_number_t *					wi_number_with_int32(int32_t);
 WI_EXPORT wi_number_t *					wi_number_with_int64(int64_t);
 WI_EXPORT wi_number_t *					wi_number_with_integer(wi_integer_t);
+WI_EXPORT wi_number_t *					wi_number_with_long(long);
+WI_EXPORT wi_number_t *					wi_number_with_long_long(long long);
 WI_EXPORT wi_number_t *					wi_number_with_float(float);
 WI_EXPORT wi_number_t *					wi_number_with_double(double);
 
 WI_EXPORT wi_number_t *					wi_number_alloc(void);
 WI_EXPORT wi_number_t *					wi_number_init_with_value(wi_number_t *, wi_number_type_t, const void *);
 WI_EXPORT wi_number_t *					wi_number_init_with_bool(wi_number_t *, wi_boolean_t);
+WI_EXPORT wi_number_t *					wi_number_init_with_char(wi_number_t *, char);
+WI_EXPORT wi_number_t *					wi_number_init_with_short(wi_number_t *, short);
+WI_EXPORT wi_number_t *					wi_number_init_with_int(wi_number_t *, int);
 WI_EXPORT wi_number_t *					wi_number_init_with_int32(wi_number_t *, int32_t);
 WI_EXPORT wi_number_t *					wi_number_init_with_int64(wi_number_t *, int64_t);
 WI_EXPORT wi_number_t *					wi_number_init_with_integer(wi_number_t *, wi_integer_t);
+WI_EXPORT wi_number_t *					wi_number_init_with_long(wi_number_t *, long);
+WI_EXPORT wi_number_t *					wi_number_init_with_long_long(wi_number_t *, long long);
 WI_EXPORT wi_number_t *					wi_number_init_with_float(wi_number_t *, float);
 WI_EXPORT wi_number_t *					wi_number_init_with_double(wi_number_t *, double);
 
@@ -88,9 +98,14 @@ WI_EXPORT wi_number_type_t				wi_number_type(wi_number_t *);
 WI_EXPORT wi_number_storage_type_t		wi_number_storage_type(wi_number_t *);
 WI_EXPORT void							wi_number_get_value(wi_number_t *, wi_number_type_t, void *);
 WI_EXPORT wi_boolean_t					wi_number_bool(wi_number_t *);
+WI_EXPORT char							wi_number_char(wi_number_t *);
+WI_EXPORT short							wi_number_short(wi_number_t *);
+WI_EXPORT int							wi_number_int(wi_number_t *);
 WI_EXPORT int32_t						wi_number_int32(wi_number_t *);
 WI_EXPORT int64_t						wi_number_int64(wi_number_t *);
 WI_EXPORT wi_integer_t					wi_number_integer(wi_number_t *);
+WI_EXPORT long							wi_number_long(wi_number_t *);
+WI_EXPORT long long						wi_number_long_long(wi_number_t *);
 WI_EXPORT float							wi_number_float(wi_number_t *);
 WI_EXPORT double						wi_number_double(wi_number_t *);
 
