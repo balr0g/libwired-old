@@ -45,6 +45,8 @@ enum _wi_number_type {
 	WI_NUMBER_CHAR,
 	WI_NUMBER_SHORT,
 	WI_NUMBER_INT,
+	WI_NUMBER_INT8,
+	WI_NUMBER_INT16,
 	WI_NUMBER_INT32,
 	WI_NUMBER_INT64,
 	WI_NUMBER_LONG,
@@ -55,6 +57,8 @@ enum _wi_number_type {
 typedef enum _wi_number_type			wi_number_type_t;
 
 enum _wi_number_storage_type {
+	WI_NUMBER_STORAGE_INT8,
+	WI_NUMBER_STORAGE_INT16,
 	WI_NUMBER_STORAGE_INT32,
 	WI_NUMBER_STORAGE_INT64,
 	WI_NUMBER_STORAGE_FLOAT,
