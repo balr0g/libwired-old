@@ -43,8 +43,6 @@ void wi_test_plist(void) {
 	
 	WI_TEST_ASSERT_NOT_NULL(dictionary1, "%m");
 	
-	wi_log_info(WI_STR("%@"), wi_number_with_int32(42));
-	
 	dictionary2 = wi_dictionary_with_data_and_keys(
 		WI_STR("hello world"),
 			WI_STR("string"),
