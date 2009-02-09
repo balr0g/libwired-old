@@ -79,7 +79,11 @@ static wi_error_t *						_wi_error_alloc(void);
 static wi_error_t *						_wi_error_init(wi_error_t *);
 static void								_wi_error_dealloc(wi_runtime_instance_t *);
 
-static wi_error_t *						_wi_get_error(void);
+static wi_error_t *						_wi_error_get_error(void);
+
+#ifdef HAVE_LIBXML_PARSER_H
+static void								_wi_error_xml_error_handler(void *, const char *, ...);
+#endif
 
 
 static const char 						*_wi_error_strings[] = {
@@ -232,7 +236,7 @@ static void _wi_error_dealloc(wi_runtime_instance_t *instance) {
 
 #pragma mark -
 
-static wi_error_t * _wi_get_error(void) {
+static wi_error_t * _wi_error_get_error(void) {
 	wi_error_t		*error;
 	
 	error = wi_dictionary_data_for_key(wi_thread_dictionary(), WI_STR(_WI_ERROR_THREAD_KEY));
@@ -241,6 +245,15 @@ static wi_error_t * _wi_get_error(void) {
 	
 	return error;
 }
+
+
+
+#ifdef HAVE_LIBXML_PARSER_H
+
+static void _wi_error_xml_error_handler(void *context, const char *message, ...) {
+}
+
+#endif
 
 
 
@@ -254,14 +267,20 @@ void wi_error_enter_thread(void) {
 	wi_release(error);
 	
 	wi_error_set_error(WI_ERROR_DOMAIN_NONE, WI_ERROR_NONE);
+	
+#ifdef HAVE_LIBXML_PARSER_H
+	xmlSetGenericErrorFunc(NULL, _wi_error_xml_error_handler);
+#endif
 }
 
 
 
+#pragma mark -
+
 void wi_error_set_error(wi_error_domain_t domain, int code) {
 	wi_error_t		*error;
 
-	error = _wi_get_error();
+	error = _wi_error_get_error();
 	error->domain = domain;
 	error->code = code;
 
@@ -287,7 +306,7 @@ void wi_error_set_openssl_error(void) {
 	if(ERR_peek_error() == 0) {
 		wi_error_set_errno(errno);
 	} else {
-		error = _wi_get_error();
+		error = _wi_error_get_error();
 		error->domain = WI_ERROR_DOMAIN_OPENSSL;
 		error->code = ERR_get_error_line(&file, &line);
 		
@@ -329,7 +348,7 @@ void wi_error_set_openssl_ssl_error_with_result(void *ssl, int result) {
 	else if(code == SSL_ERROR_SSL) {
 		wi_error_set_openssl_error();
 	} else {
-		error = _wi_get_error();
+		error = _wi_error_get_error();
 		error->domain = WI_ERROR_DOMAIN_OPENSSL_SSL;
 		error->code = code;
 
@@ -378,7 +397,7 @@ void wi_error_set_openssl_ssl_error_with_result(void *ssl, int result) {
 void wi_error_set_commoncrypto_error(int code) {
 	wi_error_t		*error;
 	
-	error = _wi_get_error();
+	error = _wi_error_get_error();
 	error->domain = WI_ERROR_DOMAIN_COMMONCRYPTO;
 	error->code = code;
 	
@@ -423,7 +442,7 @@ void wi_error_set_libxml2_error(void) {
 
 	xml_error = xmlGetLastError();
 
-	error = _wi_get_error();
+	error = _wi_error_get_error();
 	error->domain = WI_ERROR_DOMAIN_REGEX;
 	error->code = xml_error->code;
 	
@@ -441,7 +460,7 @@ void wi_error_set_regex_error(regex_t *regex, int code) {
 	wi_error_t		*error;
 	char			string[256];
 
-	error = _wi_get_error();
+	error = _wi_error_get_error();
 	error->domain = WI_ERROR_DOMAIN_REGEX;
 	error->code = code;
 	
@@ -482,7 +501,7 @@ void wi_error_set_libwired_error(int code) {
 void wi_error_set_libwired_error_with_string(int code, wi_string_t *string) {
 	wi_error_t		*error;
 
-	error = _wi_get_error();
+	error = _wi_error_get_error();
 	error->domain = WI_ERROR_DOMAIN_LIBWIRED;
 	error->code = code;
 	
@@ -518,7 +537,7 @@ void wi_error_set_libwired_error_with_format(int code, wi_string_t *fmt, ...) {
 wi_string_t * wi_error_string(void) {
 	wi_error_t		*error;
 
-	error = _wi_get_error();
+	error = _wi_error_get_error();
 
 	if(!error->string) {
 		switch(error->domain) {
@@ -565,7 +584,7 @@ wi_string_t * wi_error_string(void) {
 wi_error_domain_t wi_error_domain(void) {
 	wi_error_t		*error;
 
-	error = _wi_get_error();
+	error = _wi_error_get_error();
 
 	return error->domain;
 }
@@ -575,7 +594,7 @@ wi_error_domain_t wi_error_domain(void) {
 wi_integer_t wi_error_code(void) {
 	wi_error_t		*error;
 
-	error = _wi_get_error();
+	error = _wi_error_get_error();
 
 	return error->code;
 }
