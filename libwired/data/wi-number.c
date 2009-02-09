@@ -392,14 +392,14 @@ wi_number_storage_type_t wi_number_storage_type(wi_number_t *number) {
 
 
 
-#define WI_NUMBER_GET_VALUE(value, storage_type, outvalue)					\
-	switch(storage_type) {											\
-		case WI_NUMBER_STORAGE_INT8:	*(int8_t *) outvalue	= (int8_t) value;	break; \
-		case WI_NUMBER_STORAGE_INT16:	*(int16_t *) outvalue	= (int16_t) value;	break; \
-		case WI_NUMBER_STORAGE_INT32:	*(int32_t *) outvalue	= (int32_t) value;	break; \
-		case WI_NUMBER_STORAGE_INT64:	*(int64_t *) outvalue	= (int64_t) value;	break; \
-		case WI_NUMBER_STORAGE_FLOAT:	*(float *) outvalue		= (float) value;	break; \
-		case WI_NUMBER_STORAGE_DOUBLE:	*(double *) outvalue	= (double) value;	break; \
+#define WI_NUMBER_GET_VALUE(value, storage_type, outvalue)									\
+	switch(storage_type) {																	\
+		case WI_NUMBER_STORAGE_INT8:	*(int8_t *) outvalue	= (int8_t) value;	break;	\
+		case WI_NUMBER_STORAGE_INT16:	*(int16_t *) outvalue	= (int16_t) value;	break;	\
+		case WI_NUMBER_STORAGE_INT32:	*(int32_t *) outvalue	= (int32_t) value;	break;	\
+		case WI_NUMBER_STORAGE_INT64:	*(int64_t *) outvalue	= (int64_t) value;	break;	\
+		case WI_NUMBER_STORAGE_FLOAT:	*(float *) outvalue		= (float) value;	break;	\
+		case WI_NUMBER_STORAGE_DOUBLE:	*(double *) outvalue	= (double) value;	break;	\
 	}
 
 
@@ -411,9 +411,9 @@ void wi_number_get_value(wi_number_t *number, wi_number_type_t type, void *value
 
 	switch(number->storage_type) {
 		case WI_NUMBER_STORAGE_INT8:		WI_NUMBER_GET_VALUE(number->value.i8, storage_type, value);		break;
-		case WI_NUMBER_STORAGE_INT16:		WI_NUMBER_GET_VALUE(number->value.i16, storage_type, value);		break;
-		case WI_NUMBER_STORAGE_INT32:		WI_NUMBER_GET_VALUE(number->value.i32, storage_type, value);		break;
-		case WI_NUMBER_STORAGE_INT64:		WI_NUMBER_GET_VALUE(number->value.i64, storage_type, value);		break;
+		case WI_NUMBER_STORAGE_INT16:		WI_NUMBER_GET_VALUE(number->value.i16, storage_type, value);	break;
+		case WI_NUMBER_STORAGE_INT32:		WI_NUMBER_GET_VALUE(number->value.i32, storage_type, value);	break;
+		case WI_NUMBER_STORAGE_INT64:		WI_NUMBER_GET_VALUE(number->value.i64, storage_type, value);	break;
 		case WI_NUMBER_STORAGE_FLOAT:		WI_NUMBER_GET_VALUE(number->value.f, storage_type, value);		break;
 		case WI_NUMBER_STORAGE_DOUBLE:		WI_NUMBER_GET_VALUE(number->value.d, storage_type, value);		break;
 	}
