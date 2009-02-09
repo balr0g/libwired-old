@@ -1301,6 +1301,8 @@ wi_boolean_t wi_p7_message_set_number_for_name(wi_p7_message_t *p7_message, wi_n
 		return wi_p7_message_set_bool_for_name(p7_message, wi_number_bool(number), field_name);
 	} else {
 		switch(wi_number_storage_type(number)) {
+			case WI_NUMBER_STORAGE_INT8:
+			case WI_NUMBER_STORAGE_INT16:
 			case WI_NUMBER_STORAGE_INT32:
 				return wi_p7_message_set_int32_for_name(p7_message, wi_number_int32(number), field_name);
 				break;
