@@ -416,8 +416,7 @@ double wi_p7_socket_compression_ratio(wi_p7_socket_t *p7_socket) {
 static wi_boolean_t _wi_p7_socket_connect_handshake(wi_p7_socket_t *p7_socket, wi_time_interval_t timeout, wi_uinteger_t options) {
 	wi_string_t			*version;
 	wi_p7_message_t		*p7_message;
-	wi_p7_enum_t		eflag;
-	wi_p7_boolean_t		bflag;
+	wi_p7_enum_t		flag;
 	
 	p7_message = wi_p7_message_with_name(WI_STR("p7.handshake.client_handshake"), wi_p7_socket_spec(p7_socket));
 	
@@ -519,14 +518,14 @@ static wi_boolean_t _wi_p7_socket_connect_handshake(wi_p7_socket_t *p7_socket, w
 	p7_socket->local_compatibility_check = !wi_p7_spec_is_compatible_with_protocol(p7_socket->spec, p7_socket->remote_name, p7_socket->remote_version);
 
 	if(p7_socket->serialization == WI_P7_BINARY) {
-		if(wi_p7_message_get_enum_for_name(p7_message, &eflag, WI_STR("p7.handshake.compression")))
-			p7_socket->options |= _WI_P7_COMPRESSION_ENUM_TO_OPTIONS(eflag);
+		if(wi_p7_message_get_enum_for_name(p7_message, &flag, WI_STR("p7.handshake.compression")))
+			p7_socket->options |= _WI_P7_COMPRESSION_ENUM_TO_OPTIONS(flag);
 	
-		if(wi_p7_message_get_enum_for_name(p7_message, &eflag, WI_STR("p7.handshake.encryption")))
-			p7_socket->options |= _WI_P7_ENCRYPTION_ENUM_TO_OPTIONS(eflag);
+		if(wi_p7_message_get_enum_for_name(p7_message, &flag, WI_STR("p7.handshake.encryption")))
+			p7_socket->options |= _WI_P7_ENCRYPTION_ENUM_TO_OPTIONS(flag);
 	
-		if(wi_p7_message_get_enum_for_name(p7_message, &eflag, WI_STR("p7.handshake.checksum")))
-			p7_socket->options |= _WI_P7_CHECKSUM_ENUM_TO_OPTIONS(eflag);
+		if(wi_p7_message_get_enum_for_name(p7_message, &flag, WI_STR("p7.handshake.checksum")))
+			p7_socket->options |= _WI_P7_CHECKSUM_ENUM_TO_OPTIONS(flag);
 	}
 	
 	if(!wi_p7_message_get_bool_for_name(p7_message, &p7_socket->remote_compatibility_check, WI_STR("p7.handshake.compatibility_check")))
@@ -553,8 +552,7 @@ static wi_boolean_t _wi_p7_socket_connect_handshake(wi_p7_socket_t *p7_socket, w
 static wi_boolean_t _wi_p7_socket_accept_handshake(wi_p7_socket_t *p7_socket, wi_time_interval_t timeout, wi_uinteger_t options) {
 	wi_string_t			*version;
 	wi_p7_message_t		*p7_message;
-	wi_p7_enum_t		eflag;
-	wi_p7_boolean_t		bflag;
+	wi_p7_enum_t		flag;
 	wi_uinteger_t		client_options;
 	
 	p7_message = wi_p7_socket_read_message(p7_socket, timeout);
@@ -608,15 +606,15 @@ static wi_boolean_t _wi_p7_socket_accept_handshake(wi_p7_socket_t *p7_socket, wi
 	p7_socket->local_compatibility_check = !wi_p7_spec_is_compatible_with_protocol(p7_socket->spec, p7_socket->remote_name, p7_socket->remote_version);
 
 	if(p7_socket->serialization == WI_P7_BINARY) {
-		if(wi_p7_message_get_enum_for_name(p7_message, &eflag, WI_STR("p7.handshake.compression"))) {
-			client_options = _WI_P7_COMPRESSION_ENUM_TO_OPTIONS(eflag);
+		if(wi_p7_message_get_enum_for_name(p7_message, &flag, WI_STR("p7.handshake.compression"))) {
+			client_options = _WI_P7_COMPRESSION_ENUM_TO_OPTIONS(flag);
 			
 			if(options & client_options)
 				p7_socket->options |= client_options;
 		}
 		
-		if(wi_p7_message_get_enum_for_name(p7_message, &eflag, WI_STR("p7.handshake.encryption"))) {
-			client_options = _WI_P7_ENCRYPTION_ENUM_TO_OPTIONS(eflag);
+		if(wi_p7_message_get_enum_for_name(p7_message, &flag, WI_STR("p7.handshake.encryption"))) {
+			client_options = _WI_P7_ENCRYPTION_ENUM_TO_OPTIONS(flag);
 
 #ifdef WI_RSA
 			if(options & client_options)
@@ -624,8 +622,8 @@ static wi_boolean_t _wi_p7_socket_accept_handshake(wi_p7_socket_t *p7_socket, wi
 #endif
 		}
 		
-		if(wi_p7_message_get_enum_for_name(p7_message, &eflag, WI_STR("p7.handshake.checksum"))) {
-			client_options = _WI_P7_CHECKSUM_ENUM_TO_OPTIONS(eflag);
+		if(wi_p7_message_get_enum_for_name(p7_message, &flag, WI_STR("p7.handshake.checksum"))) {
+			client_options = _WI_P7_CHECKSUM_ENUM_TO_OPTIONS(flag);
 
 			if(options & client_options)
 				p7_socket->options |= client_options;
