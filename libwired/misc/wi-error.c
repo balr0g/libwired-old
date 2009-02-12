@@ -128,8 +128,6 @@ static const char 						*_wi_error_strings[] = {
 	"No private RSA key set",
 	/* WI_ERROR_P7_MESSAGETOOLARGE */
 	"Message too large",
-	/* WI_ERROR_P7_SSLNOTSUPP */
-	"SSL not supported",
 	/* WI_ERROR_P7_RSANOTSUPP */
 	"RSA not supported",
 

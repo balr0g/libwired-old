@@ -140,11 +140,6 @@ struct _wi_p7_socket {
 	
 	uint32_t								message_binary_size;
 	
-#ifdef WI_SSL
-	wi_boolean_t							tls_enabled;
-	wi_socket_tls_t							*tls;
-#endif
-	
 #ifdef WI_RSA
 	wi_boolean_t							encryption_enabled;
 	wi_rsa_t								*private_key;
@@ -194,11 +189,6 @@ static wi_string_t *						_wi_p7_socket_description(wi_runtime_instance_t *);
 
 static wi_boolean_t							_wi_p7_socket_connect_handshake(wi_p7_socket_t *, wi_time_interval_t, wi_uinteger_t);
 static wi_boolean_t							_wi_p7_socket_accept_handshake(wi_p7_socket_t *, wi_time_interval_t, wi_uinteger_t);
-
-#ifdef WI_SSL
-static wi_boolean_t							_wi_p7_socket_connect_tls(wi_p7_socket_t *, wi_time_interval_t);
-static wi_boolean_t							_wi_p7_socket_accept_tls(wi_p7_socket_t *, wi_time_interval_t);
-#endif
 
 #ifdef WI_RSA
 static wi_boolean_t							_wi_p7_socket_connect_key_exchange(wi_p7_socket_t *, wi_time_interval_t, wi_string_t *, wi_string_t *);
@@ -304,10 +294,6 @@ static void _wi_p7_socket_dealloc(wi_runtime_instance_t *instance) {
 	wi_release(p7_socket->remote_name);
 	wi_release(p7_socket->remote_version);
 	
-#ifdef WI_SSL
-	wi_release(p7_socket->tls);
-#endif
-
 #ifdef WI_RSA
 	wi_release(p7_socket->private_key);
 	wi_release(p7_socket->public_key);
@@ -350,25 +336,6 @@ wi_rsa_t * wi_p7_socket_private_key(wi_p7_socket_t *p7_socket) {
 
 wi_rsa_t * wi_p7_socket_public_key(wi_p7_socket_t *p7_socket) {
 	return p7_socket->public_key;
-}
-
-#endif
-
-
-
-#ifdef WI_SSL
-
-void wi_p7_socket_set_tls(wi_p7_socket_t *p7_socket, wi_socket_tls_t *tls) {
-	wi_retain(tls);
-	wi_release(p7_socket->tls);
-	
-	p7_socket->tls = tls;
-}
-
-
-
-wi_socket_tls_t * wi_p7_socket_tls(wi_p7_socket_t *p7_socket) {
-	return p7_socket->tls;
 }
 
 #endif
@@ -467,17 +434,6 @@ static wi_boolean_t _wi_p7_socket_connect_handshake(wi_p7_socket_t *p7_socket, w
 		return false;
 	
 	if(p7_socket->serialization == WI_P7_BINARY) {
-		if(WI_P7_TLS_ENABLED(options)) {
-#ifdef WI_SSL
-			if(!wi_p7_message_set_bool_for_name(p7_message, true, WI_STR("p7.handshake.tls")))
-				return false;
-#else
-			wi_error_set_libwired_error(WI_ERROR_P7_SSLNOTSUPP);
-			
-			return false;
-#endif
-		}
-
 		if(WI_P7_COMPRESSION_ENABLED(options)) {
 			if(!wi_p7_message_set_enum_for_name(p7_message,
 												_WI_P7_COMPRESSION_OPTIONS_TO_ENUM(options),
@@ -563,9 +519,6 @@ static wi_boolean_t _wi_p7_socket_connect_handshake(wi_p7_socket_t *p7_socket, w
 	p7_socket->local_compatibility_check = !wi_p7_spec_is_compatible_with_protocol(p7_socket->spec, p7_socket->remote_name, p7_socket->remote_version);
 
 	if(p7_socket->serialization == WI_P7_BINARY) {
-		if(wi_p7_message_get_bool_for_name(p7_message, &bflag, WI_STR("p7.handshake.tls")) && bflag)
-			p7_socket->options |= WI_P7_TLS;
-			
 		if(wi_p7_message_get_enum_for_name(p7_message, &eflag, WI_STR("p7.handshake.compression")))
 			p7_socket->options |= _WI_P7_COMPRESSION_ENUM_TO_OPTIONS(eflag);
 	
@@ -655,15 +608,6 @@ static wi_boolean_t _wi_p7_socket_accept_handshake(wi_p7_socket_t *p7_socket, wi
 	p7_socket->local_compatibility_check = !wi_p7_spec_is_compatible_with_protocol(p7_socket->spec, p7_socket->remote_name, p7_socket->remote_version);
 
 	if(p7_socket->serialization == WI_P7_BINARY) {
-		if(wi_p7_message_get_bool_for_name(p7_message, &bflag, WI_STR("p7.handshake.tls")) && bflag) {
-			client_options = WI_P7_TLS;
-			
-#ifdef WI_SSL
-			if(options & client_options)
-				p7_socket->options |= client_options;
-#endif
-		}
-		
 		if(wi_p7_message_get_enum_for_name(p7_message, &eflag, WI_STR("p7.handshake.compression"))) {
 			client_options = _WI_P7_COMPRESSION_ENUM_TO_OPTIONS(eflag);
 			
@@ -703,11 +647,6 @@ static wi_boolean_t _wi_p7_socket_accept_handshake(wi_p7_socket_t *p7_socket, wi
 		return false;
 	
 	if(p7_socket->serialization == WI_P7_BINARY) {
-		if(WI_P7_TLS_ENABLED(p7_socket->options)) {
-			if(!wi_p7_message_set_bool_for_name(p7_message, true, WI_STR("p7.handshake.tls")))
-				return false;
-		}
-
 		if(WI_P7_COMPRESSION_ENABLED(p7_socket->options)) {
 			if(!wi_p7_message_set_enum_for_name(p7_message,
 												_WI_P7_COMPRESSION_OPTIONS_TO_ENUM(p7_socket->options),
@@ -759,22 +698,6 @@ static wi_boolean_t _wi_p7_socket_accept_handshake(wi_p7_socket_t *p7_socket, wi
 	
 	return true;
 }
-
-
-
-#ifdef WI_SSL
-
-static wi_boolean_t _wi_p7_socket_connect_tls(wi_p7_socket_t *p7_socket, wi_time_interval_t timeout) {
-	return wi_socket_connect_tls(p7_socket->socket, p7_socket->tls, timeout);
-}
-
-
-
-static wi_boolean_t _wi_p7_socket_accept_tls(wi_p7_socket_t *p7_socket, wi_time_interval_t timeout) {
-	return wi_socket_accept_tls(p7_socket->socket, p7_socket->tls, timeout);
-}
-
-#endif
 
 
 
@@ -1564,13 +1487,6 @@ wi_boolean_t wi_p7_socket_connect(wi_p7_socket_t *p7_socket, wi_time_interval_t 
 	if(WI_P7_CHECKSUM_ENABLED(p7_socket->options))
 		_wi_p7_socket_configure_checksum(p7_socket);
 	
-#ifdef WI_SSL
-	if(WI_P7_TLS_ENABLED(p7_socket->options)) {
-		if(!_wi_p7_socket_connect_tls(p7_socket, timeout))
-			return false;
-	}
-#endif
-
 #ifdef WI_RSA
 	if(WI_P7_ENCRYPTION_ENABLED(p7_socket->options)) {
 		if(!_wi_p7_socket_connect_key_exchange(p7_socket, timeout, username, password))
@@ -1604,13 +1520,6 @@ wi_boolean_t wi_p7_socket_accept(wi_p7_socket_t *p7_socket, wi_time_interval_t t
 
 	if(WI_P7_CHECKSUM_ENABLED(p7_socket->options))
 		_wi_p7_socket_configure_checksum(p7_socket);
-	
-#ifdef WI_SSL
-	if(WI_P7_TLS_ENABLED(p7_socket->options)) {
-		if(!_wi_p7_socket_accept_tls(p7_socket, timeout))
-			return false;
-	}
-#endif
 	
 #ifdef WI_RSA
 	if(WI_P7_ENCRYPTION_ENABLED(p7_socket->options)) {
