@@ -38,6 +38,7 @@
 #include <wired/wi-private.h>
 #include <wired/wi-runtime.h>
 #include <wired/wi-string.h>
+#include <wired/wi-system.h>
 
 #define _WI_DATE_EPSILON				0.001
 
@@ -143,7 +144,7 @@ wi_string_t * wi_time_interval_string_with_format(wi_time_interval_t interval, w
 
 
 wi_string_t * wi_time_interval_rfc3339_string(wi_time_interval_t interval) {
-	char		buffer[32];
+	char		*buffer;
 	struct tm	tm;
 	time_t		time;
 	
@@ -153,7 +154,9 @@ wi_string_t * wi_time_interval_rfc3339_string(wi_time_interval_t interval) {
 	
 	localtime_r(&time, &tm);
 	
-	snprintf(buffer, sizeof(buffer), "%u-%02u-%02uT%02u:%02u:%02u%c%02u:%02u",
+	buffer = wi_malloc(32);
+	
+	snprintf(buffer, 32, "%u-%02u-%02uT%02u:%02u:%02u%c%02u:%02u",
 		tm.tm_year + 1900,
 		tm.tm_mon + 1,
 		tm.tm_mday,
@@ -164,7 +167,7 @@ wi_string_t * wi_time_interval_rfc3339_string(wi_time_interval_t interval) {
 		(unsigned int) (WI_ABS(tm.tm_gmtoff) / 3600),
 		(unsigned int) ((WI_ABS(tm.tm_gmtoff) % 3600) / 60));
 	
-	return wi_string_with_cstring(buffer);
+	return wi_string_with_cstring_no_copy(buffer, true);
 }
 
 
