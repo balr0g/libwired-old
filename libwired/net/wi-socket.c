@@ -1359,9 +1359,8 @@ wi_integer_t wi_socket_sendto_buffer(wi_socket_t *socket, const char *buffer, si
 	wi_address_t	*address;
 	wi_integer_t	bytes;
 	
-	address = wi_socket_address(socket);
-	bytes = sendto(socket->sd, buffer, length, 0,
-		wi_address_sa(address), wi_address_sa_length(address));
+	address		= wi_socket_address(socket);
+	bytes		= sendto(socket->sd, buffer, length, 0, wi_address_sa(address), wi_address_sa_length(address));
 	
 	if(bytes < 0) {
 		wi_error_set_errno(errno);
@@ -1377,8 +1376,8 @@ wi_integer_t wi_socket_sendto_buffer(wi_socket_t *socket, const char *buffer, si
 wi_integer_t wi_socket_recvfrom_multiple(wi_array_t *array, char *buffer, size_t length, wi_address_t **address) {
 	wi_socket_t		*socket;
 	
-	*address = NULL;
-	socket = wi_socket_wait_multiple(array, 0.0);
+	*address	= NULL;
+	socket		= wi_socket_wait_multiple(array, 0.0);
 	
 	if(!socket)
 		return -1;
@@ -1390,24 +1389,18 @@ wi_integer_t wi_socket_recvfrom_multiple(wi_array_t *array, char *buffer, size_t
 
 wi_integer_t wi_socket_recvfrom(wi_socket_t *socket, char *buffer, size_t length, wi_address_t **address) {
 	struct sockaddr_storage		ss;
-	char						*inbuffer = NULL;
 	socklen_t					sslength;
 	wi_integer_t				bytes;
 	
-	sslength = sizeof(ss);
-	bytes = recvfrom(socket->sd, buffer, length, 0, (struct sockaddr *) &ss, &sslength);
+	sslength	= sizeof(ss);
+	bytes		= recvfrom(socket->sd, buffer, length, 0, (struct sockaddr *) &ss, &sslength);
+	*address	= (sslength > 0) ? wi_autorelease(wi_address_init_with_sa(wi_address_alloc(), (struct sockaddr *) &ss)) : NULL;
 
 	if(bytes < 0) {
 		wi_error_set_errno(errno);
 		
-		goto end;
+		return -1;
 	}
-
-end:
-	*address = (sslength > 0) ? wi_autorelease(wi_address_init_with_sa(wi_address_alloc(), (struct sockaddr *) &ss)) : NULL;
-
-	if(inbuffer)
-		wi_free(inbuffer);
 
 	return bytes;
 }
