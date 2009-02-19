@@ -1426,13 +1426,8 @@ static wi_integer_t _wi_p7_socket_inflate(wi_p7_socket_t *p7_socket, const void 
 		bytes	= p7_socket->inflate_stream.total_out;
 		enderr	= inflateReset(&p7_socket->inflate_stream);
 		
-		if(err == Z_STREAM_END) {
-			if(enderr != Z_BUF_ERROR)
-				break;
-		}
-		else if(err == Z_OK) {
-			err = Z_BUF_ERROR;
-		}
+		if(err == Z_STREAM_END && enderr != Z_BUF_ERROR)
+			break;
 	}
 
 	return bytes;
