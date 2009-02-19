@@ -1357,7 +1357,6 @@ wi_integer_t wi_socket_sendto_data(wi_socket_t *socket, wi_data_t *data) {
 
 wi_integer_t wi_socket_sendto_buffer(wi_socket_t *socket, const char *buffer, size_t length) {
 	wi_address_t	*address;
-	char			*outbuffer = NULL;
 	wi_integer_t	bytes;
 	
 	address = wi_socket_address(socket);
@@ -1367,12 +1366,8 @@ wi_integer_t wi_socket_sendto_buffer(wi_socket_t *socket, const char *buffer, si
 	if(bytes < 0) {
 		wi_error_set_errno(errno);
 		
-		goto end;
+		return -1;
 	}
-
-end:
-	if(outbuffer)
-		wi_free(outbuffer);
 	
 	return bytes;
 }
