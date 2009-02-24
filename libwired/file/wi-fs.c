@@ -547,7 +547,11 @@ wi_boolean_t wi_fs_path_is_alias(wi_string_t *path) {
 
 wi_boolean_t wi_fs_cpath_is_alias(const char *cpath) {
 #ifdef HAVE_CARBON_CARBON_H
-	return (_wi_fs_finder_flags(cpath) & kIsAlias);
+	int16_t		flags;
+	
+	flags = _wi_fs_finder_flags(cpath);
+	
+	return (flags < 0) ? false : flags & kIsAlias;
 #else
 	wi_error_set_libwired_error(WI_ERROR_FILE_NOCARBON);
 	
@@ -565,7 +569,11 @@ wi_boolean_t wi_fs_path_is_invisible(wi_string_t *path) {
 
 wi_boolean_t wi_fs_cpath_is_invisible(const char *cpath) {
 #ifdef HAVE_CARBON_CARBON_H
-	return (_wi_fs_finder_flags(cpath) & kIsInvisible);
+	int16_t		flags;
+	
+	flags = _wi_fs_finder_flags(cpath);
+	
+	return (flags < 0) ? false : flags & kIsInvisible;
 #else
 	wi_error_set_libwired_error(WI_ERROR_FILE_NOCARBON);
 	
@@ -592,7 +600,7 @@ static int16_t _wi_fs_finder_flags(const char *cpath) {
 	if(getattrlist(cpath, &attrs, &finderinfo, sizeof(finderinfo), FSOPT_NOFOLLOW) < 0) {
 		wi_error_set_errno(errno);
 		
-		return false;
+		return -1;
 	}
 	
 	return wi_read_swap_big_to_host_int16(finderinfo, 12);
@@ -620,8 +628,8 @@ wi_boolean_t wi_fs_set_finder_comment_for_path(wi_string_t *path, wi_string_t *c
         "      want: type(file), "
         "      seld: @,"
         "      from: null() "
-        "              }"
-        "             }, "
+        "      }"
+        "  }, "
         "data: @";
 	
     err = FSPathMakeRef((UInt8 *) wi_string_cstring(path), &fileRef, NULL);
@@ -741,6 +749,44 @@ end:
 	
 	return NULL;
 #endif
+}
+
+
+
+wi_boolean_t wi_set_finder_label_for_path(wi_string_t *path, wi_fs_finder_label_t label) {
+#ifdef HAVE_CARBON_CARBON_H
+	wi_error_set_libwired_error(WI_ERROR_FILE_NOCARBON);
+
+	return false;
+#else
+	wi_error_set_libwired_error(WI_ERROR_FILE_NOCARBON);
+
+	return false;
+#endif
+}
+
+
+
+wi_fs_finder_label_t wi_fs_finder_label_for_path(wi_string_t *path) {
+#ifdef HAVE_CARBON_CARBON_H
+	int16_t		flags;
+	
+	flags = _wi_fs_finder_flags(wi_string_cstring(path));
+	
+	if(flags >= 0) {
+		switch(flags & kColor) {
+			case 2:		return WI_FS_FINDER_LABEL_GRAY;		break;
+			case 4:		return WI_FS_FINDER_LABEL_GREEN;	break;
+			case 6:		return WI_FS_FINDER_LABEL_PURPLE;	break;
+			case 8:		return WI_FS_FINDER_LABEL_BLUE;		break;
+			case 10:	return WI_FS_FINDER_LABEL_YELLOW;	break;
+			case 12:	return WI_FS_FINDER_LABEL_RED;		break;
+			case 14:	return WI_FS_FINDER_LABEL_ORANGE;	break;
+		}
+	}
+#endif
+		
+	return WI_FS_FINDER_LABEL_NONE;
 }
 
 
