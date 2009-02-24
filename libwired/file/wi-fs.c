@@ -69,6 +69,22 @@
 #include <wired/wi-runtime.h>
 #include <wired/wi-string.h>
 
+#ifdef HAVE_CARBON_CARBON_H
+
+struct _wi_fs_finderinfo {
+    u_int32_t							length;
+	u_int32_t							data[8];
+};
+typedef struct _wi_fs_finderinfo		_wi_fs_finderinfo_t;
+
+#endif
+
+
+#ifdef HAVE_CARBON_CARBON_H
+static wi_boolean_t						_wi_fs_set_finder_flags(const char *, int16_t);
+static int16_t							_wi_fs_finder_flags(const char *);
+#endif
+
 static wi_boolean_t						_wi_fs_delete_file(wi_string_t *);
 static wi_boolean_t						_wi_fs_delete_directory(wi_string_t *);
 
@@ -77,11 +93,66 @@ static wi_boolean_t						_wi_fs_copy_directory(wi_string_t *, wi_string_t *);
 
 static wi_boolean_t						_wi_fs_stat_path(wi_string_t *, wi_fs_stat_t *, wi_boolean_t);
 
+
 #ifdef HAVE_CARBON_CARBON_H
-static int16_t							_wi_fs_finder_flags(const char *);
+
+static wi_boolean_t _wi_fs_set_finder_flags(const char *cpath, int16_t flags) {
+	struct attrlist			attrs;
+	_wi_fs_finderinfo_t		finderinfo;
+	
+	attrs.bitmapcount		= ATTR_BIT_MAP_COUNT;
+	attrs.reserved			= 0;
+	attrs.commonattr		= ATTR_CMN_FNDRINFO;
+	attrs.volattr			= 0;
+	attrs.dirattr			= 0;
+	attrs.fileattr			= 0;
+	attrs.forkattr			= 0;
+	
+	if(getattrlist(cpath, &attrs, &finderinfo, sizeof(finderinfo), FSOPT_NOFOLLOW) < 0) {
+		wi_error_set_errno(errno);
+		
+		return false;
+	}
+	
+	wi_write_swap_host_to_big_int16(finderinfo.data, 8, flags);
+	
+	if(setattrlist(cpath, &attrs, &finderinfo.data, sizeof(finderinfo.data), FSOPT_NOFOLLOW) < 0) {
+		wi_error_set_errno(errno);
+		
+		return false;
+	}
+	
+	return true;
+}
+
+
+
+static int16_t _wi_fs_finder_flags(const char *cpath) {
+	struct attrlist			attrs;
+	_wi_fs_finderinfo_t		finderinfo;
+	
+	attrs.bitmapcount		= ATTR_BIT_MAP_COUNT;
+	attrs.reserved			= 0;
+	attrs.commonattr		= ATTR_CMN_FNDRINFO;
+	attrs.volattr			= 0;
+	attrs.dirattr			= 0;
+	attrs.fileattr			= 0;
+	attrs.forkattr			= 0;
+	
+	if(getattrlist(cpath, &attrs, &finderinfo, sizeof(finderinfo), FSOPT_NOFOLLOW) < 0) {
+		wi_error_set_errno(errno);
+		
+		return -1;
+	}
+	
+	return wi_read_swap_big_to_host_int16(finderinfo.data, 8);
+}
+
 #endif
 
 
+
+#pragma mark -
 
 wi_string_t * wi_fs_temporary_path_with_template(wi_string_t *template) {
 	char		path[WI_PATH_SIZE];
@@ -583,56 +654,29 @@ wi_boolean_t wi_fs_cpath_is_invisible(const char *cpath) {
 
 
 
-#ifdef HAVE_CARBON_CARBON_H
-
-static int16_t _wi_fs_finder_flags(const char *cpath) {
-	struct attrlist		attrs;
-	char				finderinfo[32];
-	
-	attrs.bitmapcount	= ATTR_BIT_MAP_COUNT;
-	attrs.reserved		= 0;
-	attrs.commonattr	= ATTR_CMN_FNDRINFO;
-	attrs.volattr		= 0;
-	attrs.dirattr		= 0;
-	attrs.fileattr		= 0;
-	attrs.forkattr		= 0;
-	
-	if(getattrlist(cpath, &attrs, &finderinfo, sizeof(finderinfo), FSOPT_NOFOLLOW) < 0) {
-		wi_error_set_errno(errno);
-		
-		return -1;
-	}
-	
-	return wi_read_swap_big_to_host_int16(finderinfo, 12);
-}
-
-#endif
-
-
-
 #pragma mark -
 
 wi_boolean_t wi_fs_set_finder_comment_for_path(wi_string_t *path, wi_string_t *comment) {
 #ifdef HAVE_CARBON_CARBON_H
-    FSRef			fileRef;
-    AEDesc			fileDesc, commentDesc, builtEvent, replyEvent;
+	FSRef			fileRef;
+	AEDesc			fileDesc, commentDesc, builtEvent, replyEvent;
 	OSType			finderSignature = 'MACS';
-    OSErr			err;
-    const char		*event =
-        "'----': 'obj '{ "
-        "  form: enum(prop), "
-        "  seld: type(comt), "
-        "  want: type(prop), "
-        "  from: 'obj '{ "
-        "      form: enum(indx), "
-        "      want: type(file), "
-        "      seld: @,"
-        "      from: null() "
-        "      }"
-        "  }, "
-        "data: @";
+	OSErr			err;
+	const char		*event =
+		"'----': 'obj '{ "
+		"  form: enum(prop), "
+		"  seld: type(comt), "
+		"  want: type(prop), "
+		"  from: 'obj '{ "
+		"      form: enum(indx), "
+		"      want: type(file), "
+		"      seld: @,"
+		"      from: null() "
+		"      }"
+		"  }, "
+		"data: @";
 	
-    err = FSPathMakeRef((UInt8 *) wi_string_cstring(path), &fileRef, NULL);
+	err = FSPathMakeRef((UInt8 *) wi_string_cstring(path), &fileRef, NULL);
 	
 	if(err != noErr) {
 		wi_error_set_carbon_error(err);
@@ -640,15 +684,15 @@ wi_boolean_t wi_fs_set_finder_comment_for_path(wi_string_t *path, wi_string_t *c
 		return false;
 	}
 
-    AEInitializeDesc(&fileDesc);
+	AEInitializeDesc(&fileDesc);
 
-    err = AECoercePtr(typeFSRef, &fileRef, sizeof(fileRef), typeAlias, &fileDesc);
-    
+	err = AECoercePtr(typeFSRef, &fileRef, sizeof(fileRef), typeAlias, &fileDesc);
+	
 	if(err != noErr) {
 		wi_error_set_carbon_error(err);
 	
 		return false;
-    }
+	}
 
 	err = AECreateDesc(typeUTF8Text, wi_string_cstring(comment), wi_string_length(comment), &commentDesc);
 	
@@ -658,41 +702,41 @@ wi_boolean_t wi_fs_set_finder_comment_for_path(wi_string_t *path, wi_string_t *c
 		return false;
 	}
 	
-    AEInitializeDesc(&builtEvent);
-    AEInitializeDesc(&replyEvent);
+	AEInitializeDesc(&builtEvent);
+	AEInitializeDesc(&replyEvent);
 	
-    err = AEBuildAppleEvent(kAECoreSuite,
+	err = AEBuildAppleEvent(kAECoreSuite,
 							kAESetData,
-                            typeApplSignature,
+							typeApplSignature,
 							&finderSignature,
 							sizeof(finderSignature),
-                            kAutoGenerateReturnID,
+							kAutoGenerateReturnID,
 							kAnyTransactionID,
-                            &builtEvent,
+							&builtEvent,
 							NULL,
-                            event,
-                            &fileDesc,
+							event,
+							&fileDesc,
 							&commentDesc);
 
-    AEDisposeDesc(&fileDesc);
-    AEDisposeDesc(&commentDesc);
+	AEDisposeDesc(&fileDesc);
+	AEDisposeDesc(&commentDesc);
 
-    if(err != noErr) {
+	if(err != noErr) {
 		wi_error_set_carbon_error(err);
 
 		return false;
-    }
-    
-    err = AESendMessage(&builtEvent, &replyEvent, kAENoReply, kAEDefaultTimeout);
+	}
+	
+	err = AESendMessage(&builtEvent, &replyEvent, kAENoReply, kAEDefaultTimeout);
 
-    AEDisposeDesc(&builtEvent);
-    AEDisposeDesc(&replyEvent);
+	AEDisposeDesc(&builtEvent);
+	AEDisposeDesc(&replyEvent);
 
-    if(err != noErr) {
+	if(err != noErr) {
 		wi_error_set_carbon_error(err);
 
 		return false;
-    }
+	}
 	
 	return true;
 #else
@@ -755,9 +799,27 @@ end:
 
 wi_boolean_t wi_fs_set_finder_label_for_path(wi_string_t *path, wi_fs_finder_label_t label) {
 #ifdef HAVE_CARBON_CARBON_H
-	wi_error_set_libwired_error(WI_ERROR_FILE_NOCARBON);
-
-	return false;
+	int16_t		flags;
+	
+	flags = _wi_fs_finder_flags(wi_string_cstring(path));
+	
+	if(flags < 0)
+		return false;
+	
+	flags &= ~kColor;
+	
+	switch(label) {
+		case WI_FS_FINDER_LABEL_NONE:		flags |= (0) << kIsOnDesk;		break;
+		case WI_FS_FINDER_LABEL_GRAY:		flags |= (1) << kIsOnDesk;		break;
+		case WI_FS_FINDER_LABEL_GREEN:		flags |= (2) << kIsOnDesk;		break;
+		case WI_FS_FINDER_LABEL_PURPLE:		flags |= (3) << kIsOnDesk;		break;
+		case WI_FS_FINDER_LABEL_BLUE:		flags |= (4) << kIsOnDesk;		break;
+		case WI_FS_FINDER_LABEL_YELLOW:		flags |= (5) << kIsOnDesk;		break;
+		case WI_FS_FINDER_LABEL_RED:		flags |= (6) << kIsOnDesk;		break;
+		case WI_FS_FINDER_LABEL_ORANGE:		flags |= (7) << kIsOnDesk;		break;
+	}
+	
+	return _wi_fs_set_finder_flags(wi_string_cstring(path), flags);
 #else
 	wi_error_set_libwired_error(WI_ERROR_FILE_NOCARBON);
 
@@ -774,14 +836,15 @@ wi_fs_finder_label_t wi_fs_finder_label_for_path(wi_string_t *path) {
 	flags = _wi_fs_finder_flags(wi_string_cstring(path));
 	
 	if(flags >= 0) {
-		switch(flags & kColor) {
-			case 2:		return WI_FS_FINDER_LABEL_GRAY;		break;
-			case 4:		return WI_FS_FINDER_LABEL_GREEN;	break;
-			case 6:		return WI_FS_FINDER_LABEL_PURPLE;	break;
-			case 8:		return WI_FS_FINDER_LABEL_BLUE;		break;
-			case 10:	return WI_FS_FINDER_LABEL_YELLOW;	break;
-			case 12:	return WI_FS_FINDER_LABEL_RED;		break;
-			case 14:	return WI_FS_FINDER_LABEL_ORANGE;	break;
+		switch((flags & kColor) >> kIsOnDesk) {
+			case 0:		return WI_FS_FINDER_LABEL_NONE;		break;
+			case 1:		return WI_FS_FINDER_LABEL_GRAY;		break;
+			case 2:		return WI_FS_FINDER_LABEL_GREEN;	break;
+			case 3:		return WI_FS_FINDER_LABEL_PURPLE;	break;
+			case 4:		return WI_FS_FINDER_LABEL_BLUE;		break;
+			case 5:		return WI_FS_FINDER_LABEL_YELLOW;	break;
+			case 6:		return WI_FS_FINDER_LABEL_RED;		break;
+			case 7:		return WI_FS_FINDER_LABEL_ORANGE;	break;
 		}
 	}
 #endif
