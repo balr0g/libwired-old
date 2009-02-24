@@ -106,7 +106,7 @@ WI_EXPORT wi_boolean_t					wi_fs_path_is_invisible(wi_string_t *);
 WI_EXPORT wi_boolean_t					wi_fs_cpath_is_invisible(const char *);
 WI_EXPORT wi_boolean_t					wi_fs_set_finder_comment_for_path(wi_string_t *, wi_string_t *);
 WI_EXPORT wi_string_t *					wi_fs_finder_comment_for_path(wi_string_t *);
-WI_EXPORT wi_boolean_t					wi_set_finder_label_for_path(wi_string_t *, wi_fs_finder_label_t);
+WI_EXPORT wi_boolean_t					wi_fs_set_finder_label_for_path(wi_string_t *, wi_fs_finder_label_t);
 WI_EXPORT wi_fs_finder_label_t			wi_fs_finder_label_for_path(wi_string_t *);
 
 WI_EXPORT wi_array_t *					wi_fs_directory_contents_at_path(wi_string_t *);

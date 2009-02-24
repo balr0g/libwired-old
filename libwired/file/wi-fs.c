@@ -753,7 +753,7 @@ end:
 
 
 
-wi_boolean_t wi_set_finder_label_for_path(wi_string_t *path, wi_fs_finder_label_t label) {
+wi_boolean_t wi_fs_set_finder_label_for_path(wi_string_t *path, wi_fs_finder_label_t label) {
 #ifdef HAVE_CARBON_CARBON_H
 	wi_error_set_libwired_error(WI_ERROR_FILE_NOCARBON);
 
