@@ -198,10 +198,9 @@ static void _wi_p7_message_dealloc(wi_runtime_instance_t *instance) {
 
 static wi_string_t * _wi_p7_message_description(wi_runtime_instance_t *instance) {
 	wi_p7_message_t			*p7_message = instance;
+	wi_enumerator_t			*enumerator;
+	wi_dictionary_t			*fields;
 	wi_string_t				*description, *field_name, *field_value;
-	wi_p7_spec_field_t		*field;
-	unsigned char			*buffer, *start;
-	uint32_t				message_size, field_id, field_size;
 	
 	description = wi_string_init_with_format(wi_string_alloc(), WI_STR("<%@ %p>{name = %@, buffer = %@, fields = (\n"),
         wi_runtime_class_name(p7_message),
@@ -209,34 +208,16 @@ static wi_string_t * _wi_p7_message_description(wi_runtime_instance_t *instance)
 		p7_message->name,
 		wi_data_with_bytes_no_copy(p7_message->binary_buffer, p7_message->binary_size, false));
 	
-	message_size = p7_message->binary_size - WI_P7_MESSAGE_BINARY_HEADER_SIZE;
-	buffer = start = p7_message->binary_buffer + WI_P7_MESSAGE_BINARY_HEADER_SIZE;
+	fields		= wi_p7_message_fields(p7_message);
+	enumerator	= wi_dictionary_key_enumerator(fields);
 	
-	while((uint32_t) (buffer - start) < message_size) {
-		field_id	= wi_read_swap_big_to_host_int32(buffer, 0);
-		buffer		+= sizeof(field_id);
-		field		= wi_p7_spec_field_with_id(p7_message->spec, field_id);
-		
-		if(!field)
-			continue;
-		
-		field_size	= wi_p7_spec_field_size(field);
-		
-		if(field_size == 0) {
-			field_size = wi_read_swap_big_to_host_int32(buffer, 0);
-			
-			buffer += sizeof(field_size);
-		}
-		
-		field_name		= wi_p7_spec_field_name(field);
-		field_value		= _wi_p7_message_field_string_value(p7_message, field);
+	while((field_name = wi_enumerator_next_data(enumerator))) {
+		field_value = wi_dictionary_data_for_key(fields, field_name);
 
 		wi_string_append_format(description, WI_STR("    %@ = %@\n"),
 			field_name, field_value);
-
-		buffer += field_size;
 	}
-
+	
 	wi_string_append_string(description, WI_STR(")}"));
 	
 	return wi_autorelease(description);
