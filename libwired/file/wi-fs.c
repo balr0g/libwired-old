@@ -81,8 +81,8 @@ typedef struct _wi_fs_finderinfo		_wi_fs_finderinfo_t;
 
 
 #ifdef HAVE_CARBON_CARBON_H
-static wi_boolean_t						_wi_fs_set_finder_flags(const char *, int16_t);
-static int16_t							_wi_fs_finder_flags(const char *);
+static wi_boolean_t						_wi_fs_set_finder_flags(const char *, uint16_t);
+static int32_t							_wi_fs_finder_flags(const char *);
 #endif
 
 static wi_boolean_t						_wi_fs_delete_file(wi_string_t *);
@@ -96,7 +96,7 @@ static wi_boolean_t						_wi_fs_stat_path(wi_string_t *, wi_fs_stat_t *, wi_bool
 
 #ifdef HAVE_CARBON_CARBON_H
 
-static wi_boolean_t _wi_fs_set_finder_flags(const char *cpath, int16_t flags) {
+static wi_boolean_t _wi_fs_set_finder_flags(const char *cpath, uint16_t flags) {
 	struct attrlist			attrs;
 	_wi_fs_finderinfo_t		finderinfo;
 	
@@ -127,7 +127,7 @@ static wi_boolean_t _wi_fs_set_finder_flags(const char *cpath, int16_t flags) {
 
 
 
-static int16_t _wi_fs_finder_flags(const char *cpath) {
+static int32_t _wi_fs_finder_flags(const char *cpath) {
 	struct attrlist			attrs;
 	_wi_fs_finderinfo_t		finderinfo;
 	
@@ -618,7 +618,7 @@ wi_boolean_t wi_fs_path_is_alias(wi_string_t *path) {
 
 wi_boolean_t wi_fs_cpath_is_alias(const char *cpath) {
 #ifdef HAVE_CARBON_CARBON_H
-	int16_t		flags;
+	int32_t		flags;
 	
 	flags = _wi_fs_finder_flags(cpath);
 	
@@ -640,7 +640,7 @@ wi_boolean_t wi_fs_path_is_invisible(wi_string_t *path) {
 
 wi_boolean_t wi_fs_cpath_is_invisible(const char *cpath) {
 #ifdef HAVE_CARBON_CARBON_H
-	int16_t		flags;
+	int32_t		flags;
 	
 	flags = _wi_fs_finder_flags(cpath);
 	
@@ -799,7 +799,7 @@ end:
 
 wi_boolean_t wi_fs_set_finder_label_for_path(wi_string_t *path, wi_fs_finder_label_t label) {
 #ifdef HAVE_CARBON_CARBON_H
-	int16_t		flags;
+	int32_t		flags;
 	
 	flags = _wi_fs_finder_flags(wi_string_cstring(path));
 	
@@ -831,7 +831,7 @@ wi_boolean_t wi_fs_set_finder_label_for_path(wi_string_t *path, wi_fs_finder_lab
 
 wi_fs_finder_label_t wi_fs_finder_label_for_path(wi_string_t *path) {
 #ifdef HAVE_CARBON_CARBON_H
-	int16_t		flags;
+	int32_t		flags;
 	
 	flags = _wi_fs_finder_flags(wi_string_cstring(path));
 	
