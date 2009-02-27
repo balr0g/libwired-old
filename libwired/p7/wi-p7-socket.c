@@ -131,6 +131,7 @@ struct _wi_p7_socket {
 	
 	wi_socket_t								*socket;
 	wi_p7_spec_t							*spec;
+	wi_p7_spec_t							*merged_spec;
 	
 	wi_string_t								*remote_name;
 	wi_string_t								*remote_version;
@@ -291,6 +292,7 @@ static void _wi_p7_socket_dealloc(wi_runtime_instance_t *instance) {
 	
 	wi_release(p7_socket->socket);
 	wi_release(p7_socket->spec);
+	wi_release(p7_socket->merged_spec);
 	wi_release(p7_socket->remote_name);
 	wi_release(p7_socket->remote_version);
 	
@@ -1086,7 +1088,9 @@ static wi_boolean_t _wi_p7_socket_receive_compatibility_check(wi_p7_socket_t *p7
 			wi_p7_spec_version(p7_socket->spec));
 	}
 	
-	wi_release(p7_spec);
+	p7_socket->merged_spec = wi_copy(p7_socket->spec);
+	
+	wi_p7_spec_merge_with_spec(p7_socket->merged_spec, p7_spec);
 	
 	p7_message = wi_p7_message_with_name(WI_STR("p7.compatibility_check.status"), wi_p7_socket_spec(p7_socket));
 	
@@ -1208,7 +1212,7 @@ static wi_p7_message_t * _wi_p7_socket_read_binary_message(wi_p7_socket_t *p7_so
 		return NULL;
 	}
 
-	p7_message = wi_autorelease(wi_p7_message_init(wi_p7_message_alloc(), wi_p7_socket_spec(p7_socket)));
+	p7_message = wi_autorelease(wi_p7_message_init(wi_p7_message_alloc(), p7_socket->merged_spec ? p7_socket->merged_spec : p7_socket->spec));
 	p7_message->binary_capacity = message_size;
 	p7_message->binary_buffer = wi_malloc(p7_message->binary_capacity);
 	
@@ -1296,7 +1300,7 @@ static wi_p7_message_t * _wi_p7_socket_read_xml_message(wi_p7_socket_t *p7_socke
 	wi_p7_message_t		*p7_message;
 	wi_uinteger_t		length;
 	
-	p7_message = wi_autorelease(wi_p7_message_init(wi_p7_message_alloc(), wi_p7_socket_spec(p7_socket)));
+	p7_message = wi_autorelease(wi_p7_message_init(wi_p7_message_alloc(), p7_socket->merged_spec ? p7_socket->merged_spec : p7_socket->spec));
 	
 	while(true) {
 		string = wi_socket_read_to_string(p7_socket->socket, timeout, WI_STR(">"));
@@ -1460,6 +1464,14 @@ static void _wi_p7_socket_checksum_buffer(wi_p7_socket_t *p7_socket, const void 
 		wi_sha1_update(&c, buffer, size);
 		wi_sha1_final(out_buffer, &c);
 	}
+}
+
+
+
+#pragma mark -
+
+wi_boolean_t wi_p7_socket_verify_message(wi_p7_socket_t *p7_socket, wi_p7_message_t *p7_message) {
+	return wi_p7_spec_verify_message(p7_socket->merged_spec ? p7_socket->merged_spec : p7_socket->spec, p7_message);
 }
 
 

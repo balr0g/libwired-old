@@ -302,8 +302,6 @@ struct _wi_p7_spec {
 	wi_string_t								*version;
 	wi_p7_originator_t						originator;
 	
-	wi_set_t								*compatible_protocols;
-	
 	wi_array_t								*messages;
 	wi_dictionary_t							*messages_name, *messages_id;
 	wi_array_t								*fields;
@@ -320,6 +318,7 @@ static wi_p7_spec_t *						_wi_p7_spec_init(wi_p7_spec_t *, wi_p7_originator_t);
 static wi_p7_spec_t *						_wi_p7_spec_init_builtin_spec(wi_p7_spec_t *);
 
 static void									_wi_p7_spec_dealloc(wi_runtime_instance_t *);
+static wi_runtime_instance_t *				_wi_p7_spec_copy(wi_runtime_instance_t *);
 static wi_string_t *						_wi_p7_spec_description(wi_runtime_instance_t *);
 
 static wi_boolean_t							_wi_p7_spec_load_builtin(wi_p7_spec_t *);
@@ -333,7 +332,6 @@ static wi_boolean_t							_wi_p7_spec_load_messages(wi_p7_spec_t *, xmlNodePtr);
 static wi_boolean_t							_wi_p7_spec_load_transactions(wi_p7_spec_t *, xmlNodePtr);
 static wi_boolean_t							_wi_p7_spec_load_broadcasts(wi_p7_spec_t *, xmlNodePtr);
 
-static wi_boolean_t							_wi_p7_spec_is_compatible(wi_p7_spec_t *, wi_p7_spec_t *);
 static wi_boolean_t							_wi_p7_spec_transaction_is_compatible(wi_p7_spec_t *, _wi_p7_spec_transaction_t *, _wi_p7_spec_transaction_t *);
 static wi_boolean_t							_wi_p7_spec_broadcast_is_compatible(wi_p7_spec_t *, _wi_p7_spec_broadcast_t *, _wi_p7_spec_broadcast_t *);
 static wi_boolean_t							_wi_p7_spec_andor_is_compatible(wi_p7_spec_t *, _wi_p7_spec_transaction_t *, _wi_p7_spec_andor_t *, _wi_p7_spec_andor_t *);
@@ -475,7 +473,7 @@ static wi_runtime_id_t						_wi_p7_spec_runtime_id = WI_RUNTIME_ID_NULL;
 static wi_runtime_class_t					_wi_p7_spec_runtime_class = {
     "wi_p7_spec_t",
     _wi_p7_spec_dealloc,
-    NULL,
+    _wi_p7_spec_copy,
     NULL,
     _wi_p7_spec_description,
     NULL
@@ -561,7 +559,6 @@ wi_p7_spec_t * wi_p7_spec_alloc(void) {
 
 static wi_p7_spec_t * _wi_p7_spec_init(wi_p7_spec_t *p7_spec, wi_p7_originator_t originator) {
 	p7_spec->originator				= originator;
-	p7_spec->compatible_protocols	= wi_set_init(wi_set_alloc());
 
 	p7_spec->messages_name			= wi_dictionary_init_with_capacity(wi_dictionary_alloc(), 500);
 	p7_spec->messages_id			= wi_dictionary_init_with_capacity_and_callbacks(wi_dictionary_alloc(),
@@ -641,7 +638,6 @@ static void _wi_p7_spec_dealloc(wi_runtime_instance_t *instance) {
 	wi_release(p7_spec->filename);
 	wi_release(p7_spec->name);
 	wi_release(p7_spec->version);
-	wi_release(p7_spec->compatible_protocols);
 	
 	wi_release(p7_spec->messages);
 	wi_release(p7_spec->messages_name);
@@ -658,6 +654,34 @@ static void _wi_p7_spec_dealloc(wi_runtime_instance_t *instance) {
 
 	wi_release(p7_spec->transactions_name);
 	wi_release(p7_spec->broadcasts_name);
+}
+
+
+
+static wi_runtime_instance_t * _wi_p7_spec_copy(wi_runtime_instance_t *instance) {
+	wi_p7_spec_t		*p7_spec = instance, *p7_spec_copy;
+	
+	p7_spec_copy = _wi_p7_spec_init(wi_p7_spec_alloc(), p7_spec->originator);
+	
+	p7_spec_copy->xml					= wi_copy(p7_spec->xml);
+	
+	p7_spec_copy->filename				= wi_copy(p7_spec->filename);
+	p7_spec_copy->name					= wi_copy(p7_spec->name);
+	p7_spec_copy->version				= wi_copy(p7_spec->version);
+
+	p7_spec_copy->messages				= wi_copy(p7_spec->messages);
+	p7_spec_copy->messages_name			= wi_copy(p7_spec->messages_name);
+	p7_spec_copy->messages_id			= wi_copy(p7_spec->messages_id);
+	p7_spec_copy->fields				= wi_copy(p7_spec->fields);
+	p7_spec_copy->fields_name			= wi_copy(p7_spec->fields_name);
+	p7_spec_copy->fields_id				= wi_copy(p7_spec->fields_id);
+	p7_spec_copy->collections_name		= wi_copy(p7_spec->collections_name);
+	p7_spec_copy->types_name			= wi_copy(p7_spec->types_name);
+	p7_spec_copy->types_id				= wi_copy(p7_spec->types_id);
+	p7_spec_copy->transactions_name		= wi_copy(p7_spec->transactions_name);
+	p7_spec_copy->broadcasts_name		= wi_copy(p7_spec->broadcasts_name);
+
+	return p7_spec_copy;
 }
 
 
@@ -1112,28 +1136,12 @@ static wi_boolean_t _wi_p7_spec_load_broadcasts(wi_p7_spec_t *p7_spec, xmlNodePt
 #pragma mark -
 
 wi_boolean_t wi_p7_spec_is_compatible_with_protocol(wi_p7_spec_t *p7_spec, wi_string_t *name, wi_string_t *version) {
-	return ((wi_is_equal(p7_spec->name, name) && wi_is_equal(p7_spec->version, version)) ||
-			wi_set_contains_data(p7_spec->compatible_protocols, wi_string_with_format(WI_STR("%@ %@"), name, version)));
+	return (wi_is_equal(p7_spec->name, name) && wi_is_equal(p7_spec->version, version));
 }
 
 
 
 wi_boolean_t wi_p7_spec_is_compatible_with_spec(wi_p7_spec_t *p7_spec, wi_p7_spec_t *other_p7_spec) {
-	wi_boolean_t	compatible;
-	
-	compatible = _wi_p7_spec_is_compatible(p7_spec, other_p7_spec);
-	
-	if(compatible) {
-		wi_set_add_data(p7_spec->compatible_protocols, wi_string_with_format(WI_STR("%@ %@"),
-			other_p7_spec->name, other_p7_spec->version));
-	}
-	
-	return compatible;
-}
-
-
-
-static wi_boolean_t _wi_p7_spec_is_compatible(wi_p7_spec_t *p7_spec, wi_p7_spec_t *other_p7_spec) {
 	wi_enumerator_t				*enumerator;
 	wi_string_t					*key;
 	_wi_p7_spec_transaction_t	*transaction, *other_transaction;
@@ -1442,6 +1450,54 @@ static wi_boolean_t _wi_p7_spec_message_is_compatible(wi_p7_spec_t *p7_spec, wi_
 
 
 
+void wi_p7_spec_merge_with_spec(wi_p7_spec_t *p7_spec, wi_p7_spec_t *other_p7_spec) {
+	wi_enumerator_t			*enumerator;
+	wi_p7_spec_message_t	*message;
+	wi_p7_spec_field_t		*field;
+	wi_uinteger_t			id;
+	wi_boolean_t			modified;
+	
+	modified	= false;
+	enumerator	= wi_dictionary_key_enumerator(other_p7_spec->messages_id);
+	
+	while((id = (wi_uinteger_t) wi_enumerator_next_data(enumerator))) {
+		if(!wi_dictionary_data_for_key(p7_spec->messages_id, (void *) id)) {
+			message = wi_dictionary_data_for_key(other_p7_spec->fields_id, (void *) id);
+			
+			wi_dictionary_set_data_for_key(p7_spec->messages_id, message, (void *) message->id);
+			wi_dictionary_set_data_for_key(p7_spec->messages_name, message, message->name);
+			
+			modified = true;
+		}
+	}
+	
+	if(modified) {
+		wi_release(p7_spec->messages);
+		p7_spec->messages = NULL;
+	}
+	
+	modified	= false;
+	enumerator	= wi_dictionary_key_enumerator(other_p7_spec->fields_id);
+	
+	while((id = (wi_uinteger_t) wi_enumerator_next_data(enumerator))) {
+		if(!wi_dictionary_data_for_key(p7_spec->fields_id, (void *) id)) {
+			field = wi_dictionary_data_for_key(other_p7_spec->fields_id, (void *) id);
+			
+			wi_dictionary_set_data_for_key(p7_spec->fields_id, field, (void *) field->id);
+			wi_dictionary_set_data_for_key(p7_spec->fields_name, field, field->name);
+			
+			modified = true;
+		}
+	}
+	
+	if(modified) {
+		wi_release(p7_spec->fields);
+		p7_spec->fields = NULL;
+	}
+}
+
+
+
 #pragma mark -
 
 wi_string_t * wi_p7_spec_name(wi_p7_spec_t *p7_spec) {
@@ -1586,7 +1642,7 @@ wi_boolean_t wi_p7_spec_verify_message(wi_p7_spec_t *p7_spec, wi_p7_message_t *p
 
 	message_size = p7_message->binary_size - WI_P7_MESSAGE_BINARY_HEADER_SIZE;
 	buffer = start = p7_message->binary_buffer + WI_P7_MESSAGE_BINARY_HEADER_SIZE;
-	
+
 	while((uint32_t) (buffer - start) < message_size) {
 		field_id	= wi_read_swap_big_to_host_int32(buffer, 0);
 		buffer		+= sizeof(field_id);

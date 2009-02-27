@@ -55,6 +55,7 @@ WI_EXPORT wi_p7_spec_t *				wi_p7_spec_init_with_file(wi_p7_spec_t *, wi_string_
 WI_EXPORT wi_p7_spec_t *				wi_p7_spec_init_with_string(wi_p7_spec_t *, wi_string_t *, wi_p7_originator_t);
 
 WI_EXPORT wi_boolean_t					wi_p7_spec_is_compatible_with_spec(wi_p7_spec_t *, wi_p7_spec_t *);
+WI_EXPORT void							wi_p7_spec_merge_with_spec(wi_p7_spec_t *, wi_p7_spec_t *);
 
 WI_EXPORT wi_string_t *					wi_p7_spec_name(wi_p7_spec_t *);
 WI_EXPORT wi_string_t *					wi_p7_spec_version(wi_p7_spec_t *);
