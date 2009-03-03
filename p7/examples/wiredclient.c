@@ -132,11 +132,8 @@ static void wc_client(wi_url_t *url) {
 	
 	socket = wc_connect(url);
 	
-	if(!socket) {
-		wi_log_warn(WI_STR("Could not connect to %@: %m"), wi_url_host(url));
-		
+	if(!socket)
 		return;
-	}
 	
 	if(!wc_login(socket, url)) {
 		wi_log_warn(WI_STR("Could not login to %@: %m"), wi_url_host(url));
@@ -193,7 +190,7 @@ static wi_p7_socket_t * wc_connect(wi_url_t *url) {
 		
 		wi_socket_set_interactive(socket, true);
 		
-		wi_log_info(WI_STR("Connecting to %@:%u..."), wi_url_host(url), wi_url_port(url));
+		wi_log_info(WI_STR("Connecting to %@:%u..."), wi_address_string(address), wi_address_port(address));
 		
 		if(!wi_socket_connect(socket, 10.0)) {
 			wi_socket_close(socket);
@@ -206,12 +203,15 @@ static wi_p7_socket_t * wc_connect(wi_url_t *url) {
 		p7_socket = wi_autorelease(wi_p7_socket_init_with_socket(wi_p7_socket_alloc(), socket, wc_spec));
 		
 		if(!wi_p7_socket_connect(p7_socket, 10.0, 0, WI_P7_BINARY, wi_url_user(url), wi_url_password(url))) {
+			wi_log_warn(WI_STR("Could not connect to %@: %m"), wi_address_string(address));
+			
 			wi_socket_close(socket);
 			
 			continue;
 		}
 		
-		wi_log_info(WI_STR("Connected to P7 server with protocol %@ %@"), wi_p7_socket_remote_protocol_name(p7_socket), wi_p7_socket_remote_protocol_version(p7_socket));
+		wi_log_info(WI_STR("Connected to P7 server with protocol %@ %@"),
+			wi_p7_socket_remote_protocol_name(p7_socket), wi_p7_socket_remote_protocol_version(p7_socket));
 		
 		return p7_socket;
 	}
