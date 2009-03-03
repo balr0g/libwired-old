@@ -1462,7 +1462,7 @@ void wi_p7_spec_merge_with_spec(wi_p7_spec_t *p7_spec, wi_p7_spec_t *other_p7_sp
 	
 	while((id = (wi_uinteger_t) wi_enumerator_next_data(enumerator))) {
 		if(!wi_dictionary_data_for_key(p7_spec->messages_id, (void *) id)) {
-			message = wi_dictionary_data_for_key(other_p7_spec->fields_id, (void *) id);
+			message = wi_dictionary_data_for_key(other_p7_spec->messages_id, (void *) id);
 			
 			wi_dictionary_set_data_for_key(p7_spec->messages_id, message, (void *) message->id);
 			wi_dictionary_set_data_for_key(p7_spec->messages_name, message, message->name);
