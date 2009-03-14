@@ -110,7 +110,7 @@ wi_p7_message_t * wi_p7_message_with_data(wi_data_t *data, wi_p7_serialization_t
 
 
 
-wi_p7_message_t * wi_p7_message_with_bytes(void *bytes, wi_uinteger_t length, wi_p7_serialization_t serialization, wi_p7_spec_t *p7_spec) {
+wi_p7_message_t * wi_p7_message_with_bytes(const void *bytes, wi_uinteger_t length, wi_p7_serialization_t serialization, wi_p7_spec_t *p7_spec) {
 	return wi_autorelease(wi_p7_message_init_with_bytes(wi_p7_message_alloc(), bytes, length, serialization, p7_spec));
 }
 

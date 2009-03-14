@@ -76,7 +76,7 @@ WI_EXPORT wi_runtime_id_t			wi_p7_message_runtime_id(void);
 
 WI_EXPORT wi_p7_message_t *			wi_p7_message_with_name(wi_string_t *, wi_p7_spec_t *);
 WI_EXPORT wi_p7_message_t *			wi_p7_message_with_data(wi_data_t *, wi_p7_serialization_t, wi_p7_spec_t *);
-WI_EXPORT wi_p7_message_t *			wi_p7_message_with_bytes(void *, wi_uinteger_t, wi_p7_serialization_t, wi_p7_spec_t *);
+WI_EXPORT wi_p7_message_t *			wi_p7_message_with_bytes(const void *, wi_uinteger_t, wi_p7_serialization_t, wi_p7_spec_t *);
 
 WI_EXPORT wi_p7_message_t *			wi_p7_message_alloc(void);
 WI_EXPORT wi_p7_message_t *			wi_p7_message_init_with_name(wi_p7_message_t *, wi_string_t *, wi_p7_spec_t *);
