@@ -83,6 +83,8 @@ struct _wi_fs_statfs {
 };
 typedef struct _wi_fs_statfs			wi_fs_statfs_t;
 
+typedef void							wi_fs_delete_path_callback_t(wi_string_t *);
+
 
 WI_EXPORT wi_string_t *					wi_fs_temporary_path_with_template(wi_string_t *);
 
@@ -90,6 +92,7 @@ WI_EXPORT wi_boolean_t					wi_fs_create_directory(wi_string_t *, uint32_t);
 WI_EXPORT wi_boolean_t					wi_fs_change_directory(wi_string_t *);
 
 WI_EXPORT wi_boolean_t					wi_fs_delete_path(wi_string_t *);
+WI_EXPORT wi_boolean_t					wi_fs_delete_path_with_callback(wi_string_t *, wi_fs_delete_path_callback_t *);
 WI_EXPORT wi_boolean_t					wi_fs_clear_path(wi_string_t *);
 WI_EXPORT wi_boolean_t					wi_fs_rename_path(wi_string_t *, wi_string_t *);
 WI_EXPORT wi_boolean_t					wi_fs_symlink_path(wi_string_t *, wi_string_t *);

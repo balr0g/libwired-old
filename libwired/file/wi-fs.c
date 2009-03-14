@@ -85,8 +85,8 @@ static wi_boolean_t						_wi_fs_set_finder_flags(const char *, uint16_t);
 static int32_t							_wi_fs_finder_flags(const char *);
 #endif
 
-static wi_boolean_t						_wi_fs_delete_file(wi_string_t *);
-static wi_boolean_t						_wi_fs_delete_directory(wi_string_t *);
+static wi_boolean_t						_wi_fs_delete_file(wi_string_t *, wi_fs_delete_path_callback_t *);
+static wi_boolean_t						_wi_fs_delete_directory(wi_string_t *, wi_fs_delete_path_callback_t *);
 
 static wi_boolean_t						_wi_fs_copy_file(wi_string_t *, wi_string_t *);
 static wi_boolean_t						_wi_fs_copy_directory(wi_string_t *, wi_string_t *);
@@ -196,38 +196,41 @@ wi_boolean_t wi_fs_change_directory(wi_string_t *path) {
 #pragma mark -
 
 wi_boolean_t wi_fs_delete_path(wi_string_t *path) {
+	return wi_fs_delete_path_with_callback(path, NULL);
+}
+
+
+
+wi_boolean_t wi_fs_delete_path_with_callback(wi_string_t *path, wi_fs_delete_path_callback_t *callback) {
 	wi_fs_stat_t	sb;
-	wi_boolean_t	result;
 	
 	if(!wi_fs_lstat_path(path, &sb))
 		return false;
 	
 	if(S_ISDIR(sb.mode))
-		result = _wi_fs_delete_directory(path);
+		return _wi_fs_delete_directory(path, callback);
 	else
-		result = _wi_fs_delete_file(path);
-	
-	if(!result)
-		wi_error_set_errno(errno);
-	
-	return result;
+		return _wi_fs_delete_file(path, callback);
 }
 
 
 
-static wi_boolean_t _wi_fs_delete_file(wi_string_t *path) {
+static wi_boolean_t _wi_fs_delete_file(wi_string_t *path, wi_fs_delete_path_callback_t *callback) {
 	if(unlink(wi_string_cstring(path)) < 0) {
 		wi_error_set_errno(errno);
 		
 		return false;
+	} else {
+		if(callback)
+			(*callback)(path);
+		
+		return true;
 	}
-	
-	return true;
 }
 
 
 
-static wi_boolean_t _wi_fs_delete_directory(wi_string_t *path) {
+static wi_boolean_t _wi_fs_delete_directory(wi_string_t *path, wi_fs_delete_path_callback_t *callback) {
 	WI_FTS			*fts;
 	WI_FTSENT		*p;
 	char			*paths[2];
@@ -267,6 +270,9 @@ static wi_boolean_t _wi_fs_delete_directory(wi_string_t *path) {
 					err = errno;
 
 					result = false;
+				} else {
+					if(callback)
+						(*callback)(wi_string_with_cstring(p->fts_path));
 				}
 				break;
 
@@ -275,6 +281,9 @@ static wi_boolean_t _wi_fs_delete_directory(wi_string_t *path) {
 					err = errno;
 
 					result = false;
+				} else {
+					if(callback)
+						(*callback)(wi_string_with_cstring(p->fts_path));
 				}
 				break;
 		}
@@ -283,7 +292,7 @@ static wi_boolean_t _wi_fs_delete_directory(wi_string_t *path) {
 	wi_fts_close(fts);
 	
 	if(err > 0)
-		errno = err;
+		wi_error_set_errno(err);
 
 	return result;
 }
