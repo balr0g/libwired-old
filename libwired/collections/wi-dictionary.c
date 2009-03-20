@@ -44,6 +44,10 @@
 #include <wired/wi-string.h>
 #include <wired/wi-system.h>
 
+#if defined(HAVE_QSORT_R) && !defined(HAVE_GLIBC)
+#define _WI_DICTIONARY_USE_QSORT_R
+#endif
+
 #define _WI_DICTIONARY_MIN_COUNT				11
 #define _WI_DICTIONARY_MAX_COUNT				16777213
 
@@ -139,7 +143,7 @@ static void								_wi_dictionary_resize(wi_dictionary_t *);
 static _wi_dictionary_bucket_t *		_wi_dictionary_bucket_create(wi_dictionary_t *);
 static _wi_dictionary_bucket_t *		_wi_dictionary_bucket_for_key(wi_dictionary_t *, void *, wi_uinteger_t);
 static void								_wi_dictionary_bucket_remove(wi_dictionary_t *, _wi_dictionary_bucket_t *);
-#ifdef HAVE_QSORT_R
+#ifdef WI_DICTIONARY_USE_QSORT_R
 static int								_wi_dictionary_compare_buckets(void *, const void *, const void *);
 #else
 static int								_wi_dictionary_compare_buckets(const void *, const void *);
@@ -178,7 +182,7 @@ const wi_dictionary_value_callbacks_t	wi_dictionary_null_value_callbacks = {
 
 static wi_uinteger_t					_wi_dictionary_buckets_per_page;
 
-#ifndef HAVE_QSORT_R
+#ifndef WI_DICTIONARY_USE_QSORT_R
 static wi_lock_t						*_wi_dictionary_sort_lock;
 static wi_compare_func_t				*_wi_dictionary_sort_function;
 #endif
@@ -204,7 +208,7 @@ void wi_dictionary_register(void) {
 void wi_dictionary_initialize(void) {
 	_wi_dictionary_buckets_per_page = wi_page_size() / sizeof(_wi_dictionary_bucket_t);
 
-#ifndef HAVE_QSORT_R
+#ifndef WI_DICTIONARY_USE_QSORT_R
 	_wi_dictionary_sort_lock = wi_lock_init(wi_lock_alloc());
 #endif
 }
@@ -540,7 +544,7 @@ wi_array_t * wi_dictionary_keys_sorted_by_value(wi_dictionary_t *dictionary, wi_
 	data = wi_malloc(sizeof(void *) * dictionary->key_count);
 	wi_array_get_data(buckets, data);
 	
-#ifdef HAVE_QSORT_R
+#ifdef WI_DICTIONARY_USE_QSORT_R
 	qsort_r(data, dictionary->key_count, sizeof(void *), compare, _wi_dictionary_compare_buckets);
 #else
 	wi_lock_lock(_wi_dictionary_sort_lock);
@@ -730,7 +734,7 @@ static void _wi_dictionary_bucket_remove(wi_dictionary_t *dictionary, _wi_dictio
 
 
 
-#ifdef HAVE_QSORT_R
+#ifdef WI_DICTIONARY_USE_QSORT_R
 
 static int _wi_dictionary_compare_buckets(void *context, const void *p1, const void *p2) {
 	return (*(wi_compare_func_t *) context)((*(_wi_dictionary_bucket_t **) p1)->data, (*(_wi_dictionary_bucket_t **) p2)->data);
