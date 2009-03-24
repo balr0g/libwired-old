@@ -67,21 +67,28 @@ void wi_test_fsevents(void) {
 	if(!wi_thread_create_thread(wi_test_fsevents_thread, NULL))
 		WI_TEST_FAIL("%m");
 	
-	wi_thread_sleep(0.1);
+	if(wi_condition_lock_lock_when_condition(wi_test_fsevents_lock, 1, 1.0))
+		wi_condition_lock_unlock(wi_test_fsevents_lock);
+	else
+		WI_TEST_FAIL("Timed out waiting for fsevents thread");
 	
 	wi_string_write_to_file(WI_STR("foo"), wi_string_by_appending_path_component(directory, WI_STR("file")));
 	
-	wi_condition_lock_lock_when_condition(wi_test_fsevents_lock, 1, 0.0);
+	if(wi_condition_lock_lock_when_condition(wi_test_fsevents_lock, 2, 1.0)) {
+		wi_fs_delete_path(directory);
 	
-	if(!wi_test_fsevents_path)
-		WI_TEST_FAIL("No fsevents callback received");
-	else
-		WI_TEST_ASSERT_EQUAL_INSTANCES(wi_test_fsevents_path, directory, "");
+		if(!wi_test_fsevents_path)
+			WI_TEST_FAIL("No fsevents callback received");
+		else
+			WI_TEST_ASSERT_EQUAL_INSTANCES(wi_test_fsevents_path, directory, "");
+		
+		wi_condition_lock_unlock(wi_test_fsevents_lock);
+	} else {
+		wi_fs_delete_path(directory);
 	
-	wi_condition_lock_unlock(wi_test_fsevents_lock);
+		WI_TEST_FAIL("Timed out waiting for fsevents result");
+	}
 
-	wi_fs_delete_path(directory);
-	
 	wi_release(wi_test_fsevents_lock);
 	wi_release(wi_test_fsevents_fsevents);
 	wi_release(wi_test_fsevents_path);
@@ -97,11 +104,14 @@ static void wi_test_fsevents_thread(wi_runtime_instance_t *instance) {
 	
 	pool = wi_pool_init(wi_pool_alloc());
 	
-	if(!wi_fsevents_run_with_timeout(wi_test_fsevents_fsevents, 1.0))
-		wi_log_warn(WI_STR("wi_fsevents_run_with_timeout: %m"));
-	
 	wi_condition_lock_lock(wi_test_fsevents_lock);
 	wi_condition_lock_unlock_with_condition(wi_test_fsevents_lock, 1);
+	
+	if(!wi_fsevents_run_with_timeout(wi_test_fsevents_fsevents, 1.0))
+		WI_TEST_FAIL("%m");
+	
+	wi_condition_lock_lock(wi_test_fsevents_lock);
+	wi_condition_lock_unlock_with_condition(wi_test_fsevents_lock, 2);
 	
 	wi_release(pool);
 }
