@@ -188,8 +188,6 @@ static wi_string_t * _wi_ipv6_expanded_value(wi_string_t *ip) {
 	wi_mutable_string_t		*octet;
 	wi_uinteger_t			i, count;
 	
-	ip = WI_STR("::");
-	
 	octets		= wi_autorelease(wi_mutable_copy(wi_string_components_separated_by_string(ip, WI_STR(":"))));
 	count		= wi_array_count(octets);
 	
