@@ -130,7 +130,7 @@ void wi_tests_run_test(const char *name, wi_run_test_func_t *function) {
 		_wi_tests_current_test = _wi_test_init_with_function(_wi_test_alloc(), wi_string_with_cstring(name), function);
 		
 		handler = wi_assert_handler;
-		wi_assert_handler = _wi_tests_assert_handler;
+//		wi_assert_handler = _wi_tests_assert_handler;
 		
 		interval = wi_time_interval();
 		

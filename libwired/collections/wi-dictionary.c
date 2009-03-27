@@ -99,6 +99,10 @@
 	 (!(dictionary)->value_callbacks.is_equal &&							\
 	  (value1) == (value2)))
 
+#define _WI_DICTIONARY_ASSERT_MUTABLE(dictionary)							\
+	WI_ASSERT(wi_runtime_options((dictionary)) & WI_RUNTIME_OPTION_MUTABLE,	\
+		"%@ is not mutable", (dictionary))
+
 
 struct _wi_dictionary_bucket {
 	void								*key;
@@ -143,6 +147,9 @@ static void								_wi_dictionary_resize(wi_dictionary_t *);
 static _wi_dictionary_bucket_t *		_wi_dictionary_bucket_create(wi_dictionary_t *);
 static _wi_dictionary_bucket_t *		_wi_dictionary_bucket_for_key(wi_dictionary_t *, void *, wi_uinteger_t);
 static void								_wi_dictionary_bucket_remove(wi_dictionary_t *, _wi_dictionary_bucket_t *);
+static void								_wi_dictionary_set_data_for_key(wi_mutable_dictionary_t *, void *, void *);
+static void								_wi_dictionary_remove_all_data(wi_mutable_dictionary_t *);
+
 #ifdef _WI_DICTIONARY_USE_QSORT_R
 static int								_wi_dictionary_compare_buckets(void *, const void *, const void *);
 #else
@@ -238,13 +245,13 @@ wi_dictionary_t * wi_dictionary_with_data_and_keys(void *data0, void *key0, ...)
 
 	dictionary = wi_dictionary_init_with_capacity(wi_dictionary_alloc(), 0);
 	
-	wi_dictionary_set_data_for_key(dictionary, data0, key0);
+	_wi_dictionary_set_data_for_key(dictionary, data0, key0);
 
 	va_start(ap, key0);
 	while((data = va_arg(ap, void *))) {
 		key = va_arg(ap, void *);
 		
-		wi_dictionary_set_data_for_key(dictionary, data, key);   
+		_wi_dictionary_set_data_for_key(dictionary, data, key);   
 	}
 	va_end(ap);
 	
@@ -263,10 +270,22 @@ wi_dictionary_t * wi_dictionary_with_plist_file(wi_string_t *path) {
 
 
 
+wi_mutable_dictionary_t * wi_mutable_dictionary(void) {
+	return wi_autorelease(wi_dictionary_init(wi_mutable_dictionary_alloc()));
+}
+
+
+
 #pragma mark -
 
 wi_dictionary_t * wi_dictionary_alloc(void) {
-	return wi_runtime_create_instance(_wi_dictionary_runtime_id, sizeof(wi_dictionary_t));
+	return wi_runtime_create_instance_with_options(_wi_dictionary_runtime_id, sizeof(wi_dictionary_t), WI_RUNTIME_OPTION_IMMUTABLE);
+}
+
+
+
+wi_mutable_dictionary_t * wi_mutable_dictionary_alloc(void) {
+	return wi_runtime_create_instance_with_options(_wi_dictionary_runtime_id, sizeof(wi_dictionary_t), WI_RUNTIME_OPTION_MUTABLE);
 }
 
 
@@ -308,7 +327,7 @@ wi_dictionary_t * wi_dictionary_init_with_data_and_keys(wi_dictionary_t *diction
 	while((data = va_arg(ap, void *))) {
 		key = va_arg(ap, void *);
 		
-		wi_dictionary_set_data_for_key(dictionary, data, key);   
+		_wi_dictionary_set_data_for_key(dictionary, data, key);   
 	}
 	va_end(ap);
 	
@@ -349,7 +368,7 @@ static wi_runtime_instance_t * _wi_dictionary_copy(wi_runtime_instance_t *instan
 	
 	for(i = 0; i < dictionary->buckets_count; i++) {
 		for(bucket = dictionary->buckets[i]; bucket; bucket = bucket->next)
-			wi_dictionary_set_data_for_key(dictionary_copy, bucket->data, bucket->key);
+			_wi_dictionary_set_data_for_key(dictionary_copy, bucket->data, bucket->key);
 	}
 	
 	return dictionary_copy;
@@ -361,7 +380,7 @@ static void _wi_dictionary_dealloc(wi_runtime_instance_t *instance) {
 	wi_dictionary_t		*dictionary = instance;
 	wi_uinteger_t		i;
 
-	wi_dictionary_remove_all_data(dictionary);
+	_wi_dictionary_remove_all_data(dictionary);
 
 	if(dictionary->bucket_chunks) {
 		for(i = 0; i < dictionary->bucket_chunks_count; i++)
@@ -407,10 +426,11 @@ static wi_string_t * _wi_dictionary_description(wi_runtime_instance_t *instance)
 	wi_string_t					*string, *key_description, *value_description;
 	wi_uinteger_t				i;
 
-	string = wi_string_with_format(WI_STR("<%@ %p>{count = %lu, values = (\n"),
+	string = wi_string_with_format(WI_STR("<%@ %p>{count = %lu, mutable = %u, values = (\n"),
 		wi_runtime_class_name(dictionary),
 		dictionary,
-		dictionary->key_count);
+		dictionary->key_count,
+		wi_runtime_options(dictionary) & WI_RUNTIME_OPTION_MUTABLE ? 1 : 0);
 
 	for(i = 0; i < dictionary->buckets_count; i++) {
 		for(bucket = dictionary->buckets[i]; bucket; bucket = bucket->next) {
@@ -444,8 +464,18 @@ static wi_hash_code_t _wi_dictionary_hash(wi_runtime_instance_t *instance) {
 
 #pragma mark -
 
-void wi_dictionary_wrlock(wi_dictionary_t *dictionary) {
+void wi_dictionary_wrlock(wi_mutable_dictionary_t *dictionary) {
+	_WI_DICTIONARY_ASSERT_MUTABLE(dictionary);
+
 	wi_rwlock_wrlock(dictionary->lock);
+}
+
+
+
+wi_boolean_t wi_dictionary_trywrlock(wi_mutable_dictionary_t *dictionary) {
+	_WI_DICTIONARY_ASSERT_MUTABLE(dictionary);
+
+	return wi_rwlock_trywrlock(dictionary->lock);
 }
 
 
@@ -476,17 +506,46 @@ wi_uinteger_t wi_dictionary_count(wi_dictionary_t *dictionary) {
 
 
 
+void * wi_dictionary_data_for_key(wi_dictionary_t *dictionary, void *key) {
+	_wi_dictionary_bucket_t		*bucket;
+	wi_uinteger_t				index;
+
+	index = _WI_DICTIONARY_KEY_HASH(dictionary, key) % dictionary->buckets_count;
+	bucket = _wi_dictionary_bucket_for_key(dictionary, key, index);
+	
+	if(bucket)
+		return bucket->data;
+	
+	return NULL;
+}
+
+
+
+#pragma mark -
+
+wi_boolean_t wi_dictionary_contains_key(wi_dictionary_t *dictionary, void *key) {
+	_wi_dictionary_bucket_t		*bucket;
+	wi_uinteger_t				index;
+
+	index = _WI_DICTIONARY_KEY_HASH(dictionary, key) % dictionary->buckets_count;
+	bucket = _wi_dictionary_bucket_for_key(dictionary, key, index);
+	
+	return (bucket != NULL);
+}
+
+
+
 wi_array_t * wi_dictionary_all_keys(wi_dictionary_t *dictionary) {
 	wi_array_t					*array;
 	_wi_dictionary_bucket_t		*bucket;
 	wi_array_callbacks_t		callbacks;
 	wi_uinteger_t				i;
 	
-	callbacks.retain		= dictionary->key_callbacks.retain;
-	callbacks.release		= dictionary->key_callbacks.release;
-	callbacks.is_equal		= dictionary->key_callbacks.is_equal;
-	callbacks.description	= dictionary->key_callbacks.description;
-	array					= wi_array_init_with_capacity_and_callbacks(wi_array_alloc(), dictionary->key_count, callbacks);
+	callbacks.retain			= dictionary->key_callbacks.retain;
+	callbacks.release			= dictionary->key_callbacks.release;
+	callbacks.is_equal			= dictionary->key_callbacks.is_equal;
+	callbacks.description		= dictionary->key_callbacks.description;
+	array						= wi_array_init_with_capacity_and_callbacks(wi_array_alloc(), dictionary->key_count, callbacks);
 
 	for(i = 0; i < dictionary->buckets_count; i++) {
 		for(bucket = dictionary->buckets[i]; bucket; bucket = bucket->next)
@@ -504,11 +563,11 @@ wi_array_t * wi_dictionary_all_values(wi_dictionary_t *dictionary) {
 	wi_array_callbacks_t		callbacks;
 	wi_uinteger_t				i;
 	
-	callbacks.retain		= dictionary->value_callbacks.retain;
-	callbacks.release		= dictionary->value_callbacks.release;
-	callbacks.is_equal		= dictionary->value_callbacks.is_equal;
-	callbacks.description	= dictionary->value_callbacks.description;
-	array					= wi_array_init_with_capacity_and_callbacks(wi_array_alloc(), dictionary->key_count, callbacks);
+	callbacks.retain			= dictionary->value_callbacks.retain;
+	callbacks.release			= dictionary->value_callbacks.release;
+	callbacks.is_equal			= dictionary->value_callbacks.is_equal;
+	callbacks.description		= dictionary->value_callbacks.description;
+	array						= wi_array_init_with_capacity_and_callbacks(wi_array_alloc(), dictionary->key_count, callbacks);
 
 	for(i = 0; i < dictionary->buckets_count; i++) {
 		for(bucket = dictionary->buckets[i]; bucket; bucket = bucket->next)
@@ -517,6 +576,22 @@ wi_array_t * wi_dictionary_all_values(wi_dictionary_t *dictionary) {
 	
 	return wi_autorelease(array);
 }
+
+
+
+#ifdef _WI_DICTIONARY_USE_QSORT_R
+
+static int _wi_dictionary_compare_buckets(void *context, const void *p1, const void *p2) {
+	return (*(wi_compare_func_t *) context)((*(_wi_dictionary_bucket_t **) p1)->data, (*(_wi_dictionary_bucket_t **) p2)->data);
+}
+
+#else
+
+static int _wi_dictionary_compare_buckets(const void *p1, const void *p2) {
+	return (*_wi_dictionary_sort_function)((*(_wi_dictionary_bucket_t **) p1)->data, (*(_wi_dictionary_bucket_t **) p2)->data);
+}
+
+#endif
 
 
 
@@ -644,6 +719,18 @@ void * wi_enumerator_dictionary_data_enumerator(wi_runtime_instance_t *instance,
 }
 
 
+#pragma mark -
+
+wi_boolean_t wi_dictionary_write_to_file(wi_dictionary_t *dictionary, wi_string_t *path) {
+#ifdef WI_PLIST
+	return wi_plist_write_instance_to_file(dictionary, path);
+#else
+	return false;
+#endif
+}
+
+
+
 
 #pragma mark -
 
@@ -734,27 +821,9 @@ static void _wi_dictionary_bucket_remove(wi_dictionary_t *dictionary, _wi_dictio
 
 
 
-#ifdef _WI_DICTIONARY_USE_QSORT_R
-
-static int _wi_dictionary_compare_buckets(void *context, const void *p1, const void *p2) {
-	return (*(wi_compare_func_t *) context)((*(_wi_dictionary_bucket_t **) p1)->data, (*(_wi_dictionary_bucket_t **) p2)->data);
-}
-
-#else
-
-static int _wi_dictionary_compare_buckets(const void *p1, const void *p2) {
-	return (*_wi_dictionary_sort_function)((*(_wi_dictionary_bucket_t **) p1)->data, (*(_wi_dictionary_bucket_t **) p2)->data);
-}
-
-#endif
-
-
-
-#pragma mark -
-
-void wi_dictionary_set_data_for_key(wi_dictionary_t *dictionary, void *data, void *key) {
-	_wi_dictionary_bucket_t	*bucket;
-	wi_uinteger_t		index;
+static void _wi_dictionary_set_data_for_key(wi_mutable_dictionary_t *dictionary, void *data, void *key) {
+	_wi_dictionary_bucket_t		*bucket;
+	wi_uinteger_t				index;
 	
 	index = _WI_DICTIONARY_KEY_HASH(dictionary, key) % dictionary->buckets_count;
 	bucket = _wi_dictionary_bucket_for_key(dictionary, key, index);
@@ -779,57 +848,62 @@ void wi_dictionary_set_data_for_key(wi_dictionary_t *dictionary, void *data, voi
 
 
 
-void wi_dictionary_add_entries_from_dictionary(wi_dictionary_t *dictionary, wi_dictionary_t *otherdictionary) {
+static void _wi_dictionary_remove_all_data(wi_mutable_dictionary_t *dictionary) {
 	_wi_dictionary_bucket_t		*bucket;
 	wi_uinteger_t				i;
+	
+	for(i = 0; i < dictionary->buckets_count; i++) {
+		for(bucket = dictionary->buckets[i]; bucket; bucket = bucket->next)
+			_wi_dictionary_bucket_remove(dictionary, bucket);
 
-	for(i = 0; i < otherdictionary->buckets_count; i++) {
-		for(bucket = otherdictionary->buckets[i]; bucket; bucket = bucket->next)
-			wi_dictionary_set_data_for_key(dictionary, bucket->data, bucket->key);
+		dictionary->buckets[i] = NULL;
 	}
-}
 
-
-
-void * wi_dictionary_data_for_key(wi_dictionary_t *dictionary, void *key) {
-	_wi_dictionary_bucket_t		*bucket;
-	wi_uinteger_t				index;
-
-	index = _WI_DICTIONARY_KEY_HASH(dictionary, key) % dictionary->buckets_count;
-	bucket = _wi_dictionary_bucket_for_key(dictionary, key, index);
-	
-	if(bucket)
-		return bucket->data;
-	
-	return NULL;
-}
-
-
-
-wi_boolean_t wi_dictionary_contains_key(wi_dictionary_t *dictionary, void *key) {
-	_wi_dictionary_bucket_t		*bucket;
-	wi_uinteger_t				index;
-
-	index = _WI_DICTIONARY_KEY_HASH(dictionary, key) % dictionary->buckets_count;
-	bucket = _wi_dictionary_bucket_for_key(dictionary, key, index);
-	
-	return (bucket != NULL);
-}
-
-
-
-void wi_dictionary_set_dictionary(wi_dictionary_t *dictionary, wi_dictionary_t *otherdictionary) {
-	wi_dictionary_remove_all_data(dictionary);
-	wi_dictionary_add_entries_from_dictionary(dictionary, otherdictionary);
+	_WI_DICTIONARY_CHECK_RESIZE(dictionary);
 }
 
 
 
 #pragma mark -
 
-void wi_dictionary_remove_data_for_key(wi_dictionary_t *dictionary, void *key) {
+void wi_mutable_dictionary_set_data_for_key(wi_mutable_dictionary_t *dictionary, void *data, void *key) {
+	_WI_DICTIONARY_ASSERT_MUTABLE(dictionary);
+	
+	_wi_dictionary_set_data_for_key(dictionary, data, key);
+}
+
+
+
+void wi_mutable_dictionary_add_entries_from_dictionary(wi_mutable_dictionary_t *dictionary, wi_dictionary_t *otherdictionary) {
+	_wi_dictionary_bucket_t		*bucket;
+	wi_uinteger_t				i;
+
+	_WI_DICTIONARY_ASSERT_MUTABLE(dictionary);
+
+	for(i = 0; i < otherdictionary->buckets_count; i++) {
+		for(bucket = otherdictionary->buckets[i]; bucket; bucket = bucket->next)
+			_wi_dictionary_set_data_for_key(dictionary, bucket->data, bucket->key);
+	}
+}
+
+
+
+void wi_mutable_dictionary_set_dictionary(wi_mutable_dictionary_t *dictionary, wi_dictionary_t *otherdictionary) {
+	_WI_DICTIONARY_ASSERT_MUTABLE(dictionary);
+
+	_wi_dictionary_remove_all_data(dictionary);
+	wi_mutable_dictionary_add_entries_from_dictionary(dictionary, otherdictionary);
+}
+
+
+
+#pragma mark -
+
+void wi_mutable_dictionary_remove_data_for_key(wi_mutable_dictionary_t *dictionary, void *key) {
 	_wi_dictionary_bucket_t		*bucket, *previous_bucket;
 	wi_uinteger_t				index;
+
+	_WI_DICTIONARY_ASSERT_MUTABLE(dictionary);
 
 	index = _WI_DICTIONARY_KEY_HASH(dictionary, key) % dictionary->buckets_count;
 	bucket = dictionary->buckets[index];
@@ -858,28 +932,8 @@ void wi_dictionary_remove_data_for_key(wi_dictionary_t *dictionary, void *key) {
 
 
 
-void wi_dictionary_remove_all_data(wi_dictionary_t *dictionary) {
-	_wi_dictionary_bucket_t	*bucket;
-	wi_uinteger_t		i;
-
-	for(i = 0; i < dictionary->buckets_count; i++) {
-		for(bucket = dictionary->buckets[i]; bucket; bucket = bucket->next)
-			_wi_dictionary_bucket_remove(dictionary, bucket);
-
-		dictionary->buckets[i] = NULL;
-	}
-
-	_WI_DICTIONARY_CHECK_RESIZE(dictionary);
-}
-
-
-
-#pragma mark -
-
-wi_boolean_t wi_dictionary_write_to_file(wi_dictionary_t *dictionary, wi_string_t *path) {
-#ifdef WI_PLIST
-	return wi_plist_write_instance_to_file(dictionary, path);
-#else
-	return false;
-#endif
+void wi_mutable_dictionary_remove_all_data(wi_mutable_dictionary_t *dictionary) {
+	_WI_DICTIONARY_ASSERT_MUTABLE(dictionary);
+	
+	_wi_dictionary_remove_all_data(dictionary);
 }

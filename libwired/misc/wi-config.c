@@ -52,7 +52,7 @@ struct _wi_config {
 	wi_dictionary_t					*defaults;
 	wi_uinteger_t					line;
 	
-	wi_dictionary_t					*values;
+	wi_mutable_dictionary_t			*values;
 	wi_mutable_set_t				*changes;
 };
 
@@ -157,7 +157,7 @@ wi_boolean_t wi_config_read_file(wi_config_t *config) {
 	config->values = wi_dictionary_init(wi_dictionary_alloc());
 	
 	if(config->defaults)
-		wi_dictionary_add_entries_from_dictionary(config->values, config->defaults);
+		wi_mutable_dictionary_add_entries_from_dictionary(config->values, config->defaults);
 	
 	while((string = wi_file_read_line(file))) {
 		config->line++;
@@ -174,12 +174,12 @@ wi_boolean_t wi_config_read_file(wi_config_t *config) {
 						
 						if(!array) {
 							array = wi_array();
-							wi_dictionary_set_data_for_key(config->values, array, name);
+							wi_mutable_dictionary_set_data_for_key(config->values, array, name);
 						}
 						
 						wi_array_add_data(array, instance);
 					} else {
-						wi_dictionary_set_data_for_key(config->values, instance, name);
+						wi_mutable_dictionary_set_data_for_key(config->values, instance, name);
 					}
 				} else {
 					_wi_config_log_error(config, name);
@@ -532,7 +532,7 @@ void wi_config_set_instance_for_name(wi_config_t *config, wi_runtime_instance_t 
 		wi_mutable_set_add_data(config->changes, name);
 	
 	copy = wi_copy(instance);
-	wi_dictionary_set_data_for_key(config->values, copy, name);
+	wi_mutable_dictionary_set_data_for_key(config->values, copy, name);
 	wi_release(copy);
 	
 	wi_lock_unlock(config->lock);

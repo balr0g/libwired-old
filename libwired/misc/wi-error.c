@@ -261,7 +261,7 @@ void wi_error_enter_thread(void) {
 	wi_error_t		*error;
 
 	error = _wi_error_init(_wi_error_alloc());
-	wi_dictionary_set_data_for_key(wi_thread_dictionary(), error, WI_STR(_WI_ERROR_THREAD_KEY));
+	wi_mutable_dictionary_set_data_for_key(wi_thread_dictionary(), error, WI_STR(_WI_ERROR_THREAD_KEY));
 	wi_release(error);
 	
 	wi_error_set_error(WI_ERROR_DOMAIN_NONE, WI_ERROR_NONE);

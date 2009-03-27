@@ -176,7 +176,7 @@ void wi_string_register(void) {
 
 void wi_string_initialize(void) {
 	_wi_string_constant_string_lock = wi_lock_init(wi_lock_alloc());
-	_wi_string_constant_string_table = wi_dictionary_init_with_capacity_and_callbacks(wi_dictionary_alloc(),
+	_wi_string_constant_string_table = wi_dictionary_init_with_capacity_and_callbacks(wi_mutable_dictionary_alloc(),
 		2000, wi_dictionary_null_key_callbacks, wi_dictionary_default_value_callbacks);
 }
 
@@ -482,7 +482,7 @@ wi_string_t * _wi_string_constant_string(const char *cstring) {
 	
 	if(!string) {
 		string = wi_string_init_with_cstring(wi_string_alloc(), cstring);
-		wi_dictionary_set_data_for_key(_wi_string_constant_string_table, string, (void *) cstring);
+		wi_mutable_dictionary_set_data_for_key(_wi_string_constant_string_table, string, (void *) cstring);
 		wi_release(string);
 	}
 	

@@ -207,7 +207,8 @@ static void * _wi_thread_trampoline(void *arg) {
 
 
 void wi_thread_enter_thread(void) {
-	wi_thread_t		*thread;
+	wi_thread_t					*thread;
+	wi_mutable_dictionary_t		*dictionary;
 	
 	thread = _wi_thread_init(_wi_thread_alloc());
 
@@ -221,6 +222,14 @@ void wi_thread_enter_thread(void) {
 	_wi_thread_thread = thread;
 #endif
 	
+	dictionary = wi_dictionary_init(wi_mutable_dictionary_alloc());
+
+#ifdef WI_PTHREADS
+	pthread_setspecific(_wi_thread_dictionary_key, dictionary);
+#else
+	_wi_thread_dictionary = dictionary;
+#endif
+
 	wi_error_enter_thread();
 }
 
@@ -247,23 +256,10 @@ wi_thread_t * wi_thread_current_thread(void) {
 
 
 
-wi_dictionary_t * wi_thread_dictionary(void) {
+wi_mutable_dictionary_t * wi_thread_dictionary(void) {
 #ifdef WI_PTHREADS
-	wi_dictionary_t			*dictionary;
-	
-	dictionary = pthread_getspecific(_wi_thread_dictionary_key);
-	
-	if(!dictionary) {
-		dictionary = wi_dictionary_init(wi_dictionary_alloc());
-		
-		pthread_setspecific(_wi_thread_dictionary_key, dictionary);
-	}
-	
-	return dictionary;
+	return pthread_getspecific(_wi_thread_dictionary_key);
 #else
-	if(!_wi_thread_dictionary)
-		_wi_thread_dictionary = wi_dictionary_init(wi_dictionary_alloc());
-	
 	return _wi_thread_dictionary;
 #endif
 }

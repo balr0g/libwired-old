@@ -90,8 +90,8 @@ struct _wi_p7_spec_field {
 	wi_uinteger_t							id;
 	wi_p7_spec_type_t						*type;
 	wi_p7_spec_type_t						*listtype;
-	wi_dictionary_t							*enums_name;
-	wi_dictionary_t							*enums_value;
+	wi_mutable_dictionary_t					*enums_name;
+	wi_mutable_dictionary_t					*enums_value;
 };
 
 static wi_p7_spec_field_t *					_wi_p7_spec_field_with_node(wi_p7_spec_t *, xmlNodePtr);
@@ -139,8 +139,8 @@ struct _wi_p7_spec_message {
 	wi_string_t								*name;
 	wi_uinteger_t							id;
 	wi_array_t								*parameters;
-	wi_dictionary_t							*parameters_name;
-	wi_dictionary_t							*parameters_id;
+	wi_mutable_dictionary_t					*parameters_name;
+	wi_mutable_dictionary_t					*parameters_id;
 	wi_uinteger_t							required_parameters;
 };
 
@@ -244,7 +244,7 @@ struct _wi_p7_spec_andor {
 	_wi_p7_spec_andor_type_t				type;
 	wi_array_t								*children;
 	wi_array_t								*replies_array;
-	wi_dictionary_t							*replies_dictionary;
+	wi_mutable_dictionary_t					*replies_dictionary;
 };
 
 static _wi_p7_spec_andor_t *				_wi_p7_spec_andor(_wi_p7_spec_andor_type_t, wi_p7_spec_t *, xmlNodePtr, _wi_p7_spec_transaction_t *);
@@ -303,13 +303,13 @@ struct _wi_p7_spec {
 	wi_p7_originator_t						originator;
 	
 	wi_array_t								*messages;
-	wi_dictionary_t							*messages_name, *messages_id;
+	wi_mutable_dictionary_t					*messages_name, *messages_id;
 	wi_array_t								*fields;
-	wi_dictionary_t							*fields_name, *fields_id;
-	wi_dictionary_t							*collections_name;
-	wi_dictionary_t							*types_name, *types_id;
-	wi_dictionary_t							*transactions_name;
-	wi_dictionary_t							*broadcasts_name;
+	wi_mutable_dictionary_t					*fields_name, *fields_id;
+	wi_mutable_dictionary_t					*collections_name;
+	wi_mutable_dictionary_t					*types_name, *types_id;
+	wi_mutable_dictionary_t					*transactions_name;
+	wi_mutable_dictionary_t					*broadcasts_name;
 };
 
 static wi_string_t *						_wi_p7_spec_originator(wi_p7_originator_t);
@@ -560,22 +560,22 @@ wi_p7_spec_t * wi_p7_spec_alloc(void) {
 static wi_p7_spec_t * _wi_p7_spec_init(wi_p7_spec_t *p7_spec, wi_p7_originator_t originator) {
 	p7_spec->originator				= originator;
 
-	p7_spec->messages_name			= wi_dictionary_init_with_capacity(wi_dictionary_alloc(), 500);
-	p7_spec->messages_id			= wi_dictionary_init_with_capacity_and_callbacks(wi_dictionary_alloc(),
+	p7_spec->messages_name			= wi_dictionary_init_with_capacity(wi_mutable_dictionary_alloc(), 500);
+	p7_spec->messages_id			= wi_dictionary_init_with_capacity_and_callbacks(wi_mutable_dictionary_alloc(),
 		500, wi_dictionary_null_key_callbacks, wi_dictionary_default_value_callbacks);
 
-	p7_spec->fields_name			= wi_dictionary_init_with_capacity(wi_dictionary_alloc(), 500);
-	p7_spec->fields_id				= wi_dictionary_init_with_capacity_and_callbacks(wi_dictionary_alloc(),
+	p7_spec->fields_name			= wi_dictionary_init_with_capacity(wi_mutable_dictionary_alloc(), 500);
+	p7_spec->fields_id				= wi_dictionary_init_with_capacity_and_callbacks(wi_mutable_dictionary_alloc(),
 		500, wi_dictionary_null_key_callbacks, wi_dictionary_default_value_callbacks);
 
-	p7_spec->collections_name		= wi_dictionary_init_with_capacity(wi_dictionary_alloc(), 20);
+	p7_spec->collections_name		= wi_dictionary_init_with_capacity(wi_mutable_dictionary_alloc(), 20);
 
-	p7_spec->types_name				= wi_dictionary_init_with_capacity(wi_dictionary_alloc(), 20);
-	p7_spec->types_id				= wi_dictionary_init_with_capacity_and_callbacks(wi_dictionary_alloc(),
+	p7_spec->types_name				= wi_dictionary_init_with_capacity(wi_mutable_dictionary_alloc(), 20);
+	p7_spec->types_id				= wi_dictionary_init_with_capacity_and_callbacks(wi_mutable_dictionary_alloc(),
 		20, wi_dictionary_null_key_callbacks, wi_dictionary_default_value_callbacks);
 
-	p7_spec->transactions_name		= wi_dictionary_init_with_capacity(wi_dictionary_alloc(), 20);
-	p7_spec->broadcasts_name		= wi_dictionary_init_with_capacity(wi_dictionary_alloc(), 20);
+	p7_spec->transactions_name		= wi_dictionary_init_with_capacity(wi_mutable_dictionary_alloc(), 20);
+	p7_spec->broadcasts_name		= wi_dictionary_init_with_capacity(wi_mutable_dictionary_alloc(), 20);
 
 	return p7_spec;
 }
@@ -670,16 +670,16 @@ static wi_runtime_instance_t * _wi_p7_spec_copy(wi_runtime_instance_t *instance)
 	p7_spec_copy->version				= wi_copy(p7_spec->version);
 
 	p7_spec_copy->messages				= wi_copy(p7_spec->messages);
-	p7_spec_copy->messages_name			= wi_copy(p7_spec->messages_name);
-	p7_spec_copy->messages_id			= wi_copy(p7_spec->messages_id);
+	p7_spec_copy->messages_name			= wi_mutable_copy(p7_spec->messages_name);
+	p7_spec_copy->messages_id			= wi_mutable_copy(p7_spec->messages_id);
 	p7_spec_copy->fields				= wi_copy(p7_spec->fields);
-	p7_spec_copy->fields_name			= wi_copy(p7_spec->fields_name);
-	p7_spec_copy->fields_id				= wi_copy(p7_spec->fields_id);
-	p7_spec_copy->collections_name		= wi_copy(p7_spec->collections_name);
-	p7_spec_copy->types_name			= wi_copy(p7_spec->types_name);
-	p7_spec_copy->types_id				= wi_copy(p7_spec->types_id);
-	p7_spec_copy->transactions_name		= wi_copy(p7_spec->transactions_name);
-	p7_spec_copy->broadcasts_name		= wi_copy(p7_spec->broadcasts_name);
+	p7_spec_copy->fields_name			= wi_mutable_copy(p7_spec->fields_name);
+	p7_spec_copy->fields_id				= wi_mutable_copy(p7_spec->fields_id);
+	p7_spec_copy->collections_name		= wi_mutable_copy(p7_spec->collections_name);
+	p7_spec_copy->types_name			= wi_mutable_copy(p7_spec->types_name);
+	p7_spec_copy->types_id				= wi_mutable_copy(p7_spec->types_id);
+	p7_spec_copy->transactions_name		= wi_mutable_copy(p7_spec->transactions_name);
+	p7_spec_copy->broadcasts_name		= wi_mutable_copy(p7_spec->broadcasts_name);
 
 	return p7_spec_copy;
 }
@@ -889,8 +889,8 @@ static wi_boolean_t _wi_p7_spec_load_types(wi_p7_spec_t *p7_spec, xmlNodePtr nod
 				return false;
 			}
 			
-			wi_dictionary_set_data_for_key(p7_spec->types_name, type, type->name);
-			wi_dictionary_set_data_for_key(p7_spec->types_id, type, (void *) type->id);
+			wi_mutable_dictionary_set_data_for_key(p7_spec->types_name, type, type->name);
+			wi_mutable_dictionary_set_data_for_key(p7_spec->types_id, type, (void *) type->id);
 		}
 	}
 	
@@ -952,8 +952,8 @@ static wi_boolean_t _wi_p7_spec_load_fields(wi_p7_spec_t *p7_spec, xmlNodePtr no
 				}
 			}
 
-			wi_dictionary_set_data_for_key(p7_spec->fields_name, field, field->name);
-			wi_dictionary_set_data_for_key(p7_spec->fields_id, field, (void *) field->id);
+			wi_mutable_dictionary_set_data_for_key(p7_spec->fields_name, field, field->name);
+			wi_mutable_dictionary_set_data_for_key(p7_spec->fields_id, field, (void *) field->id);
 		}
 	}
 	
@@ -989,7 +989,7 @@ static wi_boolean_t _wi_p7_spec_load_collections(wi_p7_spec_t *p7_spec, xmlNodeP
 				return false;
 			}
 			
-			wi_dictionary_set_data_for_key(p7_spec->collections_name, collection, collection->name);
+			wi_mutable_dictionary_set_data_for_key(p7_spec->collections_name, collection, collection->name);
 		}
 	}
 	
@@ -1051,8 +1051,8 @@ static wi_boolean_t _wi_p7_spec_load_messages(wi_p7_spec_t *p7_spec, xmlNodePtr 
 				}
 			}
 
-			wi_dictionary_set_data_for_key(p7_spec->messages_name, message, message->name);
-			wi_dictionary_set_data_for_key(p7_spec->messages_id, message, (void *) message->id);
+			wi_mutable_dictionary_set_data_for_key(p7_spec->messages_name, message, message->name);
+			wi_mutable_dictionary_set_data_for_key(p7_spec->messages_id, message, (void *) message->id);
 		}
 	}
 	
@@ -1088,7 +1088,7 @@ static wi_boolean_t _wi_p7_spec_load_transactions(wi_p7_spec_t *p7_spec, xmlNode
 				return false;
 			}
 
-			wi_dictionary_set_data_for_key(p7_spec->transactions_name, transaction, transaction->message->name);
+			wi_mutable_dictionary_set_data_for_key(p7_spec->transactions_name, transaction, transaction->message->name);
 		}
 	}
 	
@@ -1124,7 +1124,7 @@ static wi_boolean_t _wi_p7_spec_load_broadcasts(wi_p7_spec_t *p7_spec, xmlNodePt
 				return false;
 			}
 
-			wi_dictionary_set_data_for_key(p7_spec->broadcasts_name, broadcast, broadcast->message->name);
+			wi_mutable_dictionary_set_data_for_key(p7_spec->broadcasts_name, broadcast, broadcast->message->name);
 		}
 	}
 	
@@ -1464,8 +1464,8 @@ void wi_p7_spec_merge_with_spec(wi_p7_spec_t *p7_spec, wi_p7_spec_t *other_p7_sp
 		if(!wi_dictionary_data_for_key(p7_spec->messages_id, (void *) id)) {
 			message = wi_dictionary_data_for_key(other_p7_spec->messages_id, (void *) id);
 			
-			wi_dictionary_set_data_for_key(p7_spec->messages_id, message, (void *) message->id);
-			wi_dictionary_set_data_for_key(p7_spec->messages_name, message, message->name);
+			wi_mutable_dictionary_set_data_for_key(p7_spec->messages_id, message, (void *) message->id);
+			wi_mutable_dictionary_set_data_for_key(p7_spec->messages_name, message, message->name);
 			
 			modified = true;
 		}
@@ -1483,8 +1483,8 @@ void wi_p7_spec_merge_with_spec(wi_p7_spec_t *p7_spec, wi_p7_spec_t *other_p7_sp
 		if(!wi_dictionary_data_for_key(p7_spec->fields_id, (void *) id)) {
 			field = wi_dictionary_data_for_key(other_p7_spec->fields_id, (void *) id);
 			
-			wi_dictionary_set_data_for_key(p7_spec->fields_id, field, (void *) field->id);
-			wi_dictionary_set_data_for_key(p7_spec->fields_name, field, field->name);
+			wi_mutable_dictionary_set_data_for_key(p7_spec->fields_id, field, (void *) field->id);
+			wi_mutable_dictionary_set_data_for_key(p7_spec->fields_name, field, field->name);
 			
 			modified = true;
 		}
@@ -1838,9 +1838,9 @@ static wi_p7_spec_field_t * _wi_p7_spec_field_with_node(wi_p7_spec_t *p7_spec, x
 	}
 	
 	if(field->type->id == WI_P7_ENUM) {
-		field->enums_name = wi_dictionary_init_with_capacity_and_callbacks(wi_dictionary_alloc(),
+		field->enums_name = wi_dictionary_init_with_capacity_and_callbacks(wi_mutable_dictionary_alloc(),
 			20, wi_dictionary_default_key_callbacks, wi_dictionary_null_value_callbacks);
-		field->enums_value = wi_dictionary_init_with_capacity_and_callbacks(wi_dictionary_alloc(),
+		field->enums_value = wi_dictionary_init_with_capacity_and_callbacks(wi_mutable_dictionary_alloc(),
 			20, wi_dictionary_null_key_callbacks, wi_dictionary_default_value_callbacks);
 		
 		for(enum_node = node->children; enum_node != NULL; enum_node = enum_node->next) {
@@ -1865,8 +1865,8 @@ static wi_p7_spec_field_t * _wi_p7_spec_field_with_node(wi_p7_spec_t *p7_spec, x
 				
 				value = wi_xml_node_integer_attribute_with_name(enum_node, WI_STR("value"));
 				
-				wi_dictionary_set_data_for_key(field->enums_name, (void *) value, name);
-				wi_dictionary_set_data_for_key(field->enums_value, name, (void *) value);
+				wi_mutable_dictionary_set_data_for_key(field->enums_name, (void *) value, name);
+				wi_mutable_dictionary_set_data_for_key(field->enums_value, name, (void *) value);
 			}
 		}
 	}
@@ -2067,8 +2067,8 @@ static wi_p7_spec_message_t * _wi_p7_spec_message_with_node(wi_p7_spec_t *p7_spe
 		return NULL;
 	}
 	
-	message->parameters_name	= wi_dictionary_init_with_capacity(wi_dictionary_alloc(), 20);
-	message->parameters_id		= wi_dictionary_init_with_capacity_and_callbacks(wi_dictionary_alloc(),
+	message->parameters_name	= wi_dictionary_init_with_capacity(wi_mutable_dictionary_alloc(), 20);
+	message->parameters_id		= wi_dictionary_init_with_capacity_and_callbacks(wi_mutable_dictionary_alloc(),
 		20, wi_dictionary_null_key_callbacks, wi_dictionary_default_value_callbacks);
 
 	for(parameter_node = node->children; parameter_node != NULL; parameter_node = parameter_node->next) {
@@ -2098,8 +2098,8 @@ static wi_p7_spec_message_t * _wi_p7_spec_message_with_node(wi_p7_spec_t *p7_spe
 					return NULL;
 				}
 				
-				wi_dictionary_set_data_for_key(message->parameters_name, parameter, parameter->field->name);
-				wi_dictionary_set_data_for_key(message->parameters_id, parameter, (void *) parameter->field->id);
+				wi_mutable_dictionary_set_data_for_key(message->parameters_name, parameter, parameter->field->name);
+				wi_mutable_dictionary_set_data_for_key(message->parameters_id, parameter, (void *) parameter->field->id);
 				
 				if(parameter->required)
 					message->required_parameters++;
@@ -2147,8 +2147,8 @@ static wi_p7_spec_message_t * _wi_p7_spec_message_with_node(wi_p7_spec_t *p7_spe
 						return NULL;
 					}
 					
-					wi_dictionary_set_data_for_key(message->parameters_name, parameter, parameter->field->name);
-					wi_dictionary_set_data_for_key(message->parameters_id, parameter, (void *) parameter->field->id);
+					wi_mutable_dictionary_set_data_for_key(message->parameters_name, parameter, parameter->field->name);
+					wi_mutable_dictionary_set_data_for_key(message->parameters_id, parameter, (void *) parameter->field->id);
 					
 					parameter->required = required;
 					
@@ -2488,7 +2488,7 @@ static _wi_p7_spec_andor_t * _wi_p7_spec_andor(_wi_p7_spec_andor_type_t type, wi
 	andor->type = type;
 	andor->children = wi_array_init_with_capacity(wi_array_alloc(), 10);
 	andor->replies_array = wi_array_init_with_capacity(wi_array_alloc(), 10);
-	andor->replies_dictionary = wi_dictionary_init_with_capacity(wi_dictionary_alloc(), 10);
+	andor->replies_dictionary = wi_dictionary_init_with_capacity(wi_mutable_dictionary_alloc(), 10);
 
 	for(andor_node = node->children; andor_node != NULL; andor_node = andor_node->next) {
 		if(andor_node->type == XML_ELEMENT_NODE) {
@@ -2507,7 +2507,7 @@ static _wi_p7_spec_andor_t * _wi_p7_spec_andor(_wi_p7_spec_andor_type_t type, wi
 				}
 				
 				wi_array_add_data(andor->replies_array, reply);
-				wi_dictionary_set_data_for_key(andor->replies_dictionary, reply, reply->message->name);
+				wi_mutable_dictionary_set_data_for_key(andor->replies_dictionary, reply, reply->message->name);
 			} else {
 				if(strcmp((const char *) andor_node->name, "and") == 0) {
 					child_andor = _wi_p7_spec_andor(_WI_P7_SPEC_AND, p7_spec, andor_node, transaction);

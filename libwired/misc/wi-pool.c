@@ -73,7 +73,7 @@ struct _wi_pool {
 	_wi_pool_array_t					*array;
 	
 	wi_string_t							*context;
-	wi_dictionary_t						*locations;
+	wi_mutable_dictionary_t				*locations;
 };
 
 
@@ -146,7 +146,7 @@ wi_pool_t * wi_pool_init_with_debug(wi_pool_t *pool, wi_boolean_t debug) {
 	_wi_pool_add_pool(pool);
 
 	if(wi_pool_debug && debug) {
-		pool->locations = wi_dictionary_init_with_capacity_and_callbacks(wi_dictionary_alloc(),
+		pool->locations = wi_dictionary_init_with_capacity_and_callbacks(wi_mutable_dictionary_alloc(),
 			200, wi_dictionary_null_key_callbacks, wi_dictionary_default_value_callbacks);
 	}
 	
@@ -235,7 +235,7 @@ static void _wi_pool_drain_pool(wi_pool_t *pool) {
 	pool->array = NULL;
 	
 	if(pool->locations)
-		wi_dictionary_remove_all_data(pool->locations);
+		wi_mutable_dictionary_remove_all_data(pool->locations);
 }
 
 
@@ -362,7 +362,7 @@ wi_runtime_instance_t * _wi_autorelease(wi_runtime_instance_t *instance, const c
 			wi_string_append_format(location, WI_STR(", %s:%u"), file, line);
 		} else {
 			location = wi_string_init_with_format(wi_string_alloc(), WI_STR("%s:%u"), file, line);
-			wi_dictionary_set_data_for_key(pool->locations, location, instance);
+			wi_mutable_dictionary_set_data_for_key(pool->locations, location, instance);
 			wi_release(location);
 		}
 	}

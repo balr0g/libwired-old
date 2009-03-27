@@ -209,7 +209,7 @@ static wi_runtime_instance_t * _wi_plist_instance_for_node(xmlNodePtr node) {
 	name = wi_xml_node_name(node);
 
 	if(wi_is_equal(name, WI_STR("dict")))
-		return wi_dictionary();
+		return wi_mutable_dictionary();
 	else if(wi_is_equal(name, WI_STR("array")))
 		return wi_array();
 
@@ -250,7 +250,7 @@ static wi_boolean_t _wi_plist_read_node_to_instance(xmlNodePtr content_node, wi_
 			else if(wi_is_equal(name, WI_STR("data")))
 				instance = wi_data_with_base64(wi_xml_node_content(node));
 			else if(wi_is_equal(name, WI_STR("dict"))) {
-				instance = wi_autorelease(wi_dictionary_init(wi_dictionary_alloc()));
+				instance = wi_autorelease(wi_dictionary_init(wi_mutable_dictionary_alloc()));
 				
 				if(!_wi_plist_read_node_to_instance(node, instance))
 					return false;
@@ -271,7 +271,7 @@ static wi_boolean_t _wi_plist_read_node_to_instance(xmlNodePtr content_node, wi_
 			
 		if(instance) {
 			if(dictionary)
-				wi_dictionary_set_data_for_key(collection, instance, key);
+				wi_mutable_dictionary_set_data_for_key(collection, instance, key);
 			else
 				wi_array_add_data(collection, instance);
 			

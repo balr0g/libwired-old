@@ -952,13 +952,13 @@ wi_string_t * wi_p7_message_name(wi_p7_message_t *p7_message) {
 #pragma mark -
 
 wi_dictionary_t * wi_p7_message_fields(wi_p7_message_t *p7_message) {
-	wi_p7_spec_field_t		*field;
-	wi_dictionary_t			*fields;
-	wi_string_t				*field_name, *field_value;
-	unsigned char			*buffer, *start;
-	uint32_t				message_size, field_id, field_size;
+	wi_p7_spec_field_t			*field;
+	wi_mutable_dictionary_t		*fields;
+	wi_string_t					*field_name, *field_value;
+	unsigned char				*buffer, *start;
+	uint32_t					message_size, field_id, field_size;
 	
-	fields = wi_dictionary_init(wi_dictionary_alloc());
+	fields = wi_dictionary_init(wi_mutable_dictionary_alloc());
 
 	message_size = p7_message->binary_size - WI_P7_MESSAGE_BINARY_HEADER_SIZE;
 	buffer = start = p7_message->binary_buffer + WI_P7_MESSAGE_BINARY_HEADER_SIZE;
@@ -982,7 +982,7 @@ wi_dictionary_t * wi_p7_message_fields(wi_p7_message_t *p7_message) {
 		field_name		= wi_p7_spec_field_name(field);
 		field_value		= _wi_p7_message_field_string_value(p7_message, field);
 
-		wi_dictionary_set_data_for_key(fields, field_value, field_name);
+		wi_mutable_dictionary_set_data_for_key(fields, field_value, field_name);
 
 		buffer += field_size;
 	}
