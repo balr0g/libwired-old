@@ -115,6 +115,7 @@ wi_config_t * wi_config_init_with_path(wi_config_t *config, wi_string_t *path, w
 }
 
 
+
 static void _wi_config_dealloc(wi_runtime_instance_t *instance) {
 	wi_config_t		*config = instance;
 	
@@ -129,13 +130,13 @@ static void _wi_config_dealloc(wi_runtime_instance_t *instance) {
 #pragma mark -
 
 wi_boolean_t wi_config_read_file(wi_config_t *config) {
-	wi_enumerator_t			*enumerator;
-	wi_runtime_instance_t	*instance;
-	wi_file_t				*file;
-	wi_array_t				*array;
-	wi_dictionary_t			*previous_values;
-	wi_string_t				*string, *name, *value;
-	wi_config_type_t		type;
+	wi_enumerator_t				*enumerator;
+	wi_runtime_instance_t		*instance;
+	wi_file_t					*file;
+	wi_mutable_array_t			*array;
+	wi_mutable_dictionary_t		*previous_values;
+	wi_string_t					*string, *name, *value;
+	wi_config_type_t			type;
 	
 	file = wi_file_for_reading(config->path);
 	
@@ -156,8 +157,18 @@ wi_boolean_t wi_config_read_file(wi_config_t *config) {
 	
 	config->values = wi_dictionary_init(wi_mutable_dictionary_alloc());
 	
-	if(config->defaults)
-		wi_mutable_dictionary_add_entries_from_dictionary(config->values, config->defaults);
+	if(config->defaults) {
+		enumerator = wi_dictionary_key_enumerator(config->defaults);
+		
+		while((name = wi_enumerator_next_data(enumerator))) {
+//			instance = wi_mutable_copy(wi_dictionary_data_for_key(config->defaults, name));
+			instance = wi_dictionary_data_for_key(config->defaults, name);
+			if(wi_runtime_id(instance) == wi_array_runtime_id())
+				instance = wi_autorelease(wi_mutable_copy(instance));
+			wi_mutable_dictionary_set_data_for_key(config->values, instance, name);
+//			wi_release(instance);
+		}
+	}
 	
 	while((string = wi_file_read_line(file))) {
 		config->line++;
@@ -173,11 +184,12 @@ wi_boolean_t wi_config_read_file(wi_config_t *config) {
 						array = wi_dictionary_data_for_key(config->values, name);
 						
 						if(!array) {
-							array = wi_array();
+							array = wi_mutable_array();
+							
 							wi_mutable_dictionary_set_data_for_key(config->values, array, name);
 						}
 						
-						wi_array_add_data(array, instance);
+						wi_mutable_array_add_data(array, instance);
 					} else {
 						wi_mutable_dictionary_set_data_for_key(config->values, instance, name);
 					}

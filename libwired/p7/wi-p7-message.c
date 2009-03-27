@@ -1583,7 +1583,7 @@ wi_array_t * wi_p7_message_list_for_name(wi_p7_message_t *p7_message, wi_string_
 		return NULL;
 	}
 	
-	list = wi_array();
+	list = wi_mutable_array();
 		
 	if(!_wi_p7_message_get_binary_buffer_for_reading_for_name(p7_message, field_name, &binary, &field_size))
 		return NULL;
@@ -1601,8 +1601,10 @@ wi_array_t * wi_p7_message_list_for_name(wi_p7_message_t *p7_message, wi_string_
 			list_size += string_size;
 		}
 		
-		wi_array_add_data(list, instance);
+		wi_mutable_array_add_data(list, instance);
 	}
+	
+	wi_runtime_make_immutable(list);
 	
 	return list;
 }

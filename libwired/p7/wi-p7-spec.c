@@ -114,7 +114,7 @@ struct _wi_p7_spec_collection {
 	wi_runtime_base_t						base;
 	
 	wi_string_t								*name;
-	wi_array_t								*fields;
+	wi_mutable_array_t						*fields;
 };
 
 static _wi_p7_spec_collection_t *			_wi_p7_spec_collection_with_node(wi_p7_spec_t *, xmlNodePtr);
@@ -242,8 +242,8 @@ struct _wi_p7_spec_andor {
 	wi_runtime_base_t						base;
 
 	_wi_p7_spec_andor_type_t				type;
-	wi_array_t								*children;
-	wi_array_t								*replies_array;
+	wi_mutable_array_t						*children;
+	wi_mutable_array_t						*replies_array;
 	wi_mutable_dictionary_t					*replies_dictionary;
 };
 
@@ -1962,7 +1962,7 @@ static _wi_p7_spec_collection_t * _wi_p7_spec_collection_with_node(wi_p7_spec_t 
 		return NULL;
 	}
 	
-	collection->fields = wi_array_init(wi_array_alloc());
+	collection->fields = wi_array_init(wi_mutable_array_alloc());
 	
 	for(member_node = node->children; member_node != NULL; member_node = member_node->next) {
 		if(member_node->type == XML_ELEMENT_NODE) {
@@ -1997,7 +1997,7 @@ static _wi_p7_spec_collection_t * _wi_p7_spec_collection_with_node(wi_p7_spec_t 
 				return NULL;
 			}
 			
-			wi_array_add_data(collection->fields, field);
+			wi_mutable_array_add_data(collection->fields, field);
 		}
 	}
 	
@@ -2484,11 +2484,11 @@ static _wi_p7_spec_andor_t * _wi_p7_spec_andor(_wi_p7_spec_andor_type_t type, wi
 	_wi_p7_spec_andor_t		*andor, *child_andor;
 	_wi_p7_spec_reply_t		*reply;
 
-    andor = wi_autorelease(wi_runtime_create_instance(_wi_p7_spec_andor_runtime_id, sizeof(_wi_p7_spec_andor_t)));
-	andor->type = type;
-	andor->children = wi_array_init_with_capacity(wi_array_alloc(), 10);
-	andor->replies_array = wi_array_init_with_capacity(wi_array_alloc(), 10);
-	andor->replies_dictionary = wi_dictionary_init_with_capacity(wi_mutable_dictionary_alloc(), 10);
+    andor						= wi_autorelease(wi_runtime_create_instance(_wi_p7_spec_andor_runtime_id, sizeof(_wi_p7_spec_andor_t)));
+	andor->type					= type;
+	andor->children				= wi_array_init_with_capacity(wi_mutable_array_alloc(), 10);
+	andor->replies_array		= wi_array_init_with_capacity(wi_mutable_array_alloc(), 10);
+	andor->replies_dictionary	= wi_dictionary_init_with_capacity(wi_mutable_dictionary_alloc(), 10);
 
 	for(andor_node = node->children; andor_node != NULL; andor_node = andor_node->next) {
 		if(andor_node->type == XML_ELEMENT_NODE) {
@@ -2506,7 +2506,7 @@ static _wi_p7_spec_andor_t * _wi_p7_spec_andor(_wi_p7_spec_andor_type_t type, wi
 					return NULL;
 				}
 				
-				wi_array_add_data(andor->replies_array, reply);
+				wi_mutable_array_add_data(andor->replies_array, reply);
 				wi_mutable_dictionary_set_data_for_key(andor->replies_dictionary, reply, reply->message->name);
 			} else {
 				if(strcmp((const char *) andor_node->name, "and") == 0) {
@@ -2526,7 +2526,7 @@ static _wi_p7_spec_andor_t * _wi_p7_spec_andor(_wi_p7_spec_andor_type_t type, wi
 				if(!child_andor)
 					return NULL;
 				
-				wi_array_add_data(andor->children, child_andor);
+				wi_mutable_array_add_data(andor->children, child_andor);
 			}
 		}
 	}

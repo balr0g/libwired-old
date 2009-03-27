@@ -210,10 +210,10 @@ static wi_hash_code_t _wi_host_hash(wi_runtime_instance_t *instance) {
 
 static wi_array_t * _wi_host_addresses_for_interface_string(wi_string_t *string) {
 #ifdef HAVE_GETIFADDRS
-	wi_array_t			*array;
-	wi_address_t		*address;
-	struct ifaddrs		*ifap, *ifp;
-	const char			*name;
+	wi_mutable_array_t		*array;
+	wi_address_t			*address;
+	struct ifaddrs			*ifap, *ifp;
+	const char				*name;
 
 	if(getifaddrs(&ifap) < 0) {
 		wi_error_set_errno(errno);
@@ -221,8 +221,8 @@ static wi_array_t * _wi_host_addresses_for_interface_string(wi_string_t *string)
 		return NULL;
 	}
 
-	array = wi_array_init(wi_array_alloc());
-	name = string ? wi_string_cstring(string) : NULL;
+	array		= wi_array_init(wi_mutable_array_alloc());
+	name		= string ? wi_string_cstring(string) : NULL;
 
 	for(ifp = ifap; ifp; ifp = ifp->ifa_next) {
 		if(ifp->ifa_addr->sa_family != AF_INET && ifp->ifa_addr->sa_family != AF_INET6)
@@ -235,13 +235,13 @@ static wi_array_t * _wi_host_addresses_for_interface_string(wi_string_t *string)
 			continue;
 		
 		address = wi_address_init_with_sa(wi_address_alloc(), ifp->ifa_addr);
-		wi_array_add_data(array, address);
+		wi_mutable_array_add_data(array, address);
 		wi_release(address);
 	}
 
 	freeifaddrs(ifap);
 	
-	wi_array_sort(array, wi_address_compare_family);
+	wi_mutable_array_sort(array, wi_address_compare_family);
 	
 	if(wi_array_count(array) == 0) {
 		wi_error_set_libwired_error(WI_ERROR_HOST_NOAVAILABLEADDRESSES);
@@ -250,25 +250,24 @@ static wi_array_t * _wi_host_addresses_for_interface_string(wi_string_t *string)
 		array = NULL;
 	}
 	
+	wi_runtime_make_immutable(array);
+
 	return wi_autorelease(array);
 #else
-	wi_array_t				*array;
-
-	array = wi_array_init(wi_array_alloc());
-	wi_array_add_data(array, wi_address_wildcard_for_family(WI_ADDRESS_IPV6));
-	wi_array_add_data(array, wi_address_wildcard_for_family(WI_ADDRESS_IPV4));
-
-	return wi_autorelease(array);
+	return wi_array_with_data(
+		wi_address_wildcard_for_family(WI_ADDRESS_IPV6),
+		wi_address_wildcard_for_family(WI_ADDRESS_IPV4),
+		NULL);
 #endif
 }
 
 
 
 static wi_array_t * _wi_host_addresses_for_host_string(wi_string_t *string) {
-	wi_array_t			*array;
-	wi_address_t		*address;
-	struct addrinfo		*aiap, *aip;
-	int					err;
+	wi_mutable_array_t		*array;
+	wi_address_t			*address;
+	struct addrinfo			*aiap, *aip;
+	int						err;
 
 	err = getaddrinfo(wi_string_cstring(string), NULL, NULL, &aiap);
 
@@ -278,7 +277,7 @@ static wi_array_t * _wi_host_addresses_for_host_string(wi_string_t *string) {
 		return NULL;
 	}
 	
-	array = wi_array_init(wi_array_alloc());
+	array = wi_array_init(wi_mutable_array_alloc());
 
 	for(aip = aiap; aip; aip = aip->ai_next) {
 		if(aip->ai_protocol != 0 && aip->ai_protocol != IPPROTO_TCP)
@@ -290,14 +289,14 @@ static wi_array_t * _wi_host_addresses_for_host_string(wi_string_t *string) {
 		address = wi_address_init_with_sa(wi_address_alloc(), aip->ai_addr);
 
 		if(!wi_array_contains_data(array, address))
-			wi_array_add_data(array, address);
+			wi_mutable_array_add_data(array, address);
 
 		wi_release(address);
 	}
 
 	freeaddrinfo(aiap);
 
-	wi_array_sort(array, wi_address_compare_family);
+	wi_mutable_array_sort(array, wi_address_compare_family);
 	
 	if(wi_array_count(array) == 0) {
 		wi_error_set_libwired_error(WI_ERROR_HOST_NOAVAILABLEADDRESSES);
@@ -305,6 +304,8 @@ static wi_array_t * _wi_host_addresses_for_host_string(wi_string_t *string) {
 		wi_release(array);
 		array = NULL;
 	}
+	
+	wi_runtime_make_immutable(array);
 
 	return wi_autorelease(array);
 }

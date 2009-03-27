@@ -113,6 +113,8 @@ static void								_wi_string_append_arguments(wi_string_t *, const char *, va_l
 
 static wi_boolean_t						_wi_string_char_is_whitespace(char);
 
+static wi_mutable_array_t *				_wi_string_path_components(wi_string_t *);
+
 #ifdef HAVE_CARBON_CARBON_H
 static void								_wi_string_resolve_mac_alias_in_path(wi_string_t *);
 #endif
@@ -1059,18 +1061,20 @@ wi_array_t * wi_string_components_separated_by_string(wi_string_t *string, wi_st
 	const char		*cstring;
 	char			*s, *ss, *ap;
 	
-	array	= wi_array_init(wi_array_alloc());
-	cstring	= wi_string_cstring(separator);
+	array		= wi_array_init(wi_mutable_array_alloc());
+	cstring		= wi_string_cstring(separator);
 	
 	s = ss = strdup(string->string);
 	
 	while((ap = wi_strsep(&s, cstring))) {
 		component = wi_string_init_with_cstring(wi_string_alloc(), ap);
-		wi_array_add_data(array, component);
+		wi_mutable_array_add_data(array, component);
 		wi_release(component);
 	}
 	
 	free(ss);
+	
+	wi_runtime_make_immutable(array);
 	
 	return wi_autorelease(array);
 }
@@ -1243,22 +1247,22 @@ wi_string_t * wi_string_uppercase_string(wi_string_t *string) {
 
 #pragma mark -
 
-wi_array_t * wi_string_path_components(wi_string_t *path) {
+static wi_mutable_array_t * _wi_string_path_components(wi_string_t *path) {
 	wi_array_t		*array, *components;
 	wi_string_t		*component;
 	wi_uinteger_t	i, count;
 	
 	components	= wi_string_components_separated_by_string(path, WI_STR("/"));
 	count		= wi_array_count(components);
-	array		= wi_array_init_with_capacity(wi_array_alloc(), count);
+	array		= wi_array_init_with_capacity(wi_mutable_array_alloc(), count);
 
 	for(i = 0; i < count; i++) {
 		component = WI_ARRAY(components, i);
 
 		if(wi_string_length(component) > 0)
-			wi_array_add_data(array, component);
+			wi_mutable_array_add_data(array, component);
 		else if(i == 0)
-			wi_array_add_data(array, WI_STR("/"));
+			wi_mutable_array_add_data(array, WI_STR("/"));
 	}
 
 	return wi_autorelease(array);
@@ -1266,11 +1270,23 @@ wi_array_t * wi_string_path_components(wi_string_t *path) {
 
 
 
+wi_array_t * wi_string_path_components(wi_string_t *path) {
+	wi_mutable_array_t		*array;
+
+	array = _wi_string_path_components(path);
+	
+	wi_runtime_make_immutable(array);
+
+	return array;
+}
+
+
+
 void wi_string_normalize_path(wi_string_t *path) {
-	wi_array_t		*array;
-	wi_string_t		*component, *string;
-	wi_boolean_t	absolute;
-	wi_uinteger_t	i, count;
+	wi_mutable_array_t		*array;
+	wi_string_t				*component, *string;
+	wi_boolean_t			absolute;
+	wi_uinteger_t			i, count;
 	
 	if(wi_string_length(path) == 0 || wi_is_equal(path, WI_STR("/")))
 	   return;
@@ -1278,27 +1294,27 @@ void wi_string_normalize_path(wi_string_t *path) {
 	wi_string_expand_tilde_in_path(path);
 
 	absolute	= wi_string_has_prefix(path, WI_STR("/"));
-	array		= wi_string_path_components(path);
+	array		= _wi_string_path_components(path);
 	count		= wi_array_count(array);
 	
 	for(i = 0; i < count; i++) {
 		component = WI_ARRAY(array, i);
 
 		if(wi_string_length(component) == 0 || wi_is_equal(component, WI_STR("/"))) {
-			wi_array_remove_data_at_index(array, i);
+			wi_mutable_array_remove_data_at_index(array, i);
 
 			i--;
 			count--;
 		}
 		else if(wi_is_equal(component, WI_STR("."))) {
-			wi_array_remove_data_at_index(array, i);
+			wi_mutable_array_remove_data_at_index(array, i);
 			
 			i--;
 			count--;
 		}
 		else if(absolute && wi_is_equal(component, WI_STR("..")) && i > 0) {
-			wi_array_remove_data_at_index(array, i - 1);
-			wi_array_remove_data_at_index(array, i - 1);
+			wi_mutable_array_remove_data_at_index(array, i - 1);
+			wi_mutable_array_remove_data_at_index(array, i - 1);
 			
 			i -= 2;
 			count -= 2;
@@ -1494,18 +1510,18 @@ wi_string_t * wi_string_last_path_component(wi_string_t *path) {
 
 
 void wi_string_delete_last_path_component(wi_string_t *path) {
-	wi_array_t		*array;
-	wi_string_t		*string;
-	wi_uinteger_t	count;
+	wi_mutable_array_t		*array;
+	wi_string_t				*string;
+	wi_uinteger_t			count;
 	
 	if(wi_is_equal(path, WI_STR("/")))
 		return;
 	
-	array = wi_string_path_components(path);
+	array = _wi_string_path_components(path);
 	count = wi_array_count(array);
 	
 	if(count > 0) {
-		wi_array_remove_data_at_index(array, count - 1);
+		wi_mutable_array_remove_data_at_index(array, count - 1);
 		
 		string = wi_array_components_joined_by_string(array, WI_STR("/"));
 		wi_string_normalize_path(string);

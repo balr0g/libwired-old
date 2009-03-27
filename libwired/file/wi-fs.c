@@ -866,10 +866,10 @@ wi_fs_finder_label_t wi_fs_finder_label_for_path(wi_string_t *path) {
 #pragma mark -
 
 wi_array_t * wi_fs_directory_contents_at_path(wi_string_t *path) {
-	wi_array_t		*contents;
-	wi_string_t		*name;
-	DIR				*dir;
-	struct dirent	de, *dep;
+	wi_mutable_array_t		*contents;
+	wi_string_t				*name;
+	DIR						*dir;
+	struct dirent			de, *dep;
 	
 	dir = opendir(wi_string_cstring(path));
 	
@@ -879,17 +879,19 @@ wi_array_t * wi_fs_directory_contents_at_path(wi_string_t *path) {
 		return NULL;
 	}
 	
-	contents = wi_array_init_with_capacity(wi_array_alloc(), 100);
+	contents = wi_array_init_with_capacity(wi_mutable_array_alloc(), 100);
 	
 	while(readdir_r(dir, &de, &dep) == 0 && dep) {
 		if(strcmp(dep->d_name, ".") != 0 && strcmp(dep->d_name, "..") != 0) {
 			name = wi_string_init_with_cstring(wi_string_alloc(), dep->d_name);
-			wi_array_add_data(contents, name);
+			wi_mutable_array_add_data(contents, name);
 			wi_release(name);
 		}
 	}
 
 	closedir(dir);
+	
+	wi_runtime_make_immutable(contents);
 	
 	return wi_autorelease(contents);
 }

@@ -186,15 +186,15 @@ pid_t wi_fork(void) {
 
 
 wi_boolean_t wi_execv(wi_string_t *program, wi_array_t *arguments) {
-	wi_array_t		*argv;
-	const char		**xargv;
+	wi_mutable_array_t		*argv;
+	const char				**xargv;
 	
-	argv = wi_autorelease(wi_copy(arguments));
+	argv = wi_mutable_copy(arguments);
 	
 	if(wi_array_count(argv) == 0)
-		wi_array_add_data(argv, program);
+		wi_mutable_array_add_data(argv, program);
 	else
-		wi_array_insert_data_at_index(argv, program, 0);
+		wi_mutable_array_insert_data_at_index(argv, program, 0);
 	
 	xargv = wi_array_create_argv(argv);
 	
@@ -202,7 +202,8 @@ wi_boolean_t wi_execv(wi_string_t *program, wi_array_t *arguments) {
 		wi_error_set_errno(errno);
 		
 		wi_array_destroy_argv(wi_array_count(argv), xargv);
-		
+		wi_release(argv);
+	
 		return false;
 	}
 	
@@ -247,19 +248,21 @@ void wi_free(void *pointer) {
 
 wi_array_t * wi_backtrace(void) {
 #ifdef HAVE_BACKTRACE
-	wi_array_t		*array;
-	void			*callstack[128];
-	char			**symbols;
-	int				i, frames;
+	wi_mutable_array_t	*array;
+	void				*callstack[128];
+	char				**symbols;
+	int					i, frames;
 	
-	frames = backtrace(callstack, sizeof(callstack));
-	symbols = backtrace_symbols(callstack, frames);
-	array = wi_array_init_with_capacity(wi_array_alloc(), frames);
+	frames		= backtrace(callstack, sizeof(callstack));
+	symbols		= backtrace_symbols(callstack, frames);
+	array		= wi_array_init_with_capacity(wi_mutable_array_alloc(), frames);
 	
 	for(i = 0; i < frames; i++)
-		wi_array_add_data(array, wi_string_with_cstring(symbols[i]));
+		wi_mutable_array_add_data(array, wi_string_with_cstring(symbols[i]));
 	
 	free(symbols);
+	
+	wi_runtime_make_immutable(array);
 	
 	return wi_autorelease(array);
 #else

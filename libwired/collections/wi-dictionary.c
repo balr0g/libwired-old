@@ -536,7 +536,7 @@ wi_boolean_t wi_dictionary_contains_key(wi_dictionary_t *dictionary, void *key) 
 
 
 wi_array_t * wi_dictionary_all_keys(wi_dictionary_t *dictionary) {
-	wi_array_t					*array;
+	wi_mutable_array_t			*array;
 	_wi_dictionary_bucket_t		*bucket;
 	wi_array_callbacks_t		callbacks;
 	wi_uinteger_t				i;
@@ -545,13 +545,15 @@ wi_array_t * wi_dictionary_all_keys(wi_dictionary_t *dictionary) {
 	callbacks.release			= dictionary->key_callbacks.release;
 	callbacks.is_equal			= dictionary->key_callbacks.is_equal;
 	callbacks.description		= dictionary->key_callbacks.description;
-	array						= wi_array_init_with_capacity_and_callbacks(wi_array_alloc(), dictionary->key_count, callbacks);
+	array						= wi_array_init_with_capacity_and_callbacks(wi_mutable_array_alloc(), dictionary->key_count, callbacks);
 
 	for(i = 0; i < dictionary->buckets_count; i++) {
 		for(bucket = dictionary->buckets[i]; bucket; bucket = bucket->next)
-			wi_array_add_data(array, bucket->key);
+			wi_mutable_array_add_data(array, bucket->key);
 	}
 	
+	wi_runtime_make_immutable(array);
+
 	return wi_autorelease(array);
 }
 
@@ -567,13 +569,15 @@ wi_array_t * wi_dictionary_all_values(wi_dictionary_t *dictionary) {
 	callbacks.release			= dictionary->value_callbacks.release;
 	callbacks.is_equal			= dictionary->value_callbacks.is_equal;
 	callbacks.description		= dictionary->value_callbacks.description;
-	array						= wi_array_init_with_capacity_and_callbacks(wi_array_alloc(), dictionary->key_count, callbacks);
+	array						= wi_array_init_with_capacity_and_callbacks(wi_mutable_array_alloc(), dictionary->key_count, callbacks);
 
 	for(i = 0; i < dictionary->buckets_count; i++) {
 		for(bucket = dictionary->buckets[i]; bucket; bucket = bucket->next)
-			wi_array_add_data(array, bucket->data);
+			wi_mutable_array_add_data(array, bucket->data);
 	}
 	
+	wi_runtime_make_immutable(array);
+
 	return wi_autorelease(array);
 }
 
@@ -596,7 +600,7 @@ static int _wi_dictionary_compare_buckets(const void *p1, const void *p2) {
 
 
 wi_array_t * wi_dictionary_keys_sorted_by_value(wi_dictionary_t *dictionary, wi_compare_func_t *compare) {
-	wi_array_t					*array, *buckets;
+	wi_mutable_array_t			*array, *buckets;
 	_wi_dictionary_bucket_t		*bucket;
 	wi_array_callbacks_t		callbacks;
 	void						**data;
@@ -609,11 +613,11 @@ wi_array_t * wi_dictionary_keys_sorted_by_value(wi_dictionary_t *dictionary, wi_
 	callbacks.release		= NULL;
 	callbacks.is_equal		= NULL;
 	callbacks.description	= NULL;
-	buckets					= wi_array_init_with_capacity_and_callbacks(wi_array_alloc(), dictionary->key_count, callbacks);
+	buckets					= wi_array_init_with_capacity_and_callbacks(wi_mutable_array_alloc(), dictionary->key_count, callbacks);
 
 	for(i = 0; i < dictionary->buckets_count; i++) {
 		for(bucket = dictionary->buckets[i]; bucket; bucket = bucket->next)
-			wi_array_add_data(buckets, bucket);
+			wi_mutable_array_add_data(buckets, bucket);
 	}
 	
 	data = wi_malloc(sizeof(void *) * dictionary->key_count);
@@ -632,13 +636,15 @@ wi_array_t * wi_dictionary_keys_sorted_by_value(wi_dictionary_t *dictionary, wi_
 	callbacks.release		= dictionary->key_callbacks.release;
 	callbacks.is_equal		= dictionary->key_callbacks.is_equal;
 	callbacks.description	= dictionary->key_callbacks.description;
-	array					= wi_array_init_with_capacity_and_callbacks(wi_array_alloc(), dictionary->key_count, callbacks);
+	array					= wi_array_init_with_capacity_and_callbacks(wi_mutable_array_alloc(), dictionary->key_count, callbacks);
 
 	for(i = 0; i < dictionary->key_count; i++)
-		wi_array_add_data(array, ((_wi_dictionary_bucket_t *) data[i])->key);
+		wi_mutable_array_add_data(array, ((_wi_dictionary_bucket_t *) data[i])->key);
 	
 	wi_free(data);
 	wi_release(buckets);
+
+	wi_runtime_make_immutable(array);
 
 	return wi_autorelease(array);
 }

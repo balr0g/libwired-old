@@ -76,7 +76,7 @@ static void								_wi_timer_schedule(wi_timer_t *);
 static void								_wi_timer_invalidate(wi_timer_t *);
 
 
-static wi_array_t						*_wi_timers;
+static wi_mutable_array_t				*_wi_timers;
 
 static wi_condition_lock_t				*_wi_timer_lock;
 
@@ -101,8 +101,8 @@ void wi_timer_register(void) {
 
 
 void wi_timer_initialize(void) {
-	_wi_timers = wi_array_init(wi_array_alloc());
-	_wi_timer_lock = wi_condition_lock_init_with_condition(wi_condition_lock_alloc(), 0);
+	_wi_timers			= wi_array_init(wi_mutable_array_alloc());
+	_wi_timer_lock		= wi_condition_lock_init_with_condition(wi_condition_lock_alloc(), 0);
 }
 
 
@@ -248,7 +248,7 @@ static void _wi_timer_schedule(wi_timer_t *timer) {
 	timer->fire = wi_time_interval() + timer->interval;
 	
 	wi_array_wrlock(_wi_timers);
-	wi_array_add_data_sorted(_wi_timers, timer, _wi_timer_compare);
+	wi_mutable_array_add_data_sorted(_wi_timers, timer, _wi_timer_compare);
 	wi_array_unlock(_wi_timers);
 	
 	timer->scheduled = true;
@@ -258,7 +258,7 @@ static void _wi_timer_schedule(wi_timer_t *timer) {
 
 static void _wi_timer_invalidate(wi_timer_t *timer) {
 	wi_array_wrlock(_wi_timers);
-	wi_array_remove_data(_wi_timers, timer);
+	wi_mutable_array_remove_data(_wi_timers, timer);
 	wi_array_unlock(_wi_timers);
 
 	timer->scheduled = false;

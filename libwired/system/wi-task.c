@@ -44,7 +44,7 @@ struct _wi_task {
 	wi_runtime_base_t					base;
 	
 	wi_string_t							*launch_path;
-	wi_array_t							*arguments;
+	wi_mutable_array_t					*arguments;
 	
 	pid_t								pid;
 	wi_boolean_t						running;
@@ -157,10 +157,8 @@ wi_string_t * wi_task_launch_path(wi_task_t *task) {
 
 
 void wi_task_set_arguments(wi_task_t *task, wi_array_t *arguments) {
-	wi_retain(arguments);
 	wi_release(task->arguments);
-	
-	task->arguments = arguments;
+	task->arguments = wi_mutable_copy(arguments);
 }
 
 
@@ -194,7 +192,7 @@ wi_boolean_t wi_task_launch(wi_task_t *task) {
 			(void) close(i);
 		
 		launch_path = wi_string_cstring(task->launch_path);
-		wi_array_insert_data_at_index(task->arguments, task->launch_path, 0);
+		wi_mutable_array_insert_data_at_index(task->arguments, task->launch_path, 0);
 		argv = wi_array_create_argv(task->arguments);
 		
 		if(execv(launch_path, (char * const *) argv) < 0) {

@@ -426,13 +426,15 @@ wi_array_t * wi_set_all_data(wi_set_t *set) {
 	callbacks.release		= set->callbacks.release;
 	callbacks.is_equal		= set->callbacks.is_equal;
 	callbacks.description	= set->callbacks.description;
-	array					= wi_array_init_with_capacity_and_callbacks(wi_array_alloc(), set->data_count, callbacks);
+	array					= wi_array_init_with_capacity_and_callbacks(wi_mutable_array_alloc(), set->data_count, callbacks);
 
 	for(i = 0; i < set->buckets_count; i++) {
 		for(bucket = set->buckets[i]; bucket; bucket = bucket->next)
-			wi_array_add_data(array, bucket->data);
+			wi_mutable_array_add_data(array, bucket->data);
 	}
 	
+	wi_runtime_make_immutable(array);
+
 	return wi_autorelease(array);
 }
 

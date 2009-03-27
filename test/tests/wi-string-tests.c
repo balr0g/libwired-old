@@ -148,6 +148,7 @@ void wi_test_string_paths(void) {
 	WI_TEST_ASSERT_EQUAL_INSTANCES(wi_string_last_path_component(WI_STR("/")), WI_STR("/"), "");
 	WI_TEST_ASSERT_EQUAL_INSTANCES(wi_string_last_path_component(WI_STR("/wired/")), WI_STR("wired"), "");
 	WI_TEST_ASSERT_EQUAL_INSTANCES(wi_string_by_deleting_last_path_component(WI_STR("/usr/local/wired")), WI_STR("/usr/local"), "");
+	WI_TEST_ASSERT_EQUAL_INSTANCES(wi_string_by_deleting_last_path_component(WI_STR("/usr/local/wired/")), WI_STR("/usr/local"), "");
 	WI_TEST_ASSERT_EQUAL_INSTANCES(wi_string_by_appending_path_extension(WI_STR("wired"), WI_STR("c")), WI_STR("wired.c"), "");
 	WI_TEST_ASSERT_EQUAL_INSTANCES(wi_string_path_extension(WI_STR("wired.c")), WI_STR("c"), "");
 	WI_TEST_ASSERT_EQUAL_INSTANCES(wi_string_path_extension(WI_STR("wired")), WI_STR(""), "");

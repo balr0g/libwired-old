@@ -211,7 +211,7 @@ static wi_runtime_instance_t * _wi_plist_instance_for_node(xmlNodePtr node) {
 	if(wi_is_equal(name, WI_STR("dict")))
 		return wi_mutable_dictionary();
 	else if(wi_is_equal(name, WI_STR("array")))
-		return wi_array();
+		return wi_mutable_array();
 
 	wi_error_set_libwired_error_with_format(WI_ERROR_PLIST_READFAILED,
 		WI_STR("Content \"%@\" is not \"dict\" or \"array\""), name);
@@ -250,13 +250,13 @@ static wi_boolean_t _wi_plist_read_node_to_instance(xmlNodePtr content_node, wi_
 			else if(wi_is_equal(name, WI_STR("data")))
 				instance = wi_data_with_base64(wi_xml_node_content(node));
 			else if(wi_is_equal(name, WI_STR("dict"))) {
-				instance = wi_autorelease(wi_dictionary_init(wi_mutable_dictionary_alloc()));
+				instance = wi_mutable_dictionary();
 				
 				if(!_wi_plist_read_node_to_instance(node, instance))
 					return false;
 			}
 			else if(wi_is_equal(name, WI_STR("array"))) {
-				instance = wi_autorelease(wi_array_init(wi_array_alloc()));
+				instance = wi_mutable_array();
 				
 				if(!_wi_plist_read_node_to_instance(node, instance))
 					return false;
@@ -273,7 +273,7 @@ static wi_boolean_t _wi_plist_read_node_to_instance(xmlNodePtr content_node, wi_
 			if(dictionary)
 				wi_mutable_dictionary_set_data_for_key(collection, instance, key);
 			else
-				wi_array_add_data(collection, instance);
+				wi_mutable_array_add_data(collection, instance);
 			
 			instance = NULL;
 			key = NULL;
@@ -287,7 +287,7 @@ static wi_boolean_t _wi_plist_read_node_to_instance(xmlNodePtr content_node, wi_
 
 static wi_boolean_t _wi_plist_write_instance_to_node(wi_runtime_instance_t *instance, xmlNodePtr node) {
 	wi_enumerator_t			*enumerator;
-	wi_array_t				*keys;
+	wi_mutable_array_t		*keys;
 	wi_runtime_instance_t	*value;
 	xmlNodePtr				child_node;
 	void					*key;
@@ -323,9 +323,9 @@ static wi_boolean_t _wi_plist_write_instance_to_node(wi_runtime_instance_t *inst
 	else if(id == wi_dictionary_runtime_id()) {
 		child_node = wi_xml_node_new_child(node, WI_STR("dict"), NULL);
 		
-		keys = wi_dictionary_all_keys(instance);
+		keys = wi_autorelease(wi_mutable_copy(wi_dictionary_all_keys(instance)));
 
-		wi_array_sort(keys, wi_string_compare);
+		wi_mutable_array_sort(keys, wi_string_compare);
 		
 		enumerator = wi_array_data_enumerator(keys);
 		

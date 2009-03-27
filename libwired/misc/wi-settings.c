@@ -326,9 +326,9 @@ wi_boolean_t _wi_settings_set_string(wi_settings_t *settings, wi_uinteger_t inde
 
 
 wi_boolean_t _wi_settings_set_string_array(wi_settings_t *settings, wi_uinteger_t index, wi_string_t *name, wi_string_t *value) {
-	wi_array_t		**array = (wi_array_t **) settings->spec[index].setting;
+	wi_mutable_array_t		**array = (wi_mutable_array_t **) settings->spec[index].setting;
 
-	wi_array_add_data(*array, value);
+	wi_mutable_array_add_data(*array, value);
 
 	return true;
 }
@@ -517,10 +517,10 @@ static void _wi_settings_clear_string(wi_settings_t *settings, wi_uinteger_t ind
 
 
 static void _wi_settings_clear_string_array(wi_settings_t *settings, wi_uinteger_t index) {
-	wi_array_t	**array = (wi_array_t **) settings->spec[index].setting;
+	wi_mutable_array_t		**array = (wi_mutable_array_t **) settings->spec[index].setting;
 		
 	wi_release(*array);
-	*array = wi_array_init(wi_array_alloc());
+	*array = wi_array_init(wi_mutable_array_alloc());
 }
 
 

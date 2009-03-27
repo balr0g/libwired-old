@@ -52,36 +52,40 @@
 #define _WI_ARRAY_MIN_COUNT				10
 #define _WI_ARRAY_MAX_COUNT				16777213
 
-#define _WI_ARRAY_CHECK_OPTIMIZE(array)							\
-	WI_STMT_START												\
-		if((array->items_count >= 3 * array->data_count &&		\
-			array->items_count >  array->min_count) ||			\
-		   (array->data_count  >= 3 * array->items_count &&		\
-			array->items_count <  _WI_ARRAY_MAX_COUNT))			\
-			_wi_array_optimize(array);							\
+#define _WI_ARRAY_CHECK_OPTIMIZE(array)									\
+	WI_STMT_START														\
+		if((array->items_count >= 3 * array->data_count &&				\
+			array->items_count >  array->min_count) ||					\
+		   (array->data_count  >= 3 * array->items_count &&				\
+			array->items_count <  _WI_ARRAY_MAX_COUNT))					\
+			_wi_array_optimize(array);									\
     WI_STMT_END
 
-#define _WI_ARRAY_RETAIN(array, data)							\
-	((array)->callbacks.retain									\
-		? (*(array)->callbacks.retain)((data))					\
+#define _WI_ARRAY_RETAIN(array, data)									\
+	((array)->callbacks.retain											\
+		? (*(array)->callbacks.retain)((data))							\
 		: (data))
 
-#define _WI_ARRAY_RELEASE(array, data)							\
-	WI_STMT_START												\
-		if((array)->callbacks.release)							\
-			(*(array)->callbacks.release)((data));				\
+#define _WI_ARRAY_RELEASE(array, data)									\
+	WI_STMT_START														\
+		if((array)->callbacks.release)									\
+			(*(array)->callbacks.release)((data));						\
 	WI_STMT_END
 
-#define _WI_ARRAY_IS_EQUAL(array, data1, data2)					\
-	(((array)->callbacks.is_equal &&							\
-	  (*(array)->callbacks.is_equal)((data1), (data2))) ||		\
-	 (!(array)->callbacks.is_equal &&							\
+#define _WI_ARRAY_IS_EQUAL(array, data1, data2)							\
+	(((array)->callbacks.is_equal &&									\
+	  (*(array)->callbacks.is_equal)((data1), (data2))) ||				\
+	 (!(array)->callbacks.is_equal &&									\
 	  (data1) == (data2)))
 
-#define _WI_ARRAY_INDEX_ASSERT(array, index)					\
-	WI_ASSERT((index) < (array)->data_count,					\
-		"index %ld out of range (count %lu) in %@",				\
+#define _WI_ARRAY_ASSERT_INDEX(array, index)							\
+	WI_ASSERT((index) < (array)->data_count,							\
+		"index %ld out of range (count %lu) in %@",						\
 		(index), (array)->data_count, (array))
+
+#define _WI_ARRAY_ASSERT_MUTABLE(array)									\
+	WI_ASSERT(wi_runtime_options((array)) & WI_RUNTIME_OPTION_MUTABLE,	\
+		"%@ is not mutable", (array))
 
 
 struct _wi_array_item {
@@ -126,6 +130,9 @@ static void								_wi_array_remove_item(wi_array_t *, _wi_array_item_t *);
 static void								_wi_array_add_item(wi_array_t *, _wi_array_item_t *);
 static void								_wi_array_add_item_sorted(wi_array_t *, _wi_array_item_t *, wi_compare_func_t *);
 static void								_wi_array_insert_item_at_index(wi_array_t *, _wi_array_item_t *, wi_uinteger_t);
+static void								_wi_array_add_data(wi_array_t *, void *);
+static void								_wi_array_remove_all_data(wi_array_t *);
+
 #ifdef _WI_ARRAY_USE_QSORT_R
 static int								_wi_array_compare_data(void *, const void *, const void *);
 #else
@@ -205,11 +212,11 @@ wi_array_t * wi_array_with_data(void *data0, ...) {
 
 	array = wi_array_init_with_capacity(wi_array_alloc(), 0);
 
-	wi_array_add_data(array, data0);
+	_wi_array_add_data(array, data0);
 
 	va_start(ap, data0);
 	while((data = va_arg(ap, void *)))
-		wi_array_add_data(array, data);
+		_wi_array_add_data(array, data);
 	va_end(ap);
 
 	return wi_autorelease(array);
@@ -227,10 +234,22 @@ wi_array_t * wi_array_with_plist_file(wi_string_t *path) {
 
 
 
+wi_mutable_array_t * wi_mutable_array(void) {
+	return wi_autorelease(wi_array_init(wi_mutable_array_alloc()));
+}
+
+
+
 #pragma mark -
 
 wi_array_t * wi_array_alloc(void) {
-	return wi_runtime_create_instance(_wi_array_runtime_id, sizeof(wi_array_t));
+	return wi_runtime_create_instance_with_options(_wi_array_runtime_id, sizeof(wi_array_t), WI_RUNTIME_OPTION_IMMUTABLE);
+}
+
+
+
+wi_mutable_array_t * wi_mutable_array_alloc(void) {
+	return wi_runtime_create_instance_with_options(_wi_array_runtime_id, sizeof(wi_array_t), WI_RUNTIME_OPTION_MUTABLE);
 }
 
 
@@ -268,7 +287,7 @@ wi_array_t * wi_array_init_with_data(wi_array_t *array, ...) {
 
 	va_start(ap, array);
 	while((data = va_arg(ap, void *)))
-		wi_array_add_data(array, data);
+		_wi_array_add_data(array, data);
 	va_end(ap);
 
 	return array;
@@ -282,7 +301,7 @@ wi_array_t * wi_array_init_with_data_and_count(wi_array_t *array, void **data, w
 	array = wi_array_init_with_capacity(array, count);
 
 	for(i = 0; i < count; i++)
-		wi_array_add_data(array, data[i]);
+		_wi_array_add_data(array, data[i]);
 	
 	return array;
 }
@@ -297,7 +316,7 @@ wi_array_t * wi_array_init_with_argv(wi_array_t *array, int argc, const char **a
 	
 	for(i = 0; i < argc; i++) {
 		string = wi_string_init_with_cstring(wi_string_alloc(), argv[i]);
-		wi_array_add_data(array, string);
+		_wi_array_add_data(array, string);
 		wi_release(string);
 	}
 	
@@ -371,7 +390,7 @@ wi_array_t * wi_array_init_with_argument_string(wi_array_t *array, wi_string_t *
 		*end = '\0';
 		
 		data = wi_string_init_with_cstring(wi_string_alloc(), buffer);
-		wi_array_add_data(array, data);
+		_wi_array_add_data(array, data);
 		wi_release(data);
 		
 		count++;
@@ -413,7 +432,7 @@ static void _wi_array_dealloc(wi_runtime_instance_t *instance) {
 	wi_array_t		*array = instance;
 	wi_uinteger_t	i;
 	
-	wi_array_remove_all_data(array);
+	_wi_array_remove_all_data(array);
 
 	if(array->item_chunks) {
 		for(i = 0; i < array->item_chunks_count; i++)
@@ -436,7 +455,7 @@ static wi_runtime_instance_t * _wi_array_copy(wi_runtime_instance_t *instance) {
 	array_copy = wi_array_init_with_capacity_and_callbacks(wi_array_alloc(), array->data_count, array->callbacks);
 
 	for(i = 0; i < array->data_count; i++)
-		wi_array_add_data(array_copy, array->items[i]->data);
+		_wi_array_add_data(array_copy, array->items[i]->data);
 
 	return array_copy;
 }
@@ -470,10 +489,11 @@ static wi_string_t * _wi_array_description(wi_runtime_instance_t *instance) {
 	void				*data;
 	wi_uinteger_t		i;
 	
-	string = wi_string_with_format(WI_STR("<%@ %p>{count = %lu, values = (\n"),
+	string = wi_string_with_format(WI_STR("<%@ %p>{count = %lu, mutable = %u, values = (\n"),
 		wi_runtime_class_name(array),
 		array,
-		array->data_count);
+		array->data_count,
+		wi_runtime_options(array) & WI_RUNTIME_OPTION_MUTABLE ? 1 : 0);
 	
 	for(i = 0; i < array->data_count; i++) {
 		data = WI_ARRAY(array, i);
@@ -503,13 +523,17 @@ static wi_hash_code_t _wi_array_hash(wi_runtime_instance_t *instance) {
 
 #pragma mark -
 
-void wi_array_wrlock(wi_array_t *array) {
+void wi_array_wrlock(wi_mutable_array_t *array) {
+	_WI_ARRAY_ASSERT_MUTABLE(array);
+	
 	wi_rwlock_wrlock(array->lock);
 }
 
 
 
-wi_boolean_t wi_array_trywrlock(wi_array_t *array) {
+wi_boolean_t wi_array_trywrlock(wi_mutable_array_t *array) {
+	_WI_ARRAY_ASSERT_MUTABLE(array);
+	
 	return wi_rwlock_trywrlock(array->lock);
 }
 
@@ -540,6 +564,16 @@ wi_uinteger_t wi_array_count(wi_array_t *array) {
 }
 
 
+
+void * wi_array_data_at_index(wi_array_t *array, wi_uinteger_t index) {
+	_WI_ARRAY_ASSERT_INDEX(array, index);
+
+	return array->items[index]->data;
+}
+
+
+
+#pragma mark -
 
 void * wi_array_first_data(wi_array_t *array) {
 	return array->data_count > 0 ? array->items[0]->data : NULL;
@@ -584,8 +618,8 @@ void wi_array_get_data(wi_array_t *array, void **data) {
 void wi_array_get_data_in_range(wi_array_t *array, void **data, wi_range_t range) {
 	wi_uinteger_t	i;
 	
-	_WI_ARRAY_INDEX_ASSERT(array, range.location);
-	_WI_ARRAY_INDEX_ASSERT(array, range.location + range.length - 1);
+	_WI_ARRAY_ASSERT_INDEX(array, range.location);
+	_WI_ARRAY_ASSERT_INDEX(array, range.location + range.length - 1);
 	
 	for(i = range.location; i < range.location + range.length; i++)
 		data[i] = array->items[i]->data;
@@ -656,23 +690,6 @@ void wi_array_destroy_argv(wi_uinteger_t argc, const char **argv) {
 
 
 
-wi_array_t * wi_array_subarray_with_range(wi_array_t *array, wi_range_t range) {
-	wi_array_t		*newarray;
-	wi_uinteger_t	i;
-	
-	_WI_ARRAY_INDEX_ASSERT(array, range.location);
-	_WI_ARRAY_INDEX_ASSERT(array, range.location + range.length - 1);
-	
-	newarray = wi_array_init_with_capacity(wi_array_alloc(), range.length);
-	
-	for(i = range.location; i < range.location + range.length; i++)
-		wi_array_add_data(newarray, WI_ARRAY(array, i));
-
-	return wi_autorelease(newarray);
-}
-
-
-
 #pragma mark -
 
 wi_enumerator_t * wi_array_data_enumerator(wi_array_t *array) {
@@ -716,6 +733,64 @@ void * wi_enumerator_array_reverse_data_enumerator(wi_runtime_instance_t *instan
 	
 	return data;
 }
+
+
+
+#pragma mark -
+
+wi_array_t * wi_array_subarray_with_range(wi_array_t *array, wi_range_t range) {
+	wi_array_t		*newarray;
+	wi_uinteger_t	i;
+	
+	_WI_ARRAY_ASSERT_INDEX(array, range.location);
+	_WI_ARRAY_ASSERT_INDEX(array, range.location + range.length - 1);
+	
+	newarray = wi_array_init_with_capacity(wi_array_alloc(), range.length);
+	
+	for(i = range.location; i < range.location + range.length; i++)
+		_wi_array_add_data(newarray, WI_ARRAY(array, i));
+
+	return wi_autorelease(newarray);
+}
+
+
+
+wi_array_t * wi_array_by_adding_data(wi_array_t *array, void *data) {
+	wi_mutable_array_t		*newarray;
+	
+	newarray = wi_mutable_copy(array);
+	wi_mutable_array_add_data(array, data);
+	
+	wi_runtime_make_immutable(newarray);
+	
+	return wi_autorelease(newarray);
+}
+
+
+
+wi_array_t * wi_array_by_adding_data_from_array(wi_array_t *array, wi_array_t *otherarray) {
+	wi_mutable_array_t		*newarray;
+	
+	newarray = wi_mutable_copy(array);
+	wi_mutable_array_add_data_from_array(array, otherarray);
+	
+	wi_runtime_make_immutable(newarray);
+	
+	return wi_autorelease(newarray);
+}
+
+
+
+#pragma mark -
+
+wi_boolean_t wi_array_write_to_file(wi_array_t *array, wi_string_t *path) {
+#ifdef WI_PLIST
+	return wi_plist_write_instance_to_file(array, path);
+#else
+	return false;
+#endif
+}
+
 
 
 
@@ -827,70 +902,7 @@ static void _wi_array_insert_item_at_index(wi_array_t *array, _wi_array_item_t *
 
 
 
-#ifdef _WI_ARRAY_USE_QSORT_R
-
-static int _wi_array_compare_data(void *context, const void *p1, const void *p2) {
-	return (*(wi_compare_func_t *) context)(*(void **) p1, *(void **) p2);
-}
-
-#else
-
-static int _wi_array_compare_data(const void *p1, const void *p2) {
-	return (*_wi_array_sort_function)(*(void **) p1, *(void **) p2);
-}
-
-#endif
-
-
-
-#pragma mark -
-
-void wi_array_sort(wi_array_t *array, wi_compare_func_t *compare) {
-	void			**data;
-	wi_uinteger_t	i;
-	
-	if(array->data_count == 0)
-		return;
-	
-	data = wi_malloc(sizeof(void *) * array->data_count);
-	wi_array_get_data(array, data);
-
-#ifdef _WI_ARRAY_USE_QSORT_R
-	qsort_r(data, array->data_count, sizeof(void *), compare, _wi_array_compare_data);
-#else
-	wi_lock_lock(_wi_array_sort_lock);
-	_wi_array_sort_function = compare;
-	qsort(data, array->data_count, sizeof(void *), _wi_array_compare_data);
-	wi_lock_unlock(_wi_array_sort_lock);
-#endif
-	
-	for(i = 0; i < array->data_count; i++)
-		array->items[i]->data = data[i];
-	
-	wi_free(data);
-}
-
-
-
-void wi_array_reverse(wi_array_t *array) {
-	_wi_array_item_t	*item;
-	wi_uinteger_t		i, max, count;
-
-	count = array->data_count;
-	max = count / 2;
-
-	for(i = 0; i < max; i++) {
-		item = array->items[i];
-		array->items[i] = array->items[count - i - 1];
-		array->items[count - i - 1] = item;
-	}
-}
-
-
-
-#pragma mark -
-
-void wi_array_add_data(wi_array_t *array, void *data) {
+static void _wi_array_add_data(wi_array_t *array, void *data) {
 	_wi_array_item_t	*item;
 
 	item = _wi_array_create_item(array);
@@ -901,138 +913,7 @@ void wi_array_add_data(wi_array_t *array, void *data) {
 
 
 
-wi_array_t * wi_array_by_adding_data(wi_array_t *array, void *data) {
-	wi_array_t		*newarray;
-	
-	newarray = wi_copy(array);
-	wi_array_add_data(array, data);
-	
-	return wi_autorelease(newarray);
-}
-
-
-
-void wi_array_add_data_sorted(wi_array_t *array, void *data, wi_compare_func_t *compare) {
-	_wi_array_item_t	*item;
-
-	item = _wi_array_create_item(array);
-	item->data = _WI_ARRAY_RETAIN(array, data);
-
-	_wi_array_add_item_sorted(array, item, compare);
-}
-
-
-
-void wi_array_add_data_from_array(wi_array_t *array, wi_array_t *otherarray) {
-	wi_uinteger_t	i, count;
-	
-	count = wi_array_count(otherarray);
-	
-	for(i = 0; i < count; i++)
-		wi_array_add_data(array, wi_array_data_at_index(otherarray, i));
-}
-
-
-wi_array_t * wi_array_by_adding_data_from_array(wi_array_t *array, wi_array_t *otherarray) {
-	wi_array_t		*newarray;
-	
-	newarray = wi_copy(array);
-	wi_array_add_data_from_array(array, otherarray);
-	
-	return wi_autorelease(newarray);
-}
-
-
-
-void wi_array_insert_data_at_index(wi_array_t *array, void *data, wi_uinteger_t index) {
-	_wi_array_item_t	*item;
-	
-	_WI_ARRAY_INDEX_ASSERT(array, index);
-
-	item = _wi_array_create_item(array);
-	item->data = _WI_ARRAY_RETAIN(array, data);
-
-	_wi_array_insert_item_at_index(array, item, index);
-}
-
-
-
-void wi_array_replace_data_at_index(wi_array_t *array, void *data, wi_uinteger_t index) {
-	_wi_array_item_t	*item;
-	
-	_WI_ARRAY_INDEX_ASSERT(array, index);
-
-	item = _wi_array_create_item(array);
-	item->data = _WI_ARRAY_RETAIN(array, data);
-	
-	_wi_array_remove_item(array, array->items[index]);
-	array->items[index] = item;
-}
-
-
-
-void * wi_array_data_at_index(wi_array_t *array, wi_uinteger_t index) {
-	_WI_ARRAY_INDEX_ASSERT(array, index);
-
-	return array->items[index]->data;
-}
-
-
-
-void wi_array_set_array(wi_array_t *array, wi_array_t *otherarray) {
-	wi_array_remove_all_data(array);
-	wi_array_add_data_from_array(array, otherarray);
-}
-
-
-
-#pragma mark -
-
-void wi_array_remove_data(wi_array_t *array, void *data) {
-	wi_uinteger_t	index;
-	
-	index = wi_array_index_of_data(array, data);
-	
-	if(index != WI_NOT_FOUND)
-		wi_array_remove_data_at_index(array, index);
-}
-
-
-
-void wi_array_remove_data_at_index(wi_array_t *array, wi_uinteger_t index) {
-	_WI_ARRAY_INDEX_ASSERT(array, index);
-	
-	_wi_array_remove_item(array, array->items[index]);
-
-	if(index != array->data_count - 1) {
-		memmove(array->items + index,
-				array->items + index + 1,
-				(array->data_count - index - 1) * sizeof(_wi_array_item_t *));
-	}
-
-	array->items[array->data_count] = NULL;
-	array->data_count--;
-
-	_WI_ARRAY_CHECK_OPTIMIZE(array);
-}
-
-
-
-void wi_array_remove_data_in_range(wi_array_t *array, wi_range_t range) {
-	wi_uinteger_t	count;
-	
-	count = range.length;
-	
-	while(count > 0) {
-		wi_array_remove_data_at_index(array, range.location);
-		
-		count--;
-	}
-}
-
-
-
-void wi_array_remove_all_data(wi_array_t *array) {
+static void _wi_array_remove_all_data(wi_array_t *array) {
 	wi_uinteger_t		i, count;
 	_wi_array_item_t	*item;
 	
@@ -1058,10 +939,196 @@ void wi_array_remove_all_data(wi_array_t *array) {
 
 #pragma mark -
 
-wi_boolean_t wi_array_write_to_file(wi_array_t *array, wi_string_t *path) {
-#ifdef WI_PLIST
-	return wi_plist_write_instance_to_file(array, path);
+void wi_mutable_array_add_data(wi_mutable_array_t *array, void *data) {
+	_WI_ARRAY_ASSERT_MUTABLE(array);
+	
+	_wi_array_add_data(array, data);
+}
+
+
+
+void wi_mutable_array_add_data_sorted(wi_mutable_array_t *array, void *data, wi_compare_func_t *compare) {
+	_wi_array_item_t	*item;
+
+	_WI_ARRAY_ASSERT_MUTABLE(array);
+
+	item = _wi_array_create_item(array);
+	item->data = _WI_ARRAY_RETAIN(array, data);
+
+	_wi_array_add_item_sorted(array, item, compare);
+}
+
+
+
+void wi_mutable_array_add_data_from_array(wi_mutable_array_t *array, wi_array_t *otherarray) {
+	wi_uinteger_t	i, count;
+	
+	_WI_ARRAY_ASSERT_MUTABLE(array);
+
+	count = wi_array_count(otherarray);
+	
+	for(i = 0; i < count; i++)
+		_wi_array_add_data(array, wi_array_data_at_index(otherarray, i));
+}
+
+
+
+void wi_mutable_array_insert_data_at_index(wi_mutable_array_t *array, void *data, wi_uinteger_t index) {
+	_wi_array_item_t	*item;
+	
+	_WI_ARRAY_ASSERT_MUTABLE(array);
+	_WI_ARRAY_ASSERT_INDEX(array, index);
+
+	item = _wi_array_create_item(array);
+	item->data = _WI_ARRAY_RETAIN(array, data);
+
+	_wi_array_insert_item_at_index(array, item, index);
+}
+
+
+
+void wi_mutable_array_replace_data_at_index(wi_mutable_array_t *array, void *data, wi_uinteger_t index) {
+	_wi_array_item_t	*item;
+	
+	_WI_ARRAY_ASSERT_MUTABLE(array);
+	_WI_ARRAY_ASSERT_INDEX(array, index);
+
+	item = _wi_array_create_item(array);
+	item->data = _WI_ARRAY_RETAIN(array, data);
+	
+	_wi_array_remove_item(array, array->items[index]);
+	array->items[index] = item;
+}
+
+
+
+void wi_mutable_array_set_array(wi_mutable_array_t *array, wi_array_t *otherarray) {
+	_WI_ARRAY_ASSERT_MUTABLE(array);
+
+	_wi_array_remove_all_data(array);
+	wi_mutable_array_add_data_from_array(array, otherarray);
+}
+
+
+
+#pragma mark -
+
+void wi_mutable_array_remove_data(wi_mutable_array_t *array, void *data) {
+	wi_uinteger_t	index;
+	
+	_WI_ARRAY_ASSERT_MUTABLE(array);
+
+	index = wi_array_index_of_data(array, data);
+	
+	if(index != WI_NOT_FOUND)
+		wi_mutable_array_remove_data_at_index(array, index);
+}
+
+
+
+void wi_mutable_array_remove_data_at_index(wi_mutable_array_t *array, wi_uinteger_t index) {
+	_WI_ARRAY_ASSERT_MUTABLE(array);
+	_WI_ARRAY_ASSERT_INDEX(array, index);
+	
+	_wi_array_remove_item(array, array->items[index]);
+
+	if(index != array->data_count - 1) {
+		memmove(array->items + index,
+				array->items + index + 1,
+				(array->data_count - index - 1) * sizeof(_wi_array_item_t *));
+	}
+
+	array->items[array->data_count] = NULL;
+	array->data_count--;
+
+	_WI_ARRAY_CHECK_OPTIMIZE(array);
+}
+
+
+
+void wi_mutable_array_remove_data_in_range(wi_mutable_array_t *array, wi_range_t range) {
+	wi_uinteger_t	count;
+	
+	_WI_ARRAY_ASSERT_MUTABLE(array);
+
+	count = range.length;
+	
+	while(count > 0) {
+		wi_mutable_array_remove_data_at_index(array, range.location);
+		
+		count--;
+	}
+}
+
+
+
+void wi_mutable_array_remove_all_data(wi_mutable_array_t *array) {
+	_WI_ARRAY_ASSERT_MUTABLE(array);
+	
+	_wi_array_remove_all_data(array);
+}
+
+
+
+#pragma mark -
+
+#ifdef _WI_ARRAY_USE_QSORT_R
+
+static int _wi_array_compare_data(void *context, const void *p1, const void *p2) {
+	return (*(wi_compare_func_t *) context)(*(void **) p1, *(void **) p2);
+}
+
 #else
-	return false;
+
+static int _wi_array_compare_data(const void *p1, const void *p2) {
+	return (*_wi_array_sort_function)(*(void **) p1, *(void **) p2);
+}
+
 #endif
+
+
+
+void wi_mutable_array_sort(wi_array_t *array, wi_compare_func_t *compare) {
+	void			**data;
+	wi_uinteger_t	i;
+	
+	_WI_ARRAY_ASSERT_MUTABLE(array);
+
+	if(array->data_count == 0)
+		return;
+	
+	data = wi_malloc(sizeof(void *) * array->data_count);
+	wi_array_get_data(array, data);
+
+#ifdef _WI_ARRAY_USE_QSORT_R
+	qsort_r(data, array->data_count, sizeof(void *), compare, _wi_array_compare_data);
+#else
+	wi_lock_lock(_wi_array_sort_lock);
+	_wi_array_sort_function = compare;
+	qsort(data, array->data_count, sizeof(void *), _wi_array_compare_data);
+	wi_lock_unlock(_wi_array_sort_lock);
+#endif
+	
+	for(i = 0; i < array->data_count; i++)
+		array->items[i]->data = data[i];
+	
+	wi_free(data);
+}
+
+
+
+void wi_mutable_array_reverse(wi_array_t *array) {
+	_wi_array_item_t	*item;
+	wi_uinteger_t		i, max, count;
+	
+	_WI_ARRAY_ASSERT_MUTABLE(array);
+
+	count = array->data_count;
+	max = count / 2;
+
+	for(i = 0; i < max; i++) {
+		item = array->items[i];
+		array->items[i] = array->items[count - i - 1];
+		array->items[count - i - 1] = item;
+	}
 }
