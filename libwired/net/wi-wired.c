@@ -53,7 +53,7 @@ void wi_parse_wire_command(wi_string_t *buffer, wi_string_t **out_command, wi_st
 	}
 	
 	if(wi_string_has_prefix(*out_command, WI_STR("/")))
-		wi_string_delete_characters_to_index(*out_command, 1);
+		*out_command = wi_string_by_deleting_characters_to_index(*out_command, 1);
 }
 
 
