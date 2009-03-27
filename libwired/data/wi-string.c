@@ -1860,7 +1860,7 @@ wi_string_encoding_t * wi_string_encoding_with_charset(wi_string_t *charset, wi_
 #pragma mark -
 
 wi_string_encoding_t * wi_string_encoding_alloc(void) {
-	return wi_runtime_create_instance(_wi_string_encoding_runtime_id, sizeof(wi_string_encoding_t));
+	return wi_runtime_create_instance_with_options(_wi_string_encoding_runtime_id, sizeof(wi_string_encoding_t), WI_RUNTIME_OPTION_IMMUTABLE);
 }
 
 
@@ -1916,9 +1916,9 @@ static wi_string_t * _wi_string_encoding_description(wi_runtime_instance_t *inst
 	wi_string_encoding_t		*encoding = instance;
 	
 	return wi_string_with_format(WI_STR("<%@ %p>{encoding = %@}"),
-	  wi_runtime_class_name(encoding),
-	  encoding,
-	  encoding->encoding);
+		wi_runtime_class_name(encoding),
+		encoding,
+		encoding->encoding);
 }
 
 
