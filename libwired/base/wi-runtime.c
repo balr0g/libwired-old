@@ -221,6 +221,17 @@ uint8_t wi_runtime_options(wi_runtime_instance_t *instance) {
 
 #pragma mark -
 
+void wi_runtime_make_immutable(wi_runtime_instance_t *instance) {
+	if(WI_RUNTIME_BASE(instance)->options & WI_RUNTIME_OPTION_MUTABLE) {
+		WI_RUNTIME_BASE(instance)->options &= ~WI_RUNTIME_OPTION_MUTABLE;
+		WI_RUNTIME_BASE(instance)->options |= WI_RUNTIME_OPTION_IMMUTABLE;
+	}
+}
+
+
+
+#pragma mark -
+
 static void _wi_runtime_null_abort(wi_runtime_instance_t *instance) {
 	WI_ASSERT(0, "%p has no associated class", instance);
 }
@@ -364,6 +375,7 @@ wi_runtime_instance_t * wi_mutable_copy(wi_runtime_instance_t *instance) {
 	if(class->copy) {
 		copy = class->copy(instance);
 
+		WI_RUNTIME_BASE(copy)->options &= ~WI_RUNTIME_OPTION_IMMUTABLE;
 		WI_RUNTIME_BASE(copy)->options |= WI_RUNTIME_OPTION_MUTABLE;
 
 		return copy;

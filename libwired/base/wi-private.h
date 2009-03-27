@@ -218,6 +218,8 @@ WI_EXPORT void							wi_error_set_libwired_error_with_format(int, wi_string_t *,
 WI_EXPORT wi_fsenumerator_t *			wi_fsenumerator_alloc(void);
 WI_EXPORT wi_fsenumerator_t *			wi_fsenumerator_init_with_path(wi_fsenumerator_t *, wi_string_t *);
 
+WI_EXPORT void							wi_runtime_make_immutable(wi_runtime_instance_t *);
+
 WI_EXPORT void							wi_socket_exit_thread(void);
 
 WI_EXPORT void							wi_thread_set_poolstack(wi_thread_t *, void *);
