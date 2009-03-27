@@ -154,7 +154,7 @@ wi_boolean_t wi_config_read_file(wi_config_t *config) {
 	
 	previous_values = config->values;
 	
-	config->values = wi_dictionary_init(wi_dictionary_alloc());
+	config->values = wi_dictionary_init(wi_mutable_dictionary_alloc());
 	
 	if(config->defaults)
 		wi_mutable_dictionary_add_entries_from_dictionary(config->values, config->defaults);
