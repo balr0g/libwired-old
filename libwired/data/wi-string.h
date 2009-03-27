@@ -94,6 +94,8 @@ WI_EXPORT wi_string_t *						wi_string_by_appending_string(wi_string_t *, wi_str
 WI_EXPORT wi_string_t *						wi_string_by_appending_format(wi_string_t *, wi_string_t *, ...);
 WI_EXPORT wi_string_t *						wi_string_by_appending_format_and_arguments(wi_string_t *, wi_string_t *, va_list);
 
+WI_EXPORT wi_string_t *						wi_string_by_inserting_string_at_index(wi_string_t *, wi_string_t *, wi_uinteger_t);
+
 WI_EXPORT wi_string_t *						wi_string_by_replacing_string_with_string(wi_string_t *, wi_string_t *, wi_string_t *, wi_uinteger_t);
 
 WI_EXPORT wi_string_t *						wi_string_by_deleting_characters_in_range(wi_string_t *, wi_range_t);

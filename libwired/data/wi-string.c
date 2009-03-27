@@ -862,6 +862,22 @@ wi_string_t * wi_string_by_appending_format_and_arguments(wi_string_t *string, w
 
 #pragma mark -
 
+wi_string_t * wi_string_by_inserting_string_at_index(wi_string_t *string, wi_string_t *otherstring, wi_uinteger_t index) {
+	wi_mutable_string_t		*newstring;
+	
+	newstring = wi_mutable_copy(string);
+
+	wi_mutable_string_insert_string_at_index(newstring, otherstring, index);
+	
+	wi_runtime_make_immutable(newstring);
+	
+	return wi_autorelease(newstring);
+}
+
+
+
+#pragma mark -
+
 wi_string_t * wi_string_by_replacing_string_with_string(wi_string_t *string, wi_string_t *target, wi_string_t *replacement, wi_uinteger_t options) {
 	wi_mutable_string_t		*newstring;
 	
