@@ -43,9 +43,11 @@ struct _wi_runtimetest {
 	wi_uinteger_t						value;
 };
 typedef struct _wi_runtimetest			_wi_runtimetest_t;
+typedef struct _wi_runtimetest			_wi_mutable_runtimetest_t;
 
 
 static _wi_runtimetest_t *				_wi_runtimetest_alloc(void);
+static _wi_mutable_runtimetest_t *		_wi_mutable_runtimetest_alloc(void);
 static _wi_runtimetest_t *				_wi_runtimetest_init_with_value(_wi_runtimetest_t *, wi_uinteger_t);
 static void								_wi_runtimetest_dealloc(wi_runtime_instance_t *);
 static wi_runtime_instance_t *			_wi_runtimetest_copy(wi_runtime_instance_t *);
@@ -76,7 +78,13 @@ void wi_test_runtime_initialize(void) {
 #pragma mark -
 
 static _wi_runtimetest_t * _wi_runtimetest_alloc(void) {
-	return wi_runtime_create_instance(_wi_runtimetest_runtime_id, sizeof(_wi_runtimetest_t));
+	return wi_runtime_create_instance_with_options(_wi_runtimetest_runtime_id, sizeof(_wi_runtimetest_t), WI_RUNTIME_OPTION_IMMUTABLE);
+}
+
+
+
+static _wi_mutable_runtimetest_t * _wi_mutable_runtimetest_alloc(void) {
+	return wi_runtime_create_instance_with_options(_wi_runtimetest_runtime_id, sizeof(_wi_runtimetest_t), WI_RUNTIME_OPTION_MUTABLE);
 }
 
 
@@ -148,28 +156,35 @@ void wi_test_runtime_info(void) {
 
 
 void wi_test_runtime_functions(void) {
-	_wi_runtimetest_t		*runtimetest, *runtimetest2;
+	_wi_runtimetest_t			*runtimetest1, *runtimetest2;
+	_wi_mutable_runtimetest_t	*runtimetest3;
 	
 	_wi_runtimetest_deallocs = 0;
 	
-	runtimetest = _wi_runtimetest_init_with_value(_wi_runtimetest_alloc(), 42);
-	runtimetest2 = wi_copy(runtimetest);
+	runtimetest1 = _wi_runtimetest_init_with_value(_wi_runtimetest_alloc(), 42);
+	runtimetest2 = wi_copy(runtimetest1);
 	
-	WI_TEST_ASSERT_TRUE(runtimetest != runtimetest2, "");
-	WI_TEST_ASSERT_EQUALS(runtimetest->value, runtimetest2->value, "");
-	WI_TEST_ASSERT_TRUE(wi_is_equal(runtimetest, runtimetest2), "");
-	
-	runtimetest2->value++;
-	
-	WI_TEST_ASSERT_FALSE(wi_is_equal(runtimetest, runtimetest2), "");
+	WI_TEST_ASSERT_TRUE(runtimetest1 == runtimetest2, "");
 	
 	wi_release(runtimetest2);
+
+	runtimetest3 = wi_mutable_copy(runtimetest1);
+	
+	WI_TEST_ASSERT_TRUE(runtimetest1 != runtimetest3, "");
+	WI_TEST_ASSERT_EQUALS(runtimetest1->value, runtimetest3->value, "");
+	WI_TEST_ASSERT_TRUE(wi_is_equal(runtimetest1, runtimetest3), "");
+	
+	runtimetest3->value++;
+	
+	WI_TEST_ASSERT_FALSE(wi_is_equal(runtimetest1, runtimetest3), "");
+	
+	wi_release(runtimetest3);
 	
 	WI_TEST_ASSERT_EQUALS(_wi_runtimetest_deallocs, 1U, "");
-	WI_TEST_ASSERT_EQUAL_INSTANCES(wi_description(runtimetest), WI_STR("value=42"), "");
-	WI_TEST_ASSERT_EQUALS(wi_hash(runtimetest), 42U, "");
+	WI_TEST_ASSERT_EQUAL_INSTANCES(wi_description(runtimetest1), WI_STR("value=42"), "");
+	WI_TEST_ASSERT_EQUALS(wi_hash(runtimetest1), 42U, "");
 	
-	wi_release(runtimetest);
+	wi_release(runtimetest1);
 }
 
 
