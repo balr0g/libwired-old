@@ -34,6 +34,7 @@
 #include <wired/wi-runtime.h>
 
 typedef struct _wi_date					wi_date_t;
+typedef struct _wi_date					wi_mutable_date_t;
 
 
 WI_EXPORT wi_time_interval_t			wi_time_interval(void);
@@ -49,6 +50,7 @@ WI_EXPORT wi_date_t *					wi_date_with_time(time_t);
 WI_EXPORT wi_date_t *					wi_date_with_rfc3339_string(wi_string_t *);
 
 WI_EXPORT wi_date_t *					wi_date_alloc(void);
+WI_EXPORT wi_mutable_date_t *			wi_mutable_date_alloc(void);
 WI_EXPORT wi_date_t *					wi_date_init(wi_date_t *);
 WI_EXPORT wi_date_t *					wi_date_init_with_time_interval(wi_date_t *, wi_time_interval_t);
 WI_EXPORT wi_date_t *					wi_date_init_with_time(wi_date_t *, time_t);
@@ -57,7 +59,6 @@ WI_EXPORT wi_date_t *					wi_date_init_with_ts(wi_date_t *, struct timespec);
 WI_EXPORT wi_date_t *					wi_date_init_with_string(wi_date_t *, wi_string_t *, wi_string_t *);
 WI_EXPORT wi_date_t *					wi_date_init_with_rfc3339_string(wi_date_t *, wi_string_t *);
 
-WI_EXPORT void							wi_date_set_time_interval(wi_date_t *, wi_time_interval_t);
 WI_EXPORT wi_time_interval_t			wi_date_time_interval(wi_date_t *);
 
 WI_EXPORT wi_time_interval_t			wi_date_time_interval_since_now(wi_date_t *);
@@ -66,5 +67,8 @@ WI_EXPORT wi_time_interval_t			wi_date_time_interval_since_date(wi_date_t *, wi_
 WI_EXPORT wi_string_t *					wi_date_string_with_format(wi_date_t *, wi_string_t *);
 WI_EXPORT wi_string_t *					wi_date_rfc3339_string(wi_date_t *);
 WI_EXPORT wi_string_t *					wi_date_time_interval_string(wi_date_t *);
+
+WI_EXPORT void							wi_mutable_date_add_time_interval(wi_mutable_date_t *, wi_time_interval_t);
+WI_EXPORT void							wi_mutable_date_set_time_interval(wi_mutable_date_t *, wi_time_interval_t);
 
 #endif /* WI_DATE_H */

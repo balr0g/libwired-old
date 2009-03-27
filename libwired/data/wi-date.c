@@ -209,7 +209,13 @@ wi_date_t * wi_date_with_rfc3339_string(wi_string_t *string) {
 #pragma mark -
 
 wi_date_t * wi_date_alloc(void) {
-	return wi_runtime_create_instance(_wi_date_runtime_id, sizeof(wi_date_t));
+	return wi_runtime_create_instance_with_options(_wi_date_runtime_id, sizeof(wi_date_t), WI_RUNTIME_OPTION_IMMUTABLE);
+}
+
+
+
+wi_mutable_date_t * wi_mutable_date_alloc(void) {
+	return wi_runtime_create_instance_with_options(_wi_date_runtime_id, sizeof(wi_date_t), WI_RUNTIME_OPTION_MUTABLE);
 }
 
 
@@ -333,14 +339,6 @@ static wi_string_t * _wi_date_description(wi_runtime_instance_t *instance) {
 
 
 
-#pragma mark -
-
-void wi_date_set_time_interval(wi_date_t *date, wi_time_interval_t interval) {
-	date->interval = interval;
-}
-
-
-
 wi_time_interval_t wi_date_time_interval(wi_date_t *date) {
 	return date->interval;
 }
@@ -377,4 +375,22 @@ wi_string_t * wi_date_rfc3339_string(wi_date_t *date) {
 
 wi_string_t * wi_date_time_interval_string(wi_date_t *date) {
 	return wi_time_interval_string(date->interval);
+}
+
+
+
+#pragma mark -
+
+void wi_mutable_date_add_time_interval(wi_mutable_date_t *date, wi_time_interval_t interval) {
+	WI_RUNTIME_ASSERT_MUTABLE(date);
+	
+	date->interval += interval;
+}
+
+
+
+void wi_mutable_date_set_time_interval(wi_mutable_date_t *date, wi_time_interval_t interval) {
+	WI_RUNTIME_ASSERT_MUTABLE(date);
+	
+	date->interval = interval;
 }
