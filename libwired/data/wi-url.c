@@ -107,7 +107,13 @@ wi_url_t * wi_url_with_string(wi_string_t *string) {
 #pragma mark -
 
 wi_url_t * wi_url_alloc(void) {
-	return wi_runtime_create_instance(_wi_url_runtime_id, sizeof(wi_url_t));
+	return wi_runtime_create_instance_with_options(_wi_url_runtime_id, sizeof(wi_url_t), WI_RUNTIME_OPTION_IMMUTABLE);
+}
+
+
+
+wi_mutable_url_t * wi_mutable_url_alloc(void) {
+	return wi_runtime_create_instance_with_options(_wi_url_runtime_id, sizeof(wi_url_t), WI_RUNTIME_OPTION_MUTABLE);
 }
 
 
@@ -246,30 +252,8 @@ void _wi_url_regenerate_string(wi_url_t *url) {
 
 #pragma mark -
 
-void wi_url_set_scheme(wi_url_t *url, wi_string_t *scheme) {
-	wi_retain(scheme);
-	wi_release(url->scheme);
-	
-	url->scheme = scheme;
-	
-	_wi_url_regenerate_string(url);
-}
-
-
-
 wi_string_t * wi_url_scheme(wi_url_t *url) {
 	return url->scheme;
-}
-
-
-
-void wi_url_set_host(wi_url_t *url, wi_string_t *host) {
-	wi_retain(host);
-	wi_release(url->host);
-	
-	url->host = host;
-	
-	_wi_url_regenerate_string(url);
 }
 
 
@@ -280,25 +264,8 @@ wi_string_t * wi_url_host(wi_url_t *url) {
 
 
 
-void wi_url_set_port(wi_url_t *url, wi_uinteger_t port) {
-	url->port = port;
-}
-
-
-
 wi_uinteger_t wi_url_port(wi_url_t *url) {
 	return url->port;
-}
-
-
-
-void wi_url_set_path(wi_url_t *url, wi_string_t *path) {
-	wi_retain(path);
-	wi_release(url->path);
-	
-	url->path = path;
-	
-	_wi_url_regenerate_string(url);
 }
 
 
@@ -309,30 +276,8 @@ wi_string_t * wi_url_path(wi_url_t *url) {
 
 
 
-void wi_url_set_user(wi_url_t *url, wi_string_t *user) {
-	wi_retain(user);
-	wi_release(url->user);
-	
-	url->user = user;
-	
-	_wi_url_regenerate_string(url);
-}
-
-
-
 wi_string_t * wi_url_user(wi_url_t *url) {
 	return url->user;
-}
-
-
-
-void wi_url_set_password(wi_url_t *url, wi_string_t *password) {
-	wi_retain(password);
-	wi_release(url->password);
-	
-	url->password = password;
-	
-	_wi_url_regenerate_string(url);
 }
 
 
@@ -353,4 +298,79 @@ wi_boolean_t wi_url_is_valid(wi_url_t *url) {
 
 wi_string_t * wi_url_string(wi_url_t *url) {
 	return url->string;
+}
+
+
+
+#pragma mark -
+
+void wi_mutable_url_set_scheme(wi_mutable_url_t *url, wi_string_t *scheme) {
+	WI_RUNTIME_ASSERT_MUTABLE(url);
+	
+	wi_retain(scheme);
+	wi_release(url->scheme);
+	
+	url->scheme = scheme;
+	
+	_wi_url_regenerate_string(url);
+}
+
+
+
+void wi_mutable_url_set_host(wi_mutable_url_t *url, wi_string_t *host) {
+	WI_RUNTIME_ASSERT_MUTABLE(url);
+	
+	wi_retain(host);
+	wi_release(url->host);
+	
+	url->host = host;
+	
+	_wi_url_regenerate_string(url);
+}
+
+
+
+void wi_mutable_url_set_port(wi_mutable_url_t *url, wi_uinteger_t port) {
+	WI_RUNTIME_ASSERT_MUTABLE(url);
+	
+	url->port = port;
+}
+
+
+
+void wi_mutable_url_set_path(wi_mutable_url_t *url, wi_string_t *path) {
+	WI_RUNTIME_ASSERT_MUTABLE(url);
+	
+	wi_retain(path);
+	wi_release(url->path);
+	
+	url->path = path;
+	
+	_wi_url_regenerate_string(url);
+}
+
+
+
+void wi_mutable_url_set_user(wi_mutable_url_t *url, wi_string_t *user) {
+	WI_RUNTIME_ASSERT_MUTABLE(url);
+	
+	wi_retain(user);
+	wi_release(url->user);
+	
+	url->user = user;
+	
+	_wi_url_regenerate_string(url);
+}
+
+
+
+void wi_mutable_url_set_password(wi_mutable_url_t *url, wi_string_t *password) {
+	WI_RUNTIME_ASSERT_MUTABLE(url);
+	
+	wi_retain(password);
+	wi_release(url->password);
+	
+	url->password = password;
+	
+	_wi_url_regenerate_string(url);
 }

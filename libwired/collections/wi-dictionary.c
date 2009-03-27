@@ -99,10 +99,6 @@
 	 (!(dictionary)->value_callbacks.is_equal &&							\
 	  (value1) == (value2)))
 
-#define _WI_DICTIONARY_ASSERT_MUTABLE(dictionary)							\
-	WI_ASSERT(wi_runtime_options((dictionary)) & WI_RUNTIME_OPTION_MUTABLE,	\
-		"%@ is not mutable", (dictionary))
-
 
 struct _wi_dictionary_bucket {
 	void								*key;
@@ -465,7 +461,7 @@ static wi_hash_code_t _wi_dictionary_hash(wi_runtime_instance_t *instance) {
 #pragma mark -
 
 void wi_dictionary_wrlock(wi_mutable_dictionary_t *dictionary) {
-	_WI_DICTIONARY_ASSERT_MUTABLE(dictionary);
+	WI_RUNTIME_ASSERT_MUTABLE(dictionary);
 
 	wi_rwlock_wrlock(dictionary->lock);
 }
@@ -473,7 +469,7 @@ void wi_dictionary_wrlock(wi_mutable_dictionary_t *dictionary) {
 
 
 wi_boolean_t wi_dictionary_trywrlock(wi_mutable_dictionary_t *dictionary) {
-	_WI_DICTIONARY_ASSERT_MUTABLE(dictionary);
+	WI_RUNTIME_ASSERT_MUTABLE(dictionary);
 
 	return wi_rwlock_trywrlock(dictionary->lock);
 }
@@ -873,7 +869,7 @@ static void _wi_dictionary_remove_all_data(wi_mutable_dictionary_t *dictionary) 
 #pragma mark -
 
 void wi_mutable_dictionary_set_data_for_key(wi_mutable_dictionary_t *dictionary, void *data, void *key) {
-	_WI_DICTIONARY_ASSERT_MUTABLE(dictionary);
+	WI_RUNTIME_ASSERT_MUTABLE(dictionary);
 	
 	_wi_dictionary_set_data_for_key(dictionary, data, key);
 }
@@ -884,7 +880,7 @@ void wi_mutable_dictionary_add_entries_from_dictionary(wi_mutable_dictionary_t *
 	_wi_dictionary_bucket_t		*bucket;
 	wi_uinteger_t				i;
 
-	_WI_DICTIONARY_ASSERT_MUTABLE(dictionary);
+	WI_RUNTIME_ASSERT_MUTABLE(dictionary);
 
 	for(i = 0; i < otherdictionary->buckets_count; i++) {
 		for(bucket = otherdictionary->buckets[i]; bucket; bucket = bucket->next)
@@ -895,7 +891,7 @@ void wi_mutable_dictionary_add_entries_from_dictionary(wi_mutable_dictionary_t *
 
 
 void wi_mutable_dictionary_set_dictionary(wi_mutable_dictionary_t *dictionary, wi_dictionary_t *otherdictionary) {
-	_WI_DICTIONARY_ASSERT_MUTABLE(dictionary);
+	WI_RUNTIME_ASSERT_MUTABLE(dictionary);
 
 	_wi_dictionary_remove_all_data(dictionary);
 	wi_mutable_dictionary_add_entries_from_dictionary(dictionary, otherdictionary);
@@ -909,7 +905,7 @@ void wi_mutable_dictionary_remove_data_for_key(wi_mutable_dictionary_t *dictiona
 	_wi_dictionary_bucket_t		*bucket, *previous_bucket;
 	wi_uinteger_t				index;
 
-	_WI_DICTIONARY_ASSERT_MUTABLE(dictionary);
+	WI_RUNTIME_ASSERT_MUTABLE(dictionary);
 
 	index = _WI_DICTIONARY_KEY_HASH(dictionary, key) % dictionary->buckets_count;
 	bucket = dictionary->buckets[index];
@@ -939,7 +935,7 @@ void wi_mutable_dictionary_remove_data_for_key(wi_mutable_dictionary_t *dictiona
 
 
 void wi_mutable_dictionary_remove_all_data(wi_mutable_dictionary_t *dictionary) {
-	_WI_DICTIONARY_ASSERT_MUTABLE(dictionary);
+	WI_RUNTIME_ASSERT_MUTABLE(dictionary);
 	
 	_wi_dictionary_remove_all_data(dictionary);
 }

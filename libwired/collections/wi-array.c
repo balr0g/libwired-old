@@ -83,10 +83,6 @@
 		"index %ld out of range (count %lu) in %@",						\
 		(index), (array)->data_count, (array))
 
-#define _WI_ARRAY_ASSERT_MUTABLE(array)									\
-	WI_ASSERT(wi_runtime_options((array)) & WI_RUNTIME_OPTION_MUTABLE,	\
-		"%@ is not mutable", (array))
-
 
 struct _wi_array_item {
 	void								*data;
@@ -524,7 +520,7 @@ static wi_hash_code_t _wi_array_hash(wi_runtime_instance_t *instance) {
 #pragma mark -
 
 void wi_array_wrlock(wi_mutable_array_t *array) {
-	_WI_ARRAY_ASSERT_MUTABLE(array);
+	WI_RUNTIME_ASSERT_MUTABLE(array);
 	
 	wi_rwlock_wrlock(array->lock);
 }
@@ -532,7 +528,7 @@ void wi_array_wrlock(wi_mutable_array_t *array) {
 
 
 wi_boolean_t wi_array_trywrlock(wi_mutable_array_t *array) {
-	_WI_ARRAY_ASSERT_MUTABLE(array);
+	WI_RUNTIME_ASSERT_MUTABLE(array);
 	
 	return wi_rwlock_trywrlock(array->lock);
 }
@@ -940,7 +936,7 @@ static void _wi_array_remove_all_data(wi_array_t *array) {
 #pragma mark -
 
 void wi_mutable_array_add_data(wi_mutable_array_t *array, void *data) {
-	_WI_ARRAY_ASSERT_MUTABLE(array);
+	WI_RUNTIME_ASSERT_MUTABLE(array);
 	
 	_wi_array_add_data(array, data);
 }
@@ -950,7 +946,7 @@ void wi_mutable_array_add_data(wi_mutable_array_t *array, void *data) {
 void wi_mutable_array_add_data_sorted(wi_mutable_array_t *array, void *data, wi_compare_func_t *compare) {
 	_wi_array_item_t	*item;
 
-	_WI_ARRAY_ASSERT_MUTABLE(array);
+	WI_RUNTIME_ASSERT_MUTABLE(array);
 
 	item = _wi_array_create_item(array);
 	item->data = _WI_ARRAY_RETAIN(array, data);
@@ -963,7 +959,7 @@ void wi_mutable_array_add_data_sorted(wi_mutable_array_t *array, void *data, wi_
 void wi_mutable_array_add_data_from_array(wi_mutable_array_t *array, wi_array_t *otherarray) {
 	wi_uinteger_t	i, count;
 	
-	_WI_ARRAY_ASSERT_MUTABLE(array);
+	WI_RUNTIME_ASSERT_MUTABLE(array);
 
 	count = wi_array_count(otherarray);
 	
@@ -976,7 +972,7 @@ void wi_mutable_array_add_data_from_array(wi_mutable_array_t *array, wi_array_t 
 void wi_mutable_array_insert_data_at_index(wi_mutable_array_t *array, void *data, wi_uinteger_t index) {
 	_wi_array_item_t	*item;
 	
-	_WI_ARRAY_ASSERT_MUTABLE(array);
+	WI_RUNTIME_ASSERT_MUTABLE(array);
 	_WI_ARRAY_ASSERT_INDEX(array, index);
 
 	item = _wi_array_create_item(array);
@@ -990,7 +986,7 @@ void wi_mutable_array_insert_data_at_index(wi_mutable_array_t *array, void *data
 void wi_mutable_array_replace_data_at_index(wi_mutable_array_t *array, void *data, wi_uinteger_t index) {
 	_wi_array_item_t	*item;
 	
-	_WI_ARRAY_ASSERT_MUTABLE(array);
+	WI_RUNTIME_ASSERT_MUTABLE(array);
 	_WI_ARRAY_ASSERT_INDEX(array, index);
 
 	item = _wi_array_create_item(array);
@@ -1003,7 +999,7 @@ void wi_mutable_array_replace_data_at_index(wi_mutable_array_t *array, void *dat
 
 
 void wi_mutable_array_set_array(wi_mutable_array_t *array, wi_array_t *otherarray) {
-	_WI_ARRAY_ASSERT_MUTABLE(array);
+	WI_RUNTIME_ASSERT_MUTABLE(array);
 
 	_wi_array_remove_all_data(array);
 	wi_mutable_array_add_data_from_array(array, otherarray);
@@ -1016,7 +1012,7 @@ void wi_mutable_array_set_array(wi_mutable_array_t *array, wi_array_t *otherarra
 void wi_mutable_array_remove_data(wi_mutable_array_t *array, void *data) {
 	wi_uinteger_t	index;
 	
-	_WI_ARRAY_ASSERT_MUTABLE(array);
+	WI_RUNTIME_ASSERT_MUTABLE(array);
 
 	index = wi_array_index_of_data(array, data);
 	
@@ -1027,7 +1023,7 @@ void wi_mutable_array_remove_data(wi_mutable_array_t *array, void *data) {
 
 
 void wi_mutable_array_remove_data_at_index(wi_mutable_array_t *array, wi_uinteger_t index) {
-	_WI_ARRAY_ASSERT_MUTABLE(array);
+	WI_RUNTIME_ASSERT_MUTABLE(array);
 	_WI_ARRAY_ASSERT_INDEX(array, index);
 	
 	_wi_array_remove_item(array, array->items[index]);
@@ -1049,7 +1045,7 @@ void wi_mutable_array_remove_data_at_index(wi_mutable_array_t *array, wi_uintege
 void wi_mutable_array_remove_data_in_range(wi_mutable_array_t *array, wi_range_t range) {
 	wi_uinteger_t	count;
 	
-	_WI_ARRAY_ASSERT_MUTABLE(array);
+	WI_RUNTIME_ASSERT_MUTABLE(array);
 
 	count = range.length;
 	
@@ -1063,7 +1059,7 @@ void wi_mutable_array_remove_data_in_range(wi_mutable_array_t *array, wi_range_t
 
 
 void wi_mutable_array_remove_all_data(wi_mutable_array_t *array) {
-	_WI_ARRAY_ASSERT_MUTABLE(array);
+	WI_RUNTIME_ASSERT_MUTABLE(array);
 	
 	_wi_array_remove_all_data(array);
 }
@@ -1092,7 +1088,7 @@ void wi_mutable_array_sort(wi_array_t *array, wi_compare_func_t *compare) {
 	void			**data;
 	wi_uinteger_t	i;
 	
-	_WI_ARRAY_ASSERT_MUTABLE(array);
+	WI_RUNTIME_ASSERT_MUTABLE(array);
 
 	if(array->data_count == 0)
 		return;
@@ -1121,7 +1117,7 @@ void wi_mutable_array_reverse(wi_array_t *array) {
 	_wi_array_item_t	*item;
 	wi_uinteger_t		i, max, count;
 	
-	_WI_ARRAY_ASSERT_MUTABLE(array);
+	WI_RUNTIME_ASSERT_MUTABLE(array);
 
 	count = array->data_count;
 	max = count / 2;

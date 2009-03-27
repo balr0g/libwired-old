@@ -78,10 +78,6 @@
 	 (!(set)->callbacks.is_equal &&										\
 	  (data1) == (data2)))
 
-#define _WI_SET_ASSERT_MUTABLE(set)										\
-	WI_ASSERT(wi_runtime_options((set)) & WI_RUNTIME_OPTION_MUTABLE,	\
-		"%@ is not mutable", (set))
-
 
 struct _wi_set_bucket {
 	void								*data;
@@ -375,7 +371,7 @@ static wi_hash_code_t _wi_set_hash(wi_runtime_instance_t *instance) {
 #pragma mark -
 
 void wi_set_wrlock(wi_mutable_set_t *set) {
-	_WI_SET_ASSERT_MUTABLE(set);
+	WI_RUNTIME_ASSERT_MUTABLE(set);
 	
 	wi_rwlock_wrlock(set->lock);
 }
@@ -383,7 +379,7 @@ void wi_set_wrlock(wi_mutable_set_t *set) {
 
 
 wi_boolean_t wi_set_trywrlock(wi_mutable_set_t *set) {
-	_WI_SET_ASSERT_MUTABLE(set);
+	WI_RUNTIME_ASSERT_MUTABLE(set);
 	
 	return wi_rwlock_trywrlock(set->lock);
 }
@@ -656,7 +652,7 @@ wi_uinteger_t wi_set_count_for_data(wi_set_t *set, void *data) {
 #pragma mark -
 
 void wi_mutable_set_add_data(wi_mutable_set_t *set, void *data) {
-	_WI_SET_ASSERT_MUTABLE(set);
+	WI_RUNTIME_ASSERT_MUTABLE(set);
 	
 	_wi_set_add_data(set, data);
 }
@@ -664,7 +660,7 @@ void wi_mutable_set_add_data(wi_mutable_set_t *set, void *data) {
 
 
 void wi_mutable_set_add_data_from_array(wi_mutable_set_t *set, wi_array_t *array) {
-	_WI_SET_ASSERT_MUTABLE(set);
+	WI_RUNTIME_ASSERT_MUTABLE(set);
 	
 	_wi_set_add_data_from_array(set, array);
 }
@@ -675,7 +671,7 @@ void wi_mutable_set_set_set(wi_mutable_set_t *set, wi_set_t *otherset) {
 	_wi_set_bucket_t	*bucket;
 	wi_uinteger_t		i;
 
-	_WI_SET_ASSERT_MUTABLE(set);
+	WI_RUNTIME_ASSERT_MUTABLE(set);
 
 	_wi_set_remove_all_data(set);
 
@@ -694,7 +690,7 @@ void wi_mutable_set_remove_data(wi_mutable_set_t *set, void *data) {
 	wi_uinteger_t		index;
 	wi_boolean_t		remove = false;
 
-	_WI_SET_ASSERT_MUTABLE(set);
+	WI_RUNTIME_ASSERT_MUTABLE(set);
 
 	index = _WI_SET_HASH(set, data) % set->buckets_count;
 	bucket = set->buckets[index];
@@ -733,7 +729,7 @@ void wi_mutable_set_remove_data(wi_mutable_set_t *set, void *data) {
 
 
 void wi_mutable_set_remove_all_data(wi_mutable_set_t *set) {
-	_WI_SET_ASSERT_MUTABLE(set);
+	WI_RUNTIME_ASSERT_MUTABLE(set);
 	
 	_wi_set_remove_all_data(set);
 }

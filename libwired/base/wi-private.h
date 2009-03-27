@@ -42,6 +42,7 @@
 #endif
 
 #include <wired/wi-array.h>
+#include <wired/wi-assert.h>
 #include <wired/wi-base.h>
 #include <wired/wi-enumerator.h>
 #include <wired/wi-error.h>
@@ -51,8 +52,12 @@
 
 #define WI_RUNTIME_MAGIC				0xAC1DFEED
 
-#define WI_RUNTIME_BASE(instance) \
+#define WI_RUNTIME_BASE(instance)											\
 	((wi_runtime_base_t *) instance)
+
+#define WI_RUNTIME_ASSERT_MUTABLE(instance)									\
+	WI_ASSERT(wi_runtime_options((instance)) & WI_RUNTIME_OPTION_MUTABLE,	\
+		"%@ is not mutable", (instance))
 
 
 struct _wi_enumerator_context {
