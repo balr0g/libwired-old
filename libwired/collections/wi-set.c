@@ -47,36 +47,40 @@
 #define _WI_SET_MIN_COUNT				11
 #define _WI_SET_MAX_COUNT				16777213
 
-#define _WI_SET_CHECK_RESIZE(set)								\
-	WI_STMT_START												\
-		if((set->buckets_count >= 3 * set->data_count &&		\
-		    set->buckets_count >  set->min_count) ||			\
-		   (set->data_count    >= 3 * set->buckets_count &&		\
-			set->buckets_count <  _WI_SET_MAX_COUNT))			\
-			_wi_set_resize(set);								\
+#define _WI_SET_CHECK_RESIZE(set)										\
+	WI_STMT_START														\
+		if((set->buckets_count >= 3 * set->data_count &&				\
+		    set->buckets_count >  set->min_count) ||					\
+		   (set->data_count    >= 3 * set->buckets_count &&				\
+			set->buckets_count <  _WI_SET_MAX_COUNT))					\
+			_wi_set_resize(set);										\
 	WI_STMT_END
 
-#define _WI_SET_RETAIN(set, data)								\
-	((set)->callbacks.retain									\
-		? (*(set)->callbacks.retain)((data))					\
+#define _WI_SET_RETAIN(set, data)										\
+	((set)->callbacks.retain											\
+		? (*(set)->callbacks.retain)((data))							\
 		: (data))
 
-#define _WI_SET_RELEASE(set, data)								\
-	WI_STMT_START												\
-		if((set)->callbacks.release)							\
-			(*(set)->callbacks.release)((data));				\
+#define _WI_SET_RELEASE(set, data)										\
+	WI_STMT_START														\
+		if((set)->callbacks.release)									\
+			(*(set)->callbacks.release)((data));						\
 	WI_STMT_END
 
-#define _WI_SET_HASH(set, data)									\
-	((set)->callbacks.hash										\
-		? (*(set)->callbacks.hash)((data))						\
+#define _WI_SET_HASH(set, data)											\
+	((set)->callbacks.hash												\
+		? (*(set)->callbacks.hash)((data))								\
 		: wi_hash_pointer((data)))
 
-#define _WI_SET_IS_EQUAL(set, data1, data2)						\
-	(((set)->callbacks.is_equal &&								\
-	  (*(set)->callbacks.is_equal)((data1), (data2))) ||		\
-	 (!(set)->callbacks.is_equal &&								\
+#define _WI_SET_IS_EQUAL(set, data1, data2)								\
+	(((set)->callbacks.is_equal &&										\
+	  (*(set)->callbacks.is_equal)((data1), (data2))) ||				\
+	 (!(set)->callbacks.is_equal &&										\
 	  (data1) == (data2)))
+
+#define _WI_SET_ASSERT_MUTABLE(set)										\
+	WI_ASSERT(wi_runtime_options((set)) & WI_RUNTIME_OPTION_MUTABLE,	\
+		"%@ is not mutable", (set))
 
 
 struct _wi_set_bucket {
@@ -121,6 +125,10 @@ static void								_wi_set_resize(wi_set_t *);
 static _wi_set_bucket_t *				_wi_set_bucket_create(wi_set_t *);
 static _wi_set_bucket_t *				_wi_set_bucket_for_data(wi_set_t *, void *, wi_uinteger_t);
 static void								_wi_set_bucket_remove(wi_set_t *, _wi_set_bucket_t *);
+
+static void								_wi_set_add_data(wi_set_t *, void *);
+static void								_wi_set_add_data_from_array(wi_set_t *, wi_array_t *);
+static void								_wi_set_remove_all_data(wi_set_t *);
 
 
 const wi_set_callbacks_t				wi_set_default_callbacks = {
@@ -188,11 +196,11 @@ wi_set_t * wi_set_with_data(void *data0, ...) {
 	
 	set = wi_set_init_with_capacity(wi_set_alloc(), 0, false);
 	
-	wi_set_add_data(set, data0);
+	_wi_set_add_data(set, data0);
 	
 	va_start(ap, data0);
 	while((data = va_arg(ap, void *)))
-		wi_set_add_data(set, data);
+		_wi_set_add_data(set, data);
 	va_end(ap);
 	
 	return wi_autorelease(set);
@@ -202,7 +210,13 @@ wi_set_t * wi_set_with_data(void *data0, ...) {
 #pragma mark -
 
 wi_set_t * wi_set_alloc(void) {
-	return wi_runtime_create_instance(_wi_set_runtime_id, sizeof(wi_set_t));
+	return wi_runtime_create_instance_with_options(_wi_set_runtime_id, sizeof(wi_set_t), WI_RUNTIME_OPTION_IMMUTABLE);
+}
+
+
+
+wi_mutable_set_t * wi_mutable_set_alloc(void) {
+	return wi_runtime_create_instance_with_options(_wi_set_runtime_id, sizeof(wi_set_t), WI_RUNTIME_OPTION_MUTABLE);
 }
 
 
@@ -219,7 +233,9 @@ wi_set_t * wi_set_init_with_capacity(wi_set_t *set, wi_uinteger_t capacity, wi_b
 
 
 
-wi_set_t * wi_set_init_with_capacity_and_callbacks(wi_set_t *set, wi_uinteger_t capacity, wi_boolean_t counted, wi_set_callbacks_t callbacks) {
+wi_set_t * wi_set_init_with_capacity_and_callbacks(wi_set_t *instance, wi_uinteger_t capacity, wi_boolean_t counted, wi_set_callbacks_t callbacks) {
+	wi_set_t					*set = instance;
+
 	set->callbacks				= callbacks;
 	set->bucket_chunks_offset	= _wi_set_buckets_per_page;
 	set->min_count				= WI_MAX(wi_exp2m1(wi_log2(capacity) + 1), _WI_SET_MIN_COUNT);
@@ -241,7 +257,7 @@ wi_set_t * wi_set_init_with_data(wi_set_t *set, ...) {
 
 	va_start(ap, set);
 	while((data = va_arg(ap, void *)))
-		wi_set_add_data(set, data);
+		_wi_set_add_data(set, data);
 	va_end(ap);
 	
 	return set;
@@ -252,7 +268,7 @@ wi_set_t * wi_set_init_with_data(wi_set_t *set, ...) {
 wi_set_t * wi_set_init_with_array(wi_set_t *set, wi_array_t *array) {
 	set = wi_set_init_with_capacity(set, wi_array_count(array), false);
 	
-	wi_set_add_data_from_array(set, array);
+	_wi_set_add_data_from_array(set, array);
 	
 	return set;
 }
@@ -263,7 +279,7 @@ static void _wi_set_dealloc(wi_runtime_instance_t *instance) {
 	wi_set_t		*set = instance;
 	wi_uinteger_t	i;
 
-	wi_set_remove_all_data(set);
+	_wi_set_remove_all_data(set);
 
 	if(set->bucket_chunks) {
 		for(i = 0; i < set->bucket_chunks_count; i++)
@@ -289,7 +305,7 @@ static wi_runtime_instance_t * _wi_set_copy(wi_runtime_instance_t *instance) {
 	for(i = 0; i < set->buckets_count; i++) {
 		for(bucket = set->buckets[i]; bucket; bucket = bucket->next) {
 			for(j = 0; j < bucket->count; j++)
-				wi_set_add_data(set_copy, bucket->data);
+				_wi_set_add_data(set_copy, bucket->data);
 		}
 	}
 	
@@ -325,10 +341,11 @@ static wi_string_t * _wi_set_description(wi_runtime_instance_t *instance) {
 	wi_string_t			*string, *description;
 	wi_uinteger_t		i;
 
-	string = wi_string_with_format(WI_STR("<%@ %p>{count = %lu, values = (\n"),
+	string = wi_string_with_format(WI_STR("<%@ %p>{count = %lu, mutable = %u, values = (\n"),
 		wi_runtime_class_name(set),
 		set,
-		set->data_count);
+		set->data_count,
+		wi_runtime_options(set) & WI_RUNTIME_OPTION_MUTABLE ? 1 : 0);
 
 	for(i = 0; i < set->buckets_count; i++) {
 		for(bucket = set->buckets[i]; bucket; bucket = bucket->next) {
@@ -357,13 +374,17 @@ static wi_hash_code_t _wi_set_hash(wi_runtime_instance_t *instance) {
 
 #pragma mark -
 
-void wi_set_wrlock(wi_set_t *set) {
+void wi_set_wrlock(wi_mutable_set_t *set) {
+	_WI_SET_ASSERT_MUTABLE(set);
+	
 	wi_rwlock_wrlock(set->lock);
 }
 
 
 
-wi_boolean_t wi_set_trywrlock(wi_set_t *set) {
+wi_boolean_t wi_set_trywrlock(wi_mutable_set_t *set) {
+	_WI_SET_ASSERT_MUTABLE(set);
+	
 	return wi_rwlock_trywrlock(set->lock);
 }
 
@@ -550,7 +571,7 @@ static void _wi_set_bucket_remove(wi_set_t *set, _wi_set_bucket_t *bucket) {
 
 #pragma mark -
 
-void wi_set_add_data(wi_set_t *set, void *data) {
+static void _wi_set_add_data(wi_set_t *set, void *data) {
 	_wi_set_bucket_t	*bucket;
 	wi_uinteger_t		index;
 	
@@ -574,16 +595,34 @@ void wi_set_add_data(wi_set_t *set, void *data) {
 
 
 
-void wi_set_add_data_from_array(wi_set_t *set, wi_array_t *array) {
+static void _wi_set_add_data_from_array(wi_set_t *set, wi_array_t *array) {
 	wi_uinteger_t	i, count;
 	
 	count = wi_array_count(array);
 	
 	for(i = 0; i < count; i++)
-		wi_set_add_data(set, WI_ARRAY(array, i));
+		_wi_set_add_data(set, WI_ARRAY(array, i));
 }
 
 
+
+static void _wi_set_remove_all_data(wi_set_t *set) {
+	_wi_set_bucket_t	*bucket;
+	wi_uinteger_t		i;
+
+	for(i = 0; i < set->buckets_count; i++) {
+		for(bucket = set->buckets[i]; bucket; bucket = bucket->next)
+			_wi_set_bucket_remove(set, bucket);
+
+		set->buckets[i] = NULL;
+	}
+
+	_WI_SET_CHECK_RESIZE(set);
+}
+
+
+
+#pragma mark -
 
 wi_boolean_t wi_set_contains_data(wi_set_t *set, void *data) {
 	_wi_set_bucket_t	*bucket;
@@ -612,15 +651,35 @@ wi_uinteger_t wi_set_count_for_data(wi_set_t *set, void *data) {
 
 
 
-void wi_set_set_set(wi_set_t *set, wi_set_t *otherset) {
+#pragma mark -
+
+void wi_mutable_set_add_data(wi_mutable_set_t *set, void *data) {
+	_WI_SET_ASSERT_MUTABLE(set);
+	
+	_wi_set_add_data(set, data);
+}
+
+
+
+void wi_mutable_set_add_data_from_array(wi_mutable_set_t *set, wi_array_t *array) {
+	_WI_SET_ASSERT_MUTABLE(set);
+	
+	_wi_set_add_data_from_array(set, array);
+}
+
+
+
+void wi_mutable_set_set_set(wi_mutable_set_t *set, wi_set_t *otherset) {
 	_wi_set_bucket_t	*bucket;
 	wi_uinteger_t		i;
 
-	wi_set_remove_all_data(set);
+	_WI_SET_ASSERT_MUTABLE(set);
+
+	_wi_set_remove_all_data(set);
 
 	for(i = 0; i < otherset->buckets_count; i++) {
 		for(bucket = otherset->buckets[i]; bucket; bucket = bucket->next)
-			wi_set_add_data(set, bucket->data);
+			_wi_set_add_data(set, bucket->data);
 	}
 }
 
@@ -628,10 +687,12 @@ void wi_set_set_set(wi_set_t *set, wi_set_t *otherset) {
 
 #pragma mark -
 
-void wi_set_remove_data(wi_set_t *set, void *data) {
+void wi_mutable_set_remove_data(wi_mutable_set_t *set, void *data) {
 	_wi_set_bucket_t	*bucket, *previous_bucket;
 	wi_uinteger_t		index;
 	wi_boolean_t		remove = false;
+
+	_WI_SET_ASSERT_MUTABLE(set);
 
 	index = _WI_SET_HASH(set, data) % set->buckets_count;
 	bucket = set->buckets[index];
@@ -669,16 +730,8 @@ void wi_set_remove_data(wi_set_t *set, void *data) {
 
 
 
-void wi_set_remove_all_data(wi_set_t *set) {
-	_wi_set_bucket_t	*bucket;
-	wi_uinteger_t		i;
-
-	for(i = 0; i < set->buckets_count; i++) {
-		for(bucket = set->buckets[i]; bucket; bucket = bucket->next)
-			_wi_set_bucket_remove(set, bucket);
-
-		set->buckets[i] = NULL;
-	}
-
-	_WI_SET_CHECK_RESIZE(set);
+void wi_mutable_set_remove_all_data(wi_mutable_set_t *set) {
+	_WI_SET_ASSERT_MUTABLE(set);
+	
+	_wi_set_remove_all_data(set);
 }

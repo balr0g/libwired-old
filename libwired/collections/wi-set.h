@@ -34,6 +34,7 @@
 #include <wired/wi-runtime.h>
 
 typedef struct _wi_set						wi_set_t;
+typedef struct _wi_set						wi_mutable_set_t;
 
 struct _wi_set_callbacks {
 	wi_retain_func_t						*retain;
@@ -51,14 +52,15 @@ WI_EXPORT wi_set_t *						wi_set(void);
 WI_EXPORT wi_set_t *						wi_set_with_data(void *, ...);
 
 WI_EXPORT wi_set_t *						wi_set_alloc(void);
+WI_EXPORT wi_mutable_set_t *				wi_mutable_set_alloc(void);
 WI_EXPORT wi_set_t *						wi_set_init(wi_set_t *);
 WI_EXPORT wi_set_t *						wi_set_init_with_capacity(wi_set_t *, wi_uinteger_t, wi_boolean_t);
 WI_EXPORT wi_set_t *						wi_set_init_with_capacity_and_callbacks(wi_set_t *, wi_uinteger_t, wi_boolean_t, wi_set_callbacks_t);
 WI_EXPORT wi_set_t *						wi_set_init_with_data(wi_set_t *, ...) WI_SENTINEL;
 WI_EXPORT wi_set_t *						wi_set_init_with_array(wi_set_t *, wi_array_t *);
 
-WI_EXPORT void								wi_set_wrlock(wi_set_t *);
-WI_EXPORT wi_boolean_t						wi_set_trywrlock(wi_set_t *);
+WI_EXPORT void								wi_set_wrlock(wi_mutable_set_t *);
+WI_EXPORT wi_boolean_t						wi_set_trywrlock(wi_mutable_set_t *);
 WI_EXPORT void								wi_set_rdlock(wi_set_t *);
 WI_EXPORT wi_boolean_t						wi_set_tryrdlock(wi_set_t *);
 WI_EXPORT void								wi_set_unlock(wi_set_t *);
@@ -68,14 +70,15 @@ WI_EXPORT wi_array_t *						wi_set_all_data(wi_set_t *);
 
 WI_EXPORT wi_enumerator_t *					wi_set_data_enumerator(wi_set_t *);
 
-WI_EXPORT void								wi_set_add_data(wi_set_t *, void *);
-WI_EXPORT void								wi_set_add_data_from_array(wi_set_t *, wi_array_t *);
 WI_EXPORT wi_boolean_t						wi_set_contains_data(wi_set_t *, void *);
 WI_EXPORT wi_uinteger_t						wi_set_count_for_data(wi_set_t *, void *);
-WI_EXPORT void								wi_set_set_set(wi_set_t *, wi_set_t *);
 
-WI_EXPORT void								wi_set_remove_data(wi_set_t *, void *);
-WI_EXPORT void								wi_set_remove_all_data(wi_set_t *);
+WI_EXPORT void								wi_mutable_set_add_data(wi_mutable_set_t *, void *);
+WI_EXPORT void								wi_mutable_set_add_data_from_array(wi_mutable_set_t *, wi_array_t *);
+WI_EXPORT void								wi_mutable_set_set_set(wi_mutable_set_t *, wi_set_t *);
+
+WI_EXPORT void								wi_mutable_set_remove_data(wi_mutable_set_t *, void *);
+WI_EXPORT void								wi_mutable_set_remove_all_data(wi_mutable_set_t *);
 
 
 WI_EXPORT const wi_set_callbacks_t			wi_set_default_callbacks;

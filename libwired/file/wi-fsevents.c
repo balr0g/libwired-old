@@ -72,7 +72,7 @@ struct _wi_fsevents {
 #endif
 	
 	wi_fsevents_callback_t				*callback;
-	wi_set_t							*paths;
+	wi_mutable_set_t					*paths;
 	wi_dictionary_t						*fds_for_paths;
 
 #ifdef _WI_FSEVENTS_INOTIFY
@@ -152,7 +152,7 @@ wi_fsevents_t * wi_fsevents_init(wi_fsevents_t *fsevents) {
 	return NULL;
 #endif
 	
-	fsevents->paths			= wi_set_init_with_capacity(wi_set_alloc(), 0, true);
+	fsevents->paths			= wi_set_init_with_capacity(wi_mutable_set_alloc(), 0, true);
 	fsevents->fds_for_paths	= wi_dictionary_init_with_capacity_and_callbacks(wi_dictionary_alloc(), 0,
 		wi_dictionary_default_key_callbacks, wi_dictionary_null_value_callbacks);
 
@@ -311,7 +311,7 @@ wi_boolean_t wi_fsevents_add_path(wi_fsevents_t *fsevents, wi_string_t *path) {
 		wi_dictionary_set_data_for_key(fsevents->fds_for_paths, (void *) (intptr_t) fd, path);
 	}
 	
-	wi_set_add_data(fsevents->paths, path);
+	wi_mutable_set_add_data(fsevents->paths, path);
 #elif defined(_WI_FSEVENTS_INOTIFY)
 	if(!wi_set_contains_data(fsevents->paths, path)) {
 		fd = inotify_add_watch(fsevents->inotify, wi_string_cstring(path), _WI_FSEVENTS_INOTIFY_MASK);
@@ -326,7 +326,7 @@ wi_boolean_t wi_fsevents_add_path(wi_fsevents_t *fsevents, wi_string_t *path) {
 		wi_dictionary_set_data_for_key(fsevents->paths_for_fds, path, (void *) (intptr_t) fd);
 	}
 
-	wi_set_add_data(fsevents->paths, path);
+	wi_mutable_set_add_data(fsevents->paths, path);
 #endif
 	
 	return true;
@@ -355,7 +355,7 @@ void wi_fsevents_remove_path(wi_fsevents_t *fsevents, wi_string_t *path) {
 		wi_dictionary_remove_data_for_key(fsevents->fds_for_paths, path);
 	}
 	
-	wi_set_remove_data(fsevents->paths, path);
+	wi_mutable_set_remove_data(fsevents->paths, path);
 #endif
 }
 
@@ -376,7 +376,7 @@ void wi_fsevents_remove_all_paths(wi_fsevents_t *fsevents) {
 #endif
 	}
 	
-	wi_set_remove_all_data(fsevents->paths);
+	wi_mutable_set_remove_all_data(fsevents->paths);
 	wi_dictionary_remove_all_data(fsevents->fds_for_paths);
 
 #ifdef _WI_FSEVENTS_INOTIFY

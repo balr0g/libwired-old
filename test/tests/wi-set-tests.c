@@ -32,13 +32,13 @@ WI_TEST_EXPORT void						wi_test_set(void);
 
 
 void wi_test_set(void) {
-	wi_set_t		*set;
+	wi_mutable_set_t		*set;
 	
-	set = wi_set_init(wi_set_alloc());
+	set = wi_set_init(wi_mutable_set_alloc());
 	
 	WI_TEST_ASSERT_NOT_NULL(set, "");
 	
-	wi_set_add_data(set, WI_STR("foo"));
+	wi_mutable_set_add_data(set, WI_STR("foo"));
 	
 	WI_TEST_ASSERT_TRUE(wi_set_contains_data(set, WI_STR("foo")), "");
 	WI_TEST_ASSERT_FALSE(wi_set_contains_data(set, WI_STR("bar")), "");
@@ -46,23 +46,23 @@ void wi_test_set(void) {
 	
 	wi_release(set);
 
-	set = wi_set_init_with_capacity(wi_set_alloc(), 0, true);
+	set = wi_set_init_with_capacity(wi_mutable_set_alloc(), 0, true);
 
 	WI_TEST_ASSERT_NOT_NULL(set, "");
 	
-	wi_set_add_data(set, WI_STR("foo"));
-	wi_set_add_data(set, WI_STR("foo"));
+	wi_mutable_set_add_data(set, WI_STR("foo"));
+	wi_mutable_set_add_data(set, WI_STR("foo"));
 
 	WI_TEST_ASSERT_TRUE(wi_set_contains_data(set, WI_STR("foo")), "");
 	WI_TEST_ASSERT_FALSE(wi_set_contains_data(set, WI_STR("bar")), "");
 	WI_TEST_ASSERT_EQUALS(wi_set_count_for_data(set, WI_STR("foo")), 2U, "");
 
-	wi_set_remove_data(set, WI_STR("foo"));
+	wi_mutable_set_remove_data(set, WI_STR("foo"));
 
 	WI_TEST_ASSERT_TRUE(wi_set_contains_data(set, WI_STR("foo")), "");
 	WI_TEST_ASSERT_EQUALS(wi_set_count_for_data(set, WI_STR("foo")), 1U, "");
 	
-	wi_set_remove_data(set, WI_STR("foo"));
+	wi_mutable_set_remove_data(set, WI_STR("foo"));
 	
 	WI_TEST_ASSERT_FALSE(wi_set_contains_data(set, WI_STR("foo")), "");
 	WI_TEST_ASSERT_EQUALS(wi_set_count_for_data(set, WI_STR("foo")), 0U, "");

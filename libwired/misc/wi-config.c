@@ -53,7 +53,7 @@ struct _wi_config {
 	wi_uinteger_t					line;
 	
 	wi_dictionary_t					*values;
-	wi_set_t						*changes;
+	wi_mutable_set_t				*changes;
 };
 
 
@@ -108,7 +108,7 @@ wi_config_t * wi_config_init_with_path(wi_config_t *config, wi_string_t *path, w
 	config->lock		= wi_lock_init(wi_lock_alloc());
 	config->path		= wi_retain(path);
 	config->types		= wi_retain(types);
-	config->changes		= wi_set_init(wi_set_alloc());
+	config->changes		= wi_set_init(wi_mutable_set_alloc());
 	config->defaults	= wi_retain(defaults);
 	
 	return config;
@@ -198,7 +198,7 @@ wi_boolean_t wi_config_read_file(wi_config_t *config) {
 		instance = wi_dictionary_data_for_key(config->values, name);
 		
 		if(!previous_values || !wi_is_equal(instance, wi_dictionary_data_for_key(previous_values, name)))
-			wi_set_add_data(config->changes, name);
+			wi_mutable_set_add_data(config->changes, name);
 	}
 	
 	wi_release(previous_values);
@@ -245,7 +245,7 @@ wi_boolean_t wi_config_write_file(wi_config_t *config) {
 					if(_wi_config_write_setting_to_file(config, name, tmpfile)) {
 						write = false;
 						
-						wi_set_remove_data(keys, name);
+						wi_mutable_set_remove_data(keys, name);
 					}
 				}
 			}
@@ -261,7 +261,7 @@ wi_boolean_t wi_config_write_file(wi_config_t *config) {
 					if(_wi_config_write_setting_to_file(config, name, tmpfile)) {
 						write = false;
 						
-						wi_set_remove_data(keys, name);
+						wi_mutable_set_remove_data(keys, name);
 					}
 				}
 			}
@@ -276,7 +276,7 @@ wi_boolean_t wi_config_write_file(wi_config_t *config) {
 	while((name = wi_enumerator_next_data(enumerator)))
 		_wi_config_write_setting_to_file(config, name, tmpfile);
 	
-	wi_set_remove_all_data(config->changes);
+	wi_mutable_set_remove_all_data(config->changes);
 
 	wi_lock_unlock(config->lock);
 	
@@ -294,13 +294,13 @@ wi_boolean_t wi_config_write_file(wi_config_t *config) {
 #pragma mark -
 
 void wi_config_note_change(wi_config_t *config, wi_string_t *name) {
-	wi_set_add_data(config->changes, name);
+	wi_mutable_set_add_data(config->changes, name);
 }
 
 
 
 void wi_config_clear_changes(wi_config_t *config) {
-	wi_set_remove_all_data(config->changes);
+	wi_mutable_set_remove_all_data(config->changes);
 }
 
 
@@ -529,7 +529,7 @@ void wi_config_set_instance_for_name(wi_config_t *config, wi_runtime_instance_t 
 	wi_lock_lock(config->lock);
 	
 	if(!wi_is_equal(instance, wi_dictionary_data_for_key(config->values, name)))
-		wi_set_add_data(config->changes, name);
+		wi_mutable_set_add_data(config->changes, name);
 	
 	copy = wi_copy(instance);
 	wi_dictionary_set_data_for_key(config->values, copy, name);
