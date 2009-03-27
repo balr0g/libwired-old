@@ -84,7 +84,7 @@ struct _wi_terminal {
 	
 	wi_terminal_buffer_t						*active_buffer;
 	
-	wi_array_t									*buffers;
+	wi_mutable_array_t							*buffers;
 };
 
 struct _wi_terminal_buffer {
@@ -94,8 +94,8 @@ struct _wi_terminal_buffer {
 	
 	wi_uinteger_t								line;
 	
-	wi_string_t									*textbuffer;
-	wi_array_t									*linebuffer;
+	wi_mutable_string_t							*textbuffer;
+	wi_mutable_array_t							*linebuffer;
 };
 
 
@@ -110,7 +110,7 @@ static void										_wi_terminal_dealloc(wi_runtime_instance_t *);
 static void										_wi_terminal_buffer_dealloc(wi_runtime_instance_t *);
 
 static void										_wi_terminal_buffer_draw_line(wi_terminal_buffer_t *, wi_uinteger_t);
-static wi_array_t *								_wi_terminal_buffer_lines_for_string(wi_terminal_buffer_t *, wi_string_t *);
+static wi_mutable_array_t *						_wi_terminal_buffer_lines_for_string(wi_terminal_buffer_t *, wi_string_t *);
 static void										_wi_terminal_buffer_reload(wi_terminal_buffer_t *);
 
 
@@ -215,8 +215,8 @@ wi_terminal_t * wi_terminal_init_with_type(wi_terminal_t *terminal, wi_string_t 
 	terminal->cm = (char *) tgetstr("cm", NULL);
 	terminal->cs = (char *) tgetstr("cs", NULL);
 	
-	terminal->scroll = wi_make_range(0, terminal->li);
-	terminal->buffers = wi_array_init_with_capacity(wi_array_alloc(), 10);
+	terminal->scroll	= wi_make_range(0, terminal->li);
+	terminal->buffers	= wi_array_init_with_capacity(wi_mutable_array_alloc(), 10);
 	
 	return terminal;
 }
@@ -275,27 +275,31 @@ wi_uinteger_t wi_terminal_width_of_string(wi_terminal_t *terminal, wi_string_t *
 
 
 
-void wi_terminal_adjust_string_to_fit_width(wi_terminal_t *terminal, wi_string_t *string) {
+void wi_terminal_adjust_string_to_fit_width(wi_terminal_t *terminal, wi_mutable_string_t *string) {
 	wi_uinteger_t	index;
 	
 	if(wi_terminal_width_of_string(terminal, string) > terminal->co) {
 		index = wi_terminal_index_of_string_for_width(terminal, string, terminal->co);
-		wi_string_delete_characters_from_index(string, index);
+		
+		wi_mutable_string_delete_characters_from_index(string, index);
 	} else {
 		while(wi_terminal_width_of_string(terminal, string) < terminal->co)
-			wi_string_append_string(string, WI_STR(" "));
+			wi_mutable_string_append_string(string, WI_STR(" "));
 	}
 }
 
 
 
 wi_string_t * wi_terminal_string_by_adjusting_to_fit_width(wi_terminal_t *terminal, wi_string_t *string) {
-	wi_string_t		*string_copy;
+	wi_mutable_string_t		*newstring;
 	
-	string_copy = wi_copy(string);
-	wi_terminal_adjust_string_to_fit_width(terminal, string_copy);
+	newstring = wi_mutable_copy(string);
+
+	wi_terminal_adjust_string_to_fit_width(terminal, newstring);
 	
-	return string_copy;
+	wi_runtime_make_immutable(newstring);
+	
+	return newstring;
 }
 
 
@@ -329,7 +333,7 @@ static wi_uinteger_t _wi_terminal_get_string_width(wi_string_t *string, wi_uinte
 #pragma mark -
 
 void wi_terminal_add_buffer(wi_terminal_t *terminal, wi_terminal_buffer_t *buffer) {
-	wi_array_add_data(terminal->buffers, buffer);
+	wi_mutable_array_add_data(terminal->buffers, buffer);
 }
 
 
@@ -340,7 +344,7 @@ void wi_terminal_remove_buffer(wi_terminal_t *terminal, wi_terminal_buffer_t *bu
 	index = wi_array_index_of_data(terminal->buffers, buffer);
 	
 	if(index != WI_NOT_FOUND)
-		wi_array_remove_data_at_index(terminal->buffers, index);
+		wi_mutable_array_remove_data_at_index(terminal->buffers, index);
 }
 
 
@@ -502,9 +506,9 @@ wi_terminal_buffer_t * wi_terminal_buffer_alloc(void) {
 
 
 wi_terminal_buffer_t * wi_terminal_buffer_init_with_terminal(wi_terminal_buffer_t *buffer, wi_terminal_t *terminal) {
-	buffer->terminal	= terminal;
-	buffer->textbuffer	= wi_string_init_with_capacity(wi_string_alloc(), _WI_TERMINAL_TEXTBUFFER_CAPACITY);
-	buffer->linebuffer	= wi_array_init_with_capacity(wi_array_alloc(), _WI_TERMINAL_LINEBUFFER_CAPACITY);
+	buffer->terminal		= terminal;
+	buffer->textbuffer		= wi_string_init_with_capacity(wi_mutable_string_alloc(), _WI_TERMINAL_TEXTBUFFER_CAPACITY);
+	buffer->linebuffer		= wi_array_init_with_capacity(wi_mutable_array_alloc(), _WI_TERMINAL_LINEBUFFER_CAPACITY);
 	
 	return buffer;
 }
@@ -547,9 +551,9 @@ static void _wi_terminal_buffer_draw_line(wi_terminal_buffer_t *buffer, wi_uinte
 	wi_range_t		scroll;
 	wi_uinteger_t	i, count;
 	
-	location = wi_terminal_location(buffer->terminal);
-	scroll = wi_terminal_scroll(buffer->terminal);
-	count = wi_array_count(buffer->linebuffer);
+	location	= wi_terminal_location(buffer->terminal);
+	scroll		= wi_terminal_scroll(buffer->terminal);
+	count		= wi_array_count(buffer->linebuffer);
 	
 	if(line < scroll.length)
 		wi_terminal_move(buffer->terminal, wi_make_point(0, scroll.length - line));
@@ -570,33 +574,34 @@ static void _wi_terminal_buffer_draw_line(wi_terminal_buffer_t *buffer, wi_uinte
 
 
 
-static wi_array_t * _wi_terminal_buffer_lines_for_string(wi_terminal_buffer_t *buffer, wi_string_t *string) {
-	wi_enumerator_t	*enumerator;
-	wi_array_t		*array;
- 	wi_string_t		*string_copy, *line, *subline;
-	wi_size_t		size;
-	wi_uinteger_t	index;
+static wi_mutable_array_t * _wi_terminal_buffer_lines_for_string(wi_terminal_buffer_t *buffer, wi_string_t *string) {
+	wi_enumerator_t			*enumerator;
+	wi_mutable_array_t		*array;
+	wi_mutable_string_t		*newstring;
+ 	wi_string_t				*line, *subline;
+	wi_size_t				size;
+	wi_uinteger_t			index;
 	
-	array		= wi_array_init(wi_array_alloc());
+	array		= wi_array_init(wi_mutable_array_alloc());
 	size		= wi_terminal_size(buffer->terminal);
 	enumerator	= wi_array_data_enumerator(wi_string_components_separated_by_string(string, WI_STR("\n")));
 	
 	while((line = wi_enumerator_next_data(enumerator))) {
 		if(wi_terminal_width_of_string(buffer->terminal, line) < size.width) {
-			wi_array_add_data(array, line);
+			wi_mutable_array_add_data(array, line);
 		} else {
-			string_copy = wi_copy(line);
+			newstring = wi_mutable_copy(line);
 			
 			do {
-				index	= wi_terminal_index_of_string_for_width(buffer->terminal, string_copy, size.width);
-				subline	= wi_string_substring_to_index(string_copy, index);
+				index		= wi_terminal_index_of_string_for_width(buffer->terminal, newstring, size.width);
+				subline		= wi_string_substring_to_index(newstring, index);
 
-				wi_array_add_data(array, subline);
-				wi_string_delete_characters_to_index(string_copy, wi_string_length(subline));
-			} while(wi_terminal_width_of_string(buffer->terminal, string_copy) >= size.width);
+				wi_mutable_array_add_data(array, subline);
+				wi_mutable_string_delete_characters_to_index(newstring, wi_string_length(subline));
+			} while(wi_terminal_width_of_string(buffer->terminal, newstring) >= size.width);
 			
-			wi_array_add_data(array, string_copy);
-			wi_release(string_copy);
+			wi_mutable_array_add_data(array, newstring);
+			wi_release(newstring);
 		}
 	}
 	
@@ -606,7 +611,7 @@ static wi_array_t * _wi_terminal_buffer_lines_for_string(wi_terminal_buffer_t *b
 
 
 static void _wi_terminal_buffer_reload(wi_terminal_buffer_t *buffer) {
-	wi_array_t		*array;
+	wi_mutable_array_t		*array;
 
 	array = _wi_terminal_buffer_lines_for_string(buffer, buffer->textbuffer);
 	wi_release(buffer->linebuffer);
@@ -653,11 +658,11 @@ wi_boolean_t wi_terminal_buffer_printf(wi_terminal_buffer_t *buffer, wi_string_t
 	}
 	
 	if(wi_string_length(buffer->textbuffer) > 0)
-		wi_string_append_string(buffer->textbuffer, WI_STR("\n"));
+		wi_mutable_string_append_string(buffer->textbuffer, WI_STR("\n"));
 
-	wi_string_append_string(buffer->textbuffer, string);
+	wi_mutable_string_append_string(buffer->textbuffer, string);
 	
-	wi_array_add_data_from_array(buffer->linebuffer, array);
+	wi_mutable_array_add_data_from_array(buffer->linebuffer, array);
 	
 	wi_release(string);
 	
@@ -669,8 +674,8 @@ wi_boolean_t wi_terminal_buffer_printf(wi_terminal_buffer_t *buffer, wi_string_t
 void wi_terminal_buffer_clear(wi_terminal_buffer_t *buffer) {
 	buffer->line = 0;
 
-	wi_string_set_string(buffer->textbuffer, WI_STR(""));
-	wi_array_remove_all_data(buffer->linebuffer);
+	wi_mutable_string_set_string(buffer->textbuffer, WI_STR(""));
+	wi_mutable_array_remove_all_data(buffer->linebuffer);
 }
 
 
@@ -681,8 +686,8 @@ void wi_terminal_buffer_redraw(wi_terminal_buffer_t *buffer) {
 	wi_range_t		scroll;
 	wi_uinteger_t	line;
 	
-	scroll = wi_terminal_scroll(buffer->terminal);
-	line = buffer->line < scroll.length ? 0 : buffer->line - scroll.length;
+	scroll		= wi_terminal_scroll(buffer->terminal);
+	line		= buffer->line < scroll.length ? 0 : buffer->line - scroll.length;
 
 	_wi_terminal_buffer_draw_line(buffer, line);
 }
@@ -693,9 +698,9 @@ void wi_terminal_buffer_pageup(wi_terminal_buffer_t *buffer) {
 	wi_range_t		scroll;
 	wi_uinteger_t	line, step;
 	
-	scroll = wi_terminal_scroll(buffer->terminal);
-	step = scroll.length * 2;
-	line = buffer->line < step ? 0 : buffer->line - step;
+	scroll		= wi_terminal_scroll(buffer->terminal);
+	step		= scroll.length * 2;
+	line		= buffer->line < step ? 0 : buffer->line - step;
 
 	_wi_terminal_buffer_draw_line(buffer, line);
 }
@@ -706,8 +711,8 @@ void wi_terminal_buffer_pagedown(wi_terminal_buffer_t *buffer) {
 	wi_range_t		scroll;
 	wi_uinteger_t	line, end;
 	
-	scroll = wi_terminal_scroll(buffer->terminal);
-	end = wi_array_count(buffer->linebuffer);
+	scroll		= wi_terminal_scroll(buffer->terminal);
+	end			= wi_array_count(buffer->linebuffer);
 	
 	if(end < scroll.length)
 		line = 0;
@@ -729,9 +734,9 @@ void wi_terminal_buffer_end(wi_terminal_buffer_t *buffer) {
 	wi_range_t		scroll;
 	wi_uinteger_t	line, end;
 	
-	scroll = wi_terminal_scroll(buffer->terminal);
-	end = wi_array_count(buffer->linebuffer);
-	line = end < scroll.length ? 0 : end - scroll.length;
+	scroll		= wi_terminal_scroll(buffer->terminal);
+	end			= wi_array_count(buffer->linebuffer);
+	line		= end < scroll.length ? 0 : end - scroll.length;
 	
 	_wi_terminal_buffer_draw_line(buffer, line);
 }

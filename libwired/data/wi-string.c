@@ -143,14 +143,13 @@ struct _wi_string_encoding {
 	wi_runtime_base_t					base;
 	
 	wi_string_t							*charset;
-	wi_string_t							*encoding;
+	wi_mutable_string_t					*encoding;
 
 	wi_uinteger_t						options;
 };
 
 
 static void								_wi_string_encoding_dealloc(wi_runtime_instance_t *);
-static wi_runtime_instance_t *			_wi_string_encoding_copy(wi_runtime_instance_t *);
 static wi_string_t *					_wi_string_encoding_description(wi_runtime_instance_t *);
 
 
@@ -158,7 +157,7 @@ static wi_runtime_id_t					_wi_string_encoding_runtime_id = WI_RUNTIME_ID_NULL;
 static wi_runtime_class_t				_wi_string_encoding_runtime_class = {
 	"wi_string_encoding_t",
 	_wi_string_encoding_dealloc,
-	_wi_string_encoding_copy,
+	NULL,
 	NULL,
 	_wi_string_encoding_description,
 	NULL
@@ -2010,15 +2009,15 @@ wi_string_encoding_t * wi_string_encoding_alloc(void) {
 wi_string_encoding_t * wi_string_encoding_init_with_charset(wi_string_encoding_t *encoding, wi_string_t *charset, wi_string_encoding_options_t options) {
 	iconv_t			iconv;
 	
-	encoding->charset = wi_copy(charset);
-	encoding->encoding = wi_copy(charset);
-	encoding->options = options;
+	encoding->charset		= wi_copy(charset);
+	encoding->encoding		= wi_mutable_copy(charset);
+	encoding->options		= options;
 	
 	if(options & WI_STRING_ENCODING_IGNORE)
-		wi_string_append_string(encoding->encoding, WI_STR("//IGNORE"));
+		wi_mutable_string_append_string(encoding->encoding, WI_STR("//IGNORE"));
 		
 	if(options & WI_STRING_ENCODING_TRANSLITERATE)
-		wi_string_append_string(encoding->encoding, WI_STR("//TRANSLIT"));
+		wi_mutable_string_append_string(encoding->encoding, WI_STR("//TRANSLIT"));
 	
 	iconv = iconv_open(wi_string_cstring(encoding->encoding), wi_string_cstring(encoding->encoding));
 	
@@ -2042,14 +2041,6 @@ static void _wi_string_encoding_dealloc(wi_runtime_instance_t *instance) {
 	
 	wi_release(encoding->charset);
 	wi_release(encoding->encoding);
-}
-
-
-
-static wi_runtime_instance_t * _wi_string_encoding_copy(wi_runtime_instance_t *instance) {
-	wi_string_encoding_t		*encoding = instance;
-	
-	return wi_string_encoding_init_with_charset(wi_string_encoding_alloc(), encoding->charset, encoding->options);
 }
 
 

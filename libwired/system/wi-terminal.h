@@ -63,7 +63,7 @@ WI_EXPORT void							wi_terminal_close(wi_terminal_t *);
 
 WI_EXPORT wi_uinteger_t					wi_terminal_index_of_string_for_width(wi_terminal_t *, wi_string_t *, wi_uinteger_t);
 WI_EXPORT wi_uinteger_t					wi_terminal_width_of_string(wi_terminal_t *, wi_string_t *);
-WI_EXPORT void							wi_terminal_adjust_string_to_fit_width(wi_terminal_t *, wi_string_t *);
+WI_EXPORT void							wi_terminal_adjust_string_to_fit_width(wi_terminal_t *, wi_mutable_string_t *);
 WI_EXPORT wi_string_t *					wi_terminal_string_by_adjusting_to_fit_width(wi_terminal_t *, wi_string_t *);
 
 
