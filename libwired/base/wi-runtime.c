@@ -43,21 +43,17 @@
 
 #define _WI_RUNTIME_RELEASED_MAGIC		0xDEADC0DE
 #define _WI_RUNTIME_CLASS_TABLE_SIZE	256
-#define _WI_RUNTIME_ZOMBIE_BIT			(1 << 15)
 
-#define _WI_RUNTIME_IS_ZOMBIE(instance)									\
-	(WI_RUNTIME_BASE((instance))->id & _WI_RUNTIME_ZOMBIE_BIT)
-
-#define _WI_RUNTIME_ASSERT_MAGIC(instance)								\
-	WI_STMT_START														\
-		if(WI_RUNTIME_BASE((instance))->magic != WI_RUNTIME_MAGIC)		\
-			_wi_runtime_invalid_abort((instance));						\
+#define _WI_RUNTIME_ASSERT_MAGIC(instance)										\
+	WI_STMT_START																\
+		if(WI_RUNTIME_BASE((instance))->magic != WI_RUNTIME_MAGIC)				\
+			_wi_runtime_invalid_abort((instance));								\
 	WI_STMT_END
 
-#define _WI_RUNTIME_ASSERT_ZOMBIE(instance)								\
-	WI_STMT_START														\
-		if(_WI_RUNTIME_IS_ZOMBIE((instance)))							\
-			_wi_runtime_zombie_abort((instance));						\
+#define _WI_RUNTIME_ASSERT_ZOMBIE(instance)										\
+	WI_STMT_START																\
+		if(WI_RUNTIME_BASE((instance))->options & WI_RUNTIME_OPTION_ZOMBIE)		\
+			_wi_runtime_zombie_abort((instance));								\
 	WI_STMT_END
 
 
@@ -68,7 +64,7 @@ static void								_wi_runtime_invalid_abort(wi_runtime_instance_t *);
 
 static wi_boolean_t						_wi_zombie_enabled = false;
 
-static wi_runtime_class_t				*_wi_runtime_class_table[_WI_RUNTIME_CLASS_TABLE_SIZE] = {NULL};
+static wi_runtime_class_t				*_wi_runtime_class_table[_WI_RUNTIME_CLASS_TABLE_SIZE];
 static wi_uinteger_t					_wi_runtime_class_table_count = 0;
 
 static wi_recursive_lock_t				*_wi_runtime_retain_count_lock;
@@ -118,6 +114,12 @@ wi_runtime_id_t wi_runtime_register_class(wi_runtime_class_t *class) {
 
 
 wi_runtime_instance_t * wi_runtime_create_instance(wi_runtime_id_t id, size_t size) {
+	return wi_runtime_create_instance_with_options(id, size, 0);
+}
+
+
+
+wi_runtime_instance_t * wi_runtime_create_instance_with_options(wi_runtime_id_t id, size_t size, uint8_t options) {
 	wi_runtime_instance_t	*instance;
 	
 	WI_ASSERT(id > 0 && id < _wi_runtime_class_table_count,
@@ -128,6 +130,7 @@ wi_runtime_instance_t * wi_runtime_create_instance(wi_runtime_id_t id, size_t si
 	WI_RUNTIME_BASE(instance)->magic = WI_RUNTIME_MAGIC;
 	WI_RUNTIME_BASE(instance)->id = id;
 	WI_RUNTIME_BASE(instance)->retain_count = 1;
+	WI_RUNTIME_BASE(instance)->options = options;
 	
 	return instance;
 }
@@ -210,6 +213,12 @@ wi_runtime_id_t wi_runtime_id(wi_runtime_instance_t *instance) {
 
 
 
+uint8_t wi_runtime_options(wi_runtime_instance_t *instance) {
+	return WI_RUNTIME_BASE(instance)->options;
+}
+
+
+
 #pragma mark -
 
 static void _wi_runtime_null_abort(wi_runtime_instance_t *instance) {
@@ -283,11 +292,11 @@ void wi_release(wi_runtime_instance_t *instance) {
 			WI_RUNTIME_BASE(instance)->retain_count++;
 
 			if(WI_RUNTIME_BASE(instance)->id == wi_file_runtime_id())
-				wi_file_close(instance);
+				wi_file_close((wi_file_t *) instance);
 			else if(WI_RUNTIME_BASE(instance)->id == wi_socket_runtime_id())
-				wi_socket_close(instance);
+				wi_socket_close((wi_socket_t *) instance);
 
-			WI_RUNTIME_BASE(instance)->id |= _WI_RUNTIME_ZOMBIE_BIT;
+			WI_RUNTIME_BASE(instance)->options |= WI_RUNTIME_OPTION_ZOMBIE;
 			
 			wi_recursive_lock_unlock(_wi_runtime_retain_count_lock);
 		} else {
@@ -300,7 +309,7 @@ void wi_release(wi_runtime_instance_t *instance) {
 
 			WI_RUNTIME_BASE(instance)->magic = _WI_RUNTIME_RELEASED_MAGIC;
 			
-			wi_free(instance);
+			wi_free((void *) instance);
 		}
 	} else {
 		wi_recursive_lock_unlock(_wi_runtime_retain_count_lock);
@@ -320,11 +329,46 @@ wi_runtime_instance_t * wi_copy(wi_runtime_instance_t *instance) {
 	_WI_RUNTIME_ASSERT_MAGIC(instance);
 	_WI_RUNTIME_ASSERT_ZOMBIE(instance);
 	
+	if(WI_RUNTIME_BASE(instance)->options & WI_RUNTIME_OPTION_IMMUTABLE)
+		return wi_retain(instance);
+
 	class = _wi_runtime_class_table[WI_RUNTIME_BASE(instance)->id];
 	
 	if(class->copy)
 		return class->copy(instance);
 	
+	WI_ASSERT(0, "%@ does not implement wi_copy()", instance);
+
+	return NULL;
+}
+
+
+
+wi_runtime_instance_t * wi_mutable_copy(wi_runtime_instance_t *instance) {
+	wi_runtime_class_t		*class;
+	wi_runtime_instance_t	*copy;
+
+	if(!instance)
+		return NULL;
+
+	_WI_RUNTIME_ASSERT_MAGIC(instance);
+	_WI_RUNTIME_ASSERT_ZOMBIE(instance);
+
+	WI_ASSERT(WI_RUNTIME_BASE(instance)->options & WI_RUNTIME_OPTION_IMMUTABLE ||
+			  WI_RUNTIME_BASE(instance)->options & WI_RUNTIME_OPTION_MUTABLE,
+			  "%@ does not implement wi_mutable_copy()",
+			  instance);
+
+	class = _wi_runtime_class_table[WI_RUNTIME_BASE(instance)->id];
+
+	if(class->copy) {
+		copy = class->copy(instance);
+
+		WI_RUNTIME_BASE(copy)->options |= WI_RUNTIME_OPTION_MUTABLE;
+
+		return copy;
+	}
+
 	WI_ASSERT(0, "%@ does not implement wi_copy()", instance);
 
 	return NULL;
@@ -342,8 +386,8 @@ wi_boolean_t wi_is_equal(wi_runtime_instance_t *instance1, wi_runtime_instance_t
 		return false;
 
 	_WI_RUNTIME_ASSERT_MAGIC(instance1);
-	_WI_RUNTIME_ASSERT_ZOMBIE(instance1);
 	_WI_RUNTIME_ASSERT_MAGIC(instance2);
+	_WI_RUNTIME_ASSERT_ZOMBIE(instance1);
 	_WI_RUNTIME_ASSERT_ZOMBIE(instance2);
 	
 	class1 = _wi_runtime_class_table[WI_RUNTIME_BASE(instance1)->id];
@@ -362,19 +406,13 @@ wi_boolean_t wi_is_equal(wi_runtime_instance_t *instance1, wi_runtime_instance_t
 
 wi_string_t * wi_description(wi_runtime_instance_t *instance) {
 	wi_runtime_class_t		*class;
-	wi_runtime_id_t			id;
 	
 	if(!instance)
 		return NULL;
 	
 	_WI_RUNTIME_ASSERT_MAGIC(instance);
 	
-	id = WI_RUNTIME_BASE(instance)->id;
-	
-	if(_WI_RUNTIME_IS_ZOMBIE(instance))
-		id &= ~_WI_RUNTIME_ZOMBIE_BIT;
-	   
-	class = _wi_runtime_class_table[id];
+	class = _wi_runtime_class_table[WI_RUNTIME_BASE(instance)->id];
 
 	if(class->description)
 		return class->description(instance);
@@ -392,7 +430,7 @@ wi_hash_code_t wi_hash(wi_runtime_instance_t *instance) {
 	
 	_WI_RUNTIME_ASSERT_MAGIC(instance);
 	_WI_RUNTIME_ASSERT_ZOMBIE(instance);
-	   
+	 
 	class = _wi_runtime_class_table[WI_RUNTIME_BASE(instance)->id];
 	
 	if(class->hash)
