@@ -228,17 +228,17 @@ wi_string_t * wi_base64_string_from_data(wi_data_t *data) {
 
 
 wi_data_t * wi_data_from_base64_string(wi_string_t *string) {
-	wi_data_t		*data;
-	const char		*buffer;
-	char			ch, inbuffer[4], outbuffer[3];
-	wi_uinteger_t	length, count, i, position, offset;
-	wi_boolean_t	ignore, stop, end;
+	wi_mutable_data_t	*data;
+	const char			*buffer;
+	char				ch, inbuffer[4], outbuffer[3];
+	wi_uinteger_t		length, count, i, position, offset;
+	wi_boolean_t		ignore, stop, end;
 	
 	length		= wi_string_length(string);
 	buffer		= wi_string_cstring(string);
 	position	= 0;
 	offset		= 0;
-	data		= wi_data_init_with_capacity(wi_data_alloc(), length);
+	data		= wi_data_init_with_capacity(wi_mutable_data_alloc(), length);
 	
 	while(position < length) {
 		ignore = end = false;
@@ -283,7 +283,7 @@ wi_data_t * wi_data_from_base64_string(wi_string_t *string) {
 				outbuffer[2] = ((inbuffer[2] & 0x03) << 6) |  (inbuffer[3] & 0x3F);
 				
 				for(i = 0; i < count; i++)
-					wi_data_append_bytes(data, &outbuffer[i], 1);
+					wi_mutable_data_append_bytes(data, &outbuffer[i], 1);
 
 				offset = 0;
 			}
@@ -292,6 +292,8 @@ wi_data_t * wi_data_from_base64_string(wi_string_t *string) {
 				break;
 		}
 	}
+	
+	wi_runtime_make_immutable(data);
 	
 	return wi_autorelease(data);
 }

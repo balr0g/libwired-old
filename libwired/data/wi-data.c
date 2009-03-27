@@ -63,6 +63,8 @@ static wi_boolean_t						_wi_data_is_equal(wi_runtime_instance_t *, wi_runtime_i
 static wi_string_t *					_wi_data_description(wi_runtime_instance_t *);
 static wi_hash_code_t					_wi_data_hash(wi_runtime_instance_t *);
 
+static void								_wi_data_append_bytes(wi_mutable_data_t *, const void *, wi_uinteger_t);
+
 
 static wi_runtime_id_t					_wi_data_runtime_id = WI_RUNTIME_ID_NULL;
 static wi_runtime_class_t				_wi_data_runtime_class = {
@@ -130,7 +132,13 @@ wi_data_t * wi_data_with_base64(wi_string_t *base64) {
 #pragma mark -
 
 wi_data_t * wi_data_alloc(void) {
-	return wi_runtime_create_instance(_wi_data_runtime_id, sizeof(wi_data_t));
+	return wi_runtime_create_instance_with_options(_wi_data_runtime_id, sizeof(wi_data_t), WI_RUNTIME_OPTION_IMMUTABLE);
+}
+
+
+
+wi_mutable_data_t * wi_mutable_data_alloc(void) {
+	return wi_runtime_create_instance_with_options(_wi_data_runtime_id, sizeof(wi_data_t), WI_RUNTIME_OPTION_MUTABLE);
 }
 
 
@@ -219,7 +227,7 @@ wi_data_t * wi_data_init_with_contents_of_file(wi_data_t *data, wi_string_t *pat
 	data = wi_data_init_with_capacity(data, sb.size);
 	
 	while((bytes = wi_file_read_buffer(file, buffer, sizeof(buffer))))
-		wi_data_append_bytes(data, buffer, bytes);
+		_wi_data_append_bytes(data, buffer, bytes);
 	
 	return data;
 }
@@ -300,27 +308,10 @@ wi_uinteger_t wi_data_length(wi_data_t *data) {
 
 #pragma mark -
 
-void wi_data_append_data(wi_data_t *data, wi_data_t *append_data) {
-	wi_data_append_bytes(data, append_data->bytes, append_data->length);
-}
-
-
-
-wi_data_t * wi_data_by_appending_data(wi_data_t *data, wi_data_t *append_data) {
-	wi_data_t		*newdata;
-	
-	newdata = wi_copy(data);
-	wi_data_append_bytes(newdata, append_data->bytes, append_data->length);
-	
-	return wi_autorelease(newdata);
-}
-
-
-
-void wi_data_append_bytes(wi_data_t *data, const void *bytes, wi_uinteger_t length) {
+static void _wi_data_append_bytes(wi_mutable_data_t *data, const void *bytes, wi_uinteger_t length) {
 	if(data->length + length > data->capacity) {
-		data->capacity	= data->length + length;
-		data->bytes		= wi_realloc(data->bytes, data->capacity);
+		data->capacity		= data->length + length;
+		data->bytes			= wi_realloc(data->bytes, data->capacity);
 	}
 	
 	memcpy(data->bytes + data->length, bytes, length);
@@ -330,12 +321,29 @@ void wi_data_append_bytes(wi_data_t *data, const void *bytes, wi_uinteger_t leng
 
 
 
+#pragma mark -
+
+wi_data_t * wi_data_by_appending_data(wi_data_t *data, wi_data_t *append_data) {
+	wi_mutable_data_t		*newdata;
+	
+	newdata = wi_mutable_copy(data);
+	wi_mutable_data_append_bytes(newdata, append_data->bytes, append_data->length);
+	
+	wi_runtime_make_immutable(data);
+	
+	return wi_autorelease(newdata);
+}
+
+
+
 wi_data_t * wi_data_by_appending_bytes(wi_data_t *data, const void *bytes, wi_uinteger_t length) {
-	wi_data_t		*newdata;
+	wi_mutable_data_t		*newdata;
 	
 	newdata = wi_copy(data);
-	wi_data_append_bytes(newdata, bytes, length);
+	wi_mutable_data_append_bytes(newdata, bytes, length);
 	
+	wi_runtime_make_immutable(data);
+
 	return wi_autorelease(newdata);
 }
 
@@ -393,3 +401,20 @@ wi_boolean_t wi_data_write_to_file(wi_data_t *data, wi_string_t *path) {
 	return true;
 }
 
+
+
+#pragma mark -
+
+void wi_mutable_data_append_data(wi_mutable_data_t *data, wi_data_t *append_data) {
+	WI_RUNTIME_ASSERT_MUTABLE(data);
+	
+	_wi_data_append_bytes(data, append_data->bytes, append_data->length);
+}
+
+
+
+void wi_mutable_data_append_bytes(wi_mutable_data_t *data, const void *bytes, wi_uinteger_t length) {
+	WI_RUNTIME_ASSERT_MUTABLE(data);
+	
+	_wi_data_append_bytes(data, bytes, length);
+}
