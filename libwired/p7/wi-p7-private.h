@@ -50,7 +50,7 @@ struct _wi_p7_message {
 	
 	xmlChar									*xml_buffer;
 	int										xml_length;
-	wi_string_t								*xml_string;
+	wi_mutable_string_t						*xml_string;
 };
 
 

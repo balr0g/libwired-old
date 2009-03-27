@@ -1678,6 +1678,6 @@ wi_integer_t wi_socket_read_buffer(wi_socket_t *socket, wi_time_interval_t timeo
 
 #pragma mark -
 
-wi_string_t * wi_socket_buffered_string(wi_socket_t *socket) {
+wi_mutable_string_t * wi_socket_buffered_string(wi_socket_t *socket) {
 	return socket->buffer;
 }

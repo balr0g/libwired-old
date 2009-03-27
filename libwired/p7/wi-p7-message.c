@@ -200,9 +200,10 @@ static wi_string_t * _wi_p7_message_description(wi_runtime_instance_t *instance)
 	wi_p7_message_t			*p7_message = instance;
 	wi_enumerator_t			*enumerator;
 	wi_dictionary_t			*fields;
-	wi_string_t				*description, *field_name, *field_value;
+	wi_mutable_string_t		*string;
+	wi_string_t				*field_name, *field_value;
 	
-	description = wi_string_init_with_format(wi_string_alloc(), WI_STR("<%@ %p>{name = %@, buffer = %@, fields = (\n"),
+	string = wi_mutable_string_with_format(WI_STR("<%@ %p>{name = %@, buffer = %@, fields = (\n"),
         wi_runtime_class_name(p7_message),
         p7_message,
 		p7_message->name,
@@ -214,13 +215,15 @@ static wi_string_t * _wi_p7_message_description(wi_runtime_instance_t *instance)
 	while((field_name = wi_enumerator_next_data(enumerator))) {
 		field_value = wi_dictionary_data_for_key(fields, field_name);
 
-		wi_string_append_format(description, WI_STR("    %@ = %@\n"),
+		wi_mutable_string_append_format(string, WI_STR("    %@ = %@\n"),
 			field_name, field_value);
 	}
 	
-	wi_string_append_string(description, WI_STR(")}"));
+	wi_mutable_string_append_string(string, WI_STR(")}"));
 	
-	return wi_autorelease(description);
+	wi_runtime_make_immutable(string);
+	
+	return string;
 }
 
 

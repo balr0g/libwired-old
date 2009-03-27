@@ -436,6 +436,7 @@ void wi_error_set_commoncrypto_error(int code) {
 
 void wi_error_set_libxml2_error(void) {
 	wi_error_t		*error;
+	wi_string_t		*string;
 	xmlErrorPtr		xml_error;
 
 	xml_error = xmlGetLastError();
@@ -444,10 +445,10 @@ void wi_error_set_libxml2_error(void) {
 	error->domain = WI_ERROR_DOMAIN_REGEX;
 	error->code = xml_error->code;
 	
+	string = wi_string_by_deleting_surrounding_whitespace(wi_string_with_cstring(xml_error->message));
+	
 	wi_release(error->string);
-
-	error->string = wi_string_init_with_cstring(wi_string_alloc(), xml_error->message);
-	wi_string_delete_surrounding_whitespace(error->string);
+	error->string = wi_retain(string);
 }
 
 #endif
@@ -462,10 +463,9 @@ void wi_error_set_regex_error(regex_t *regex, int code) {
 	error->domain = WI_ERROR_DOMAIN_REGEX;
 	error->code = code;
 	
-	wi_release(error->string);
-
 	regerror(code, regex, string, sizeof(string));
 
+	wi_release(error->string);
 	error->string = wi_string_init_with_cstring(wi_string_alloc(), string);
 }
 

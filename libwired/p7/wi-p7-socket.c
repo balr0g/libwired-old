@@ -1308,14 +1308,12 @@ static wi_p7_message_t * _wi_p7_socket_read_xml_message(wi_p7_socket_t *p7_socke
 		if(!string || wi_string_length(string) == 0)
 			return NULL;
 		
-		wi_string_delete_surrounding_whitespace(wi_socket_buffered_string(p7_socket->socket));
-
-		wi_string_delete_surrounding_whitespace(string);
+		wi_mutable_string_delete_surrounding_whitespace(wi_socket_buffered_string(p7_socket->socket));
 		
 		if(!p7_message->xml_string)
-			p7_message->xml_string = wi_copy(string);
+			p7_message->xml_string = wi_mutable_copy(wi_string_by_deleting_surrounding_whitespace(string));
 		else
-			wi_string_append_string(p7_message->xml_string, string);
+			wi_mutable_string_append_string(p7_message->xml_string, wi_string_by_deleting_surrounding_whitespace(string));
 		
 		if(wi_string_has_suffix(string, WI_STR("</p7:message>")) ||
 		   (wi_string_has_suffix(string, WI_STR("/>")) &&
@@ -1325,14 +1323,14 @@ static wi_p7_message_t * _wi_p7_socket_read_xml_message(wi_p7_socket_t *p7_socke
 	}
 	
 	if(prefix)
-		wi_string_insert_string_at_index(p7_message->xml_string, prefix, 0);
+		wi_mutable_string_insert_string_at_index(p7_message->xml_string, prefix, 0);
 	
 	length = wi_string_length(p7_message->xml_string);
 	
 	p7_socket->sent_raw_bytes += length;
 	p7_socket->sent_processed_bytes += length;
 
-	wi_string_delete_surrounding_whitespace(p7_message->xml_string);
+	wi_mutable_string_delete_surrounding_whitespace(p7_message->xml_string);
 	
 	return p7_message;
 }
