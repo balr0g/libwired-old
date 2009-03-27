@@ -419,10 +419,11 @@ static wi_boolean_t _wi_dictionary_is_equal(wi_runtime_instance_t *instance1, wi
 static wi_string_t * _wi_dictionary_description(wi_runtime_instance_t *instance) {
 	wi_dictionary_t				*dictionary = instance;
 	_wi_dictionary_bucket_t		*bucket;
-	wi_string_t					*string, *key_description, *value_description;
+	wi_mutable_string_t			*string;
+	wi_string_t					*key_description, *value_description;
 	wi_uinteger_t				i;
 
-	string = wi_string_with_format(WI_STR("<%@ %p>{count = %lu, mutable = %u, values = (\n"),
+	string = wi_mutable_string_with_format(WI_STR("<%@ %p>{count = %lu, mutable = %u, values = (\n"),
 		wi_runtime_class_name(dictionary),
 		dictionary,
 		dictionary->key_count,
@@ -440,11 +441,13 @@ static wi_string_t * _wi_dictionary_description(wi_runtime_instance_t *instance)
 			else
 				value_description = wi_string_with_format(WI_STR("%p"), bucket->data);
 			
-			wi_string_append_format(string, WI_STR("    %@: %@\n"), key_description, value_description);
+			wi_mutable_string_append_format(string, WI_STR("    %@: %@\n"), key_description, value_description);
 		}
 	}
 	
-	wi_string_append_string(string, WI_STR(")}"));
+	wi_mutable_string_append_string(string, WI_STR(")}"));
+	
+	wi_runtime_make_immutable(string);
 
 	return string;
 }

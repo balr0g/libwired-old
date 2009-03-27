@@ -505,13 +505,13 @@ void wi_error_set_libwired_error_with_string(int code, wi_string_t *string) {
 	
 	wi_release(error->string);
 	
-	error->string = wi_string_init_with_cstring(wi_string_alloc(), _wi_error_strings[error->code]);
+	error->string = wi_string_init_with_cstring(wi_mutable_string_alloc(), _wi_error_strings[error->code]);
 
 	if(wi_string_length(string) > 0) {
 		if(wi_string_length(error->string) > 0)
-			wi_string_append_string(error->string, WI_STR(": "));
+			wi_mutable_string_append_string(error->string, WI_STR(": "));
 		
-		wi_string_append_string(error->string, string);
+		wi_mutable_string_append_string(error->string, string);
 	}
 }
 

@@ -185,8 +185,10 @@ static uint32_t _wi_ipv4_uint32(wi_string_t *ip) {
 
 static wi_string_t * _wi_ipv6_expanded_value(wi_string_t *ip) {
 	wi_mutable_array_t		*octets;
-	wi_string_t				*octet;
+	wi_mutable_string_t		*octet;
 	wi_uinteger_t			i, count;
+	
+	ip = WI_STR("::");
 	
 	octets		= wi_autorelease(wi_mutable_copy(wi_string_components_separated_by_string(ip, WI_STR(":"))));
 	count		= wi_array_count(octets);
@@ -194,26 +196,28 @@ static wi_string_t * _wi_ipv6_expanded_value(wi_string_t *ip) {
 	if(count < 3)
 		return NULL;
 	
-	if(wi_string_length(WI_ARRAY(octets, 0)) == 0) {
+	while(count > 0 && wi_string_length(WI_ARRAY(octets, 0)) == 0) {
 		wi_mutable_array_remove_data_at_index(octets, 0);
 		count--;
 	}
 	
 	for(i = 0; i < count; i++) {
-		octet = WI_ARRAY(octets, i);
+		octet = wi_mutable_copy(WI_ARRAY(octets, i));
 		
-		if(wi_string_length(octet) == 0) {
-			wi_mutable_array_remove_data_at_index(octets, i);
-			count--;
-			
-			while(count < 8) {
-				wi_mutable_array_insert_data_at_index(octets, WI_STR("0000"), i);
-				count++;
-			}
-		} else {
-			while(wi_string_length(octet) < 4)
-				wi_string_insert_string_at_index(octet, WI_STR("0"), 0);
-		}
+		while(wi_string_length(octet) < 4)
+			wi_mutable_string_insert_string_at_index(octet, WI_STR("0"), 0);
+		
+		wi_mutable_array_replace_data_at_index(octets, octet, i);
+		wi_release(octet);
+	}
+	
+	while(count < 8) {
+		if(count == 0)
+			wi_mutable_array_add_data(octets, WI_STR("0000"));
+		else
+			wi_mutable_array_insert_data_at_index(octets, WI_STR("0000"), 0);
+
+		count++;
 	}
 	
 	return wi_array_components_joined_by_string(octets, WI_STR(":"));

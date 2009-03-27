@@ -102,7 +102,7 @@ struct _wi_socket {
 	
 	void								*data;
 	
-	wi_string_t							*buffer;
+	wi_mutable_string_t					*buffer;
 	
 	wi_boolean_t						interactive;
 	wi_boolean_t						close;
@@ -386,7 +386,7 @@ wi_socket_t * wi_socket_alloc(void) {
 wi_socket_t * wi_socket_init_with_address(wi_socket_t *_socket, wi_address_t *address, wi_socket_type_t type) {
 	_socket->address	= wi_copy(address);
 	_socket->close		= true;
-	_socket->buffer		= wi_string_init_with_capacity(wi_string_alloc(), WI_SOCKET_BUFFER_SIZE);
+	_socket->buffer		= wi_string_init_with_capacity(wi_mutable_string_alloc(), WI_SOCKET_BUFFER_SIZE);
 	_socket->type		= type;
 
 	_socket->sd			= socket(wi_address_family(_socket->address), _socket->type, 0);
@@ -420,7 +420,7 @@ wi_socket_t * wi_socket_init_with_address(wi_socket_t *_socket, wi_address_t *ad
 
 wi_socket_t * wi_socket_init_with_descriptor(wi_socket_t *socket, int sd) {
 	socket->sd			= sd;
-	socket->buffer		= wi_string_init_with_capacity(wi_string_alloc(), WI_SOCKET_BUFFER_SIZE);
+	socket->buffer		= wi_string_init_with_capacity(wi_mutable_string_alloc(), WI_SOCKET_BUFFER_SIZE);
 	
 	return socket;
 }
@@ -1509,11 +1509,11 @@ wi_integer_t wi_socket_write_buffer(wi_socket_t *socket, wi_time_interval_t time
 
 
 wi_string_t * wi_socket_read(wi_socket_t *socket, wi_time_interval_t timeout, size_t length) {
-	wi_string_t		*string;
-	char			buffer[WI_SOCKET_BUFFER_SIZE];
-	int				bytes = -1;
+	wi_mutable_string_t		*string;
+	char					buffer[WI_SOCKET_BUFFER_SIZE];
+	int						bytes = -1;
 	
-	string = wi_string_init_with_capacity(wi_string_alloc(), length);
+	string = wi_string_init_with_capacity(wi_mutable_string_alloc(), length);
 	
 	while(length > sizeof(buffer)) {
 		bytes = wi_socket_read_buffer(socket, timeout, buffer, sizeof(buffer));
@@ -1521,7 +1521,7 @@ wi_string_t * wi_socket_read(wi_socket_t *socket, wi_time_interval_t timeout, si
 		if(bytes <= 0)
 			goto end;
 		
-		wi_string_append_bytes(string, buffer, bytes);
+		wi_mutable_string_append_bytes(string, buffer, bytes);
 		
 		length -= bytes;
 	}
@@ -1532,7 +1532,7 @@ wi_string_t * wi_socket_read(wi_socket_t *socket, wi_time_interval_t timeout, si
 		if(bytes <= 0)
 			goto end;
 		
-		wi_string_append_bytes(string, buffer, bytes);
+		wi_mutable_string_append_bytes(string, buffer, bytes);
 	}
 
 end:
@@ -1543,6 +1543,8 @@ end:
 			string = NULL;
 		}
 	}
+	
+	wi_runtime_make_immutable(string);
 
 	return wi_autorelease(string);
 }
@@ -1558,7 +1560,7 @@ wi_string_t * wi_socket_read_to_string(wi_socket_t *socket, wi_time_interval_t t
 	if(index != WI_NOT_FOUND) {
 		substring = wi_string_substring_to_index(socket->buffer, index + wi_string_length(separator));
 		
-		wi_string_delete_characters_in_range(socket->buffer, wi_make_range(0, wi_string_length(substring)));
+		wi_mutable_string_delete_characters_in_range(socket->buffer, wi_make_range(0, wi_string_length(substring)));
 
 		return substring;
 	}
@@ -1567,7 +1569,7 @@ wi_string_t * wi_socket_read_to_string(wi_socket_t *socket, wi_time_interval_t t
 		if(wi_string_length(string) == 0)
 			return string;
 
-		wi_string_append_string(socket->buffer, string);
+		wi_mutable_string_append_string(socket->buffer, string);
 
 		index = wi_string_index_of_string(socket->buffer, separator, 0);
 		
@@ -1575,14 +1577,14 @@ wi_string_t * wi_socket_read_to_string(wi_socket_t *socket, wi_time_interval_t t
 			if(wi_string_length(socket->buffer) > _WI_SOCKET_BUFFER_MAX_SIZE) {
 				substring = wi_string_substring_to_index(socket->buffer, _WI_SOCKET_BUFFER_MAX_SIZE);
 
-				wi_string_delete_characters_in_range(socket->buffer, wi_make_range(0, wi_string_length(substring)));
+				wi_mutable_string_delete_characters_in_range(socket->buffer, wi_make_range(0, wi_string_length(substring)));
 				
 				return substring;
 			}
 		} else {
 			substring = wi_string_substring_to_index(socket->buffer, index + wi_string_length(separator));
 			
-			wi_string_delete_characters_in_range(socket->buffer, wi_make_range(0, wi_string_length(substring)));
+			wi_mutable_string_delete_characters_in_range(socket->buffer, wi_make_range(0, wi_string_length(substring)));
 			
 			return substring;
 		}

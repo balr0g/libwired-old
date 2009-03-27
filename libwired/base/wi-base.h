@@ -194,6 +194,7 @@ typedef struct _wi_address			wi_address_t;
 typedef struct _wi_array			wi_array_t;
 typedef struct _wi_array			wi_mutable_array_t;
 typedef struct _wi_string			wi_string_t;
+typedef struct _wi_string			wi_mutable_string_t;
 
 typedef struct _wi_p7_message		wi_p7_message_t;
 typedef struct _wi_p7_socket		wi_p7_socket_t;

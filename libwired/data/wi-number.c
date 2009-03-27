@@ -288,19 +288,21 @@ static wi_boolean_t _wi_number_is_equal(wi_runtime_instance_t *instance1, wi_run
 
 
 static wi_string_t * _wi_number_description(wi_runtime_instance_t *instance) {
-	wi_number_t			*number = instance;
-	wi_string_t			*string;
+	wi_number_t				*number = instance;
+	wi_mutable_string_t		*string;
 	
-	string = wi_string_with_format(WI_STR("<%@ %p>{value = "),
+	string = wi_mutable_string_with_format(WI_STR("<%@ %p>{value = "),
 		wi_runtime_class_name(number),
 		number);
 	
 	if(_wi_number_is_float(number))
-		wi_string_append_format(string, WI_STR("%f"), wi_number_double(number));
+		wi_mutable_string_append_format(string, WI_STR("%f"), wi_number_double(number));
 	else
-		wi_string_append_format(string, WI_STR("%lld"), wi_number_int64(number));
+		wi_mutable_string_append_format(string, WI_STR("%lld"), wi_number_int64(number));
 	
-	wi_string_append_string(string, WI_STR("}"));
+	wi_mutable_string_append_string(string, WI_STR("}"));
+	
+	wi_runtime_make_immutable(string);
 	
 	return string;
 }

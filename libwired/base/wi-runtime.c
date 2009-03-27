@@ -222,7 +222,7 @@ uint8_t wi_runtime_options(wi_runtime_instance_t *instance) {
 #pragma mark -
 
 void wi_runtime_make_immutable(wi_runtime_instance_t *instance) {
-	if(WI_RUNTIME_BASE(instance)->options & WI_RUNTIME_OPTION_MUTABLE) {
+	if(instance && WI_RUNTIME_BASE(instance)->options & WI_RUNTIME_OPTION_MUTABLE) {
 		WI_RUNTIME_BASE(instance)->options &= ~WI_RUNTIME_OPTION_MUTABLE;
 		WI_RUNTIME_BASE(instance)->options |= WI_RUNTIME_OPTION_IMMUTABLE;
 	}

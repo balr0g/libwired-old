@@ -229,13 +229,13 @@ int wi_file_descriptor(wi_file_t *file) {
 #pragma mark -
 
 wi_string_t * wi_file_read(wi_file_t *file, wi_uinteger_t length) {
-	wi_string_t		*string;
-	char			buffer[WI_FILE_BUFFER_SIZE];
-	wi_integer_t	bytes = -1;
+	wi_mutable_string_t		*string;
+	char					buffer[WI_FILE_BUFFER_SIZE];
+	wi_integer_t			bytes = -1;
 	
 	_WI_FILE_ASSERT_OPEN(file);
 	
-	string = wi_string_init_with_capacity(wi_string_alloc(), length);
+	string = wi_string_init_with_capacity(wi_mutable_string_alloc(), length);
 	
 	while(length > sizeof(buffer)) {
 		bytes = wi_file_read_buffer(file, buffer, sizeof(buffer));
@@ -243,7 +243,7 @@ wi_string_t * wi_file_read(wi_file_t *file, wi_uinteger_t length) {
 		if(bytes <= 0)
 			goto end;
 		
-		wi_string_append_bytes(string, buffer, bytes);
+		wi_mutable_string_append_bytes(string, buffer, bytes);
 		
 		length -= bytes;
 	}
@@ -254,7 +254,7 @@ wi_string_t * wi_file_read(wi_file_t *file, wi_uinteger_t length) {
 		if(bytes <= 0)
 			goto end;
 		
-		wi_string_append_bytes(string, buffer, bytes);
+		wi_mutable_string_append_bytes(string, buffer, bytes);
 	}
 	
 end:
@@ -263,6 +263,8 @@ end:
 		
 		string = NULL;
 	}
+	
+	wi_runtime_make_immutable(string);
 
 	return wi_autorelease(string);
 }
@@ -270,14 +272,16 @@ end:
 
 
 wi_string_t * wi_file_read_to_end_of_file(wi_file_t *file) {
-	wi_string_t		*string;
-	char			buffer[WI_FILE_BUFFER_SIZE];
-	wi_integer_t	bytes;
+	wi_mutable_string_t		*string;
+	char					buffer[WI_FILE_BUFFER_SIZE];
+	wi_integer_t			bytes;
 	
-	string = wi_string_init(wi_string_alloc());
+	string = wi_string_init(wi_mutable_string_alloc());
 	
 	while((bytes = wi_file_read_buffer(file, buffer, sizeof(buffer))))
-		wi_string_append_bytes(string, buffer, bytes);
+		wi_mutable_string_append_bytes(string, buffer, bytes);
+	
+	wi_runtime_make_immutable(string);
 	
 	return wi_autorelease(string);
 }
@@ -306,24 +310,24 @@ wi_string_t * wi_file_read_config_line(wi_file_t *file) {
 
 
 wi_string_t * wi_file_read_to_string(wi_file_t *file, wi_string_t *separator) {
-	wi_string_t		*string, *totalstring = NULL;
-	wi_uinteger_t	index, length;
+	wi_mutable_string_t		*totalstring = NULL;
+	wi_string_t				*string;
+	wi_uinteger_t			index, length;
 	
 	_WI_FILE_ASSERT_OPEN(file);
 	
 	while((string = wi_file_read(file, WI_FILE_BUFFER_SIZE))) {
 		if(!totalstring)
-			totalstring = wi_string_init(wi_string_alloc());
+			totalstring = wi_string_init(wi_mutable_string_alloc());
 		
 		index = wi_string_index_of_string(string, separator, 0);
 		
 		if(index == WI_NOT_FOUND) {
-			wi_string_append_string(totalstring, string);
+			wi_mutable_string_append_string(totalstring, string);
 		} else {
 			length = wi_string_length(string);
 			
-			wi_string_delete_characters_from_index(string, index);
-			wi_string_append_string(totalstring, string);
+			wi_mutable_string_append_string(totalstring, wi_string_substring_to_index(string, index));
 
 			wi_file_seek(file, wi_file_offset(file) - length + index + 1);
 			
@@ -331,6 +335,8 @@ wi_string_t * wi_file_read_to_string(wi_file_t *file, wi_string_t *separator) {
 		}
 	}
 	
+	wi_runtime_make_immutable(string);
+
 	return wi_autorelease(totalstring);
 }
 

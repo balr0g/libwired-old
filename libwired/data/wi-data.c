@@ -129,6 +129,12 @@ wi_data_t * wi_data_with_base64(wi_string_t *base64) {
 
 
 
+wi_mutable_data_t * wi_mutable_data(void) {
+	return wi_autorelease(wi_data_init(wi_mutable_data_alloc()));
+}
+
+
+
 #pragma mark -
 
 wi_data_t * wi_data_alloc(void) {
@@ -264,22 +270,24 @@ static wi_boolean_t _wi_data_is_equal(wi_runtime_instance_t *instance1, wi_runti
 
 
 static wi_string_t * _wi_data_description(wi_runtime_instance_t *instance) {
-	wi_data_t			*data = instance;
-	wi_string_t			*description;
-	const unsigned char	*bytes;
-	wi_uinteger_t		i;
+	wi_data_t				*data = instance;
+	wi_mutable_string_t		*string;
+	const unsigned char		*bytes;
+	wi_uinteger_t			i;
 	
-	description = wi_string();
-	bytes = data->bytes;
+	string		= wi_mutable_string();
+	bytes		= data->bytes;
 	
 	for(i = 0; i < data->length; i++) {
 		if(i > 0 && i % 4 == 0)
-			wi_string_append_string(description, WI_STR(" "));
+			wi_mutable_string_append_string(string, WI_STR(" "));
 
-		wi_string_append_format(description, WI_STR("%02X"), bytes[i]);
+		wi_mutable_string_append_format(string, WI_STR("%02X"), bytes[i]);
 	}
 	
-	return description;
+	wi_runtime_make_immutable(string);
+	
+	return string;
 }
 
 

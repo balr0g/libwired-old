@@ -115,7 +115,6 @@ struct _wi_uuid {
 
 
 static void								_wi_uuid_dealloc(wi_runtime_instance_t *);
-static wi_runtime_instance_t *			_wi_uuid_copy(wi_runtime_instance_t *);
 static wi_boolean_t						_wi_uuid_is_equal(wi_runtime_instance_t *, wi_runtime_instance_t *);
 static wi_hash_code_t					_wi_uuid_hash(wi_runtime_instance_t *);
 static wi_string_t *					_wi_uuid_description(wi_runtime_instance_t *);
@@ -134,7 +133,7 @@ static wi_runtime_id_t					_wi_uuid_runtime_id = WI_RUNTIME_ID_NULL;
 static wi_runtime_class_t				_wi_uuid_runtime_class = {
 	"wi_uuid_t",
 	_wi_uuid_dealloc,
-	_wi_uuid_copy,
+	NULL,
 	_wi_uuid_is_equal,
 	_wi_uuid_description,
 	_wi_uuid_hash
@@ -315,14 +314,6 @@ static void _wi_uuid_dealloc(wi_runtime_instance_t *instance) {
 	wi_uuid_t		*uuid = instance;
 	
 	wi_release(uuid->string);
-}
-
-
-
-static wi_runtime_instance_t * _wi_uuid_copy(wi_runtime_instance_t *instance) {
-	wi_uuid_t		*uuid = instance;
-	
-	return wi_retain(uuid);
 }
 
 

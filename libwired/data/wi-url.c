@@ -52,7 +52,7 @@ struct _wi_url {
 	wi_string_t							*user;
 	wi_string_t							*password;
 	
-	wi_string_t							*string;
+	wi_mutable_string_t					*string;
 };
 
 
@@ -227,25 +227,25 @@ static wi_hash_code_t _wi_url_hash(wi_runtime_instance_t *instance) {
 void _wi_url_regenerate_string(wi_url_t *url) {
 	wi_release(url->string);
 	
-	url->string = wi_string_init_with_format(wi_string_alloc(), WI_STR("%#@://"), url->scheme);
+	url->string = wi_string_init_with_format(wi_mutable_string_alloc(), WI_STR("%#@://"), url->scheme);
 	
 	if(url->user && wi_string_length(url->user) > 0) {
-		wi_string_append_format(url->string, WI_STR("%#@"), url->user);
+		wi_mutable_string_append_format(url->string, WI_STR("%#@"), url->user);
 		
 		if(url->password && wi_string_length(url->password) > 0)
-			wi_string_append_format(url->string, WI_STR(":%#@"), url->password);
+			wi_mutable_string_append_format(url->string, WI_STR(":%#@"), url->password);
 	
-		wi_string_append_string(url->string, WI_STR("@"));
+		wi_mutable_string_append_string(url->string, WI_STR("@"));
 	}
-	wi_string_append_format(url->string, WI_STR("%#@"), url->host);
+	wi_mutable_string_append_format(url->string, WI_STR("%#@"), url->host);
 	
 	if(url->port > 0)
-		wi_string_append_format(url->string, WI_STR(":%lu"), url->port);
+		wi_mutable_string_append_format(url->string, WI_STR(":%lu"), url->port);
 	
 	if(url->path)
-		wi_string_append_string(url->string, url->path);
+		wi_mutable_string_append_string(url->string, url->path);
 	else
-		wi_string_append_string(url->string, WI_STR("/"));
+		wi_mutable_string_append_string(url->string, WI_STR("/"));
 }
 
 

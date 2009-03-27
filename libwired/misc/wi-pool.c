@@ -321,9 +321,9 @@ void wi_pool_set_context(wi_pool_t *pool, wi_string_t *context) {
 #pragma mark -
 
 wi_runtime_instance_t * _wi_autorelease(wi_runtime_instance_t *instance, const char *file, wi_uinteger_t line) {
-	wi_pool_t			*pool;
-	wi_string_t			*location;
-	_wi_pool_array_t	*array, *new_array;
+	wi_pool_t				*pool;
+	wi_mutable_string_t		*location;
+	_wi_pool_array_t		*array, *new_array;
 	
 	if(!instance)
 		return NULL;
@@ -359,9 +359,9 @@ wi_runtime_instance_t * _wi_autorelease(wi_runtime_instance_t *instance, const c
 		location = wi_dictionary_data_for_key(pool->locations, instance);
 		
 		if(location) {
-			wi_string_append_format(location, WI_STR(", %s:%u"), file, line);
+			wi_mutable_string_append_format(location, WI_STR(", %s:%u"), file, line);
 		} else {
-			location = wi_string_init_with_format(wi_string_alloc(), WI_STR("%s:%u"), file, line);
+			location = wi_string_init_with_format(wi_mutable_string_alloc(), WI_STR("%s:%u"), file, line);
 			wi_mutable_dictionary_set_data_for_key(pool->locations, location, instance);
 			wi_release(location);
 		}

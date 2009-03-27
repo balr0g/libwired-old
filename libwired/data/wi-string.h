@@ -61,8 +61,11 @@ WI_EXPORT wi_string_t *						wi_string_with_data(wi_data_t *);
 WI_EXPORT wi_string_t *						wi_string_with_bytes(const void *, wi_uinteger_t);
 WI_EXPORT wi_string_t *						wi_string_with_bytes_no_copy(void *, wi_uinteger_t, wi_boolean_t);
 WI_EXPORT wi_string_t *						wi_string_with_base64(wi_string_t *);
+WI_EXPORT wi_mutable_string_t *				wi_mutable_string(void);
+WI_EXPORT wi_mutable_string_t *				wi_mutable_string_with_format(wi_string_t *, ...);
 
 WI_EXPORT wi_string_t *						wi_string_alloc(void);
+WI_EXPORT wi_mutable_string_t *				wi_mutable_string_alloc(void);
 WI_EXPORT wi_string_t *						wi_string_init(wi_string_t *);
 WI_EXPORT wi_string_t *						wi_string_init_with_capacity(wi_string_t *, wi_uinteger_t);
 WI_EXPORT wi_string_t *						wi_string_init_with_cstring(wi_string_t *, const char *);
@@ -85,35 +88,17 @@ WI_EXPORT char								wi_string_character_at_index(wi_string_t *, wi_uinteger_t)
 
 WI_EXPORT wi_string_t *						_wi_string_constant_string(const char *);
 
-WI_EXPORT void								wi_string_set_cstring(wi_string_t *, const char *);
-WI_EXPORT void								wi_string_set_string(wi_string_t *, wi_string_t *);
-WI_EXPORT void								wi_string_set_format(wi_string_t *, wi_string_t *, ...);
-WI_EXPORT void								wi_string_set_format_and_arguments(wi_string_t *, wi_string_t *, va_list);
-
-WI_EXPORT void								wi_string_append_cstring(wi_string_t *, const char *);
 WI_EXPORT wi_string_t *						wi_string_by_appending_cstring(wi_string_t *, const char *);
-WI_EXPORT void								wi_string_append_bytes(wi_string_t *, const void *, wi_uinteger_t);
 WI_EXPORT wi_string_t *						wi_string_by_appending_bytes(wi_string_t *, const void *, wi_uinteger_t);
-WI_EXPORT void								wi_string_append_string(wi_string_t *, wi_string_t *);
 WI_EXPORT wi_string_t *						wi_string_by_appending_string(wi_string_t *, wi_string_t *);
-WI_EXPORT void								wi_string_append_format(wi_string_t *, wi_string_t *, ...);
 WI_EXPORT wi_string_t *						wi_string_by_appending_format(wi_string_t *, wi_string_t *, ...);
-WI_EXPORT void								wi_string_append_format_and_arguments(wi_string_t *, wi_string_t *, va_list);
 WI_EXPORT wi_string_t *						wi_string_by_appending_format_and_arguments(wi_string_t *, wi_string_t *, va_list);
 
-WI_EXPORT void								wi_string_replace_string_with_string(wi_string_t *, wi_string_t *, wi_string_t *, wi_uinteger_t);
 WI_EXPORT wi_string_t *						wi_string_by_replacing_string_with_string(wi_string_t *, wi_string_t *, wi_string_t *, wi_uinteger_t);
 
-WI_EXPORT void								wi_string_insert_string_at_index(wi_string_t *, wi_string_t *, wi_uinteger_t);
-WI_EXPORT void								wi_string_insert_cstring_at_index(wi_string_t *, const char *, wi_uinteger_t);
-
-WI_EXPORT void								wi_string_delete_characters_in_range(wi_string_t *, wi_range_t);
 WI_EXPORT wi_string_t *						wi_string_by_deleting_characters_in_range(wi_string_t *, wi_range_t);
-WI_EXPORT void								wi_string_delete_characters_from_index(wi_string_t *, wi_uinteger_t);
 WI_EXPORT wi_string_t *						wi_string_by_deleting_characters_from_index(wi_string_t *, wi_uinteger_t);
-WI_EXPORT void								wi_string_delete_characters_to_index(wi_string_t *, wi_uinteger_t);
 WI_EXPORT wi_string_t *						wi_string_by_deleting_characters_to_index(wi_string_t *, wi_uinteger_t);
-WI_EXPORT void								wi_string_delete_surrounding_whitespace(wi_string_t *);
 WI_EXPORT wi_string_t *						wi_string_by_deleting_surrounding_whitespace(wi_string_t *);
 
 WI_EXPORT wi_string_t *						wi_string_substring_with_range(wi_string_t *, wi_range_t);
@@ -134,21 +119,14 @@ WI_EXPORT wi_string_t *						wi_string_lowercase_string(wi_string_t *);
 WI_EXPORT wi_string_t *						wi_string_uppercase_string(wi_string_t *);
 
 WI_EXPORT wi_array_t *						wi_string_path_components(wi_string_t *);
-WI_EXPORT void								wi_string_normalize_path(wi_string_t *);
 WI_EXPORT wi_string_t *						wi_string_by_normalizing_path(wi_string_t *);
-WI_EXPORT void								wi_string_resolve_aliases_in_path(wi_string_t *);
 WI_EXPORT wi_string_t *						wi_string_by_resolving_aliases_in_path(wi_string_t *);
-WI_EXPORT void								wi_string_expand_tilde_in_path(wi_string_t *);
 WI_EXPORT wi_string_t *						wi_string_by_expanding_tilde_in_path(wi_string_t *);
-WI_EXPORT void								wi_string_append_path_component(wi_string_t *, wi_string_t *);
 WI_EXPORT wi_string_t *						wi_string_by_appending_path_component(wi_string_t *, wi_string_t *);
 WI_EXPORT wi_string_t *						wi_string_last_path_component(wi_string_t *);
-WI_EXPORT void								wi_string_delete_last_path_component(wi_string_t *);
 WI_EXPORT wi_string_t *						wi_string_by_deleting_last_path_component(wi_string_t *);
-WI_EXPORT void								wi_string_append_path_extension(wi_string_t *, wi_string_t *);
 WI_EXPORT wi_string_t *						wi_string_by_appending_path_extension(wi_string_t *, wi_string_t *);
 WI_EXPORT wi_string_t *						wi_string_path_extension(wi_string_t *);
-WI_EXPORT void								wi_string_delete_path_extension(wi_string_t *);
 WI_EXPORT wi_string_t *						wi_string_by_deleting_path_extension(wi_string_t *);
 
 WI_EXPORT wi_boolean_t						wi_string_bool(wi_string_t *);
@@ -166,10 +144,40 @@ WI_EXPORT wi_string_t *						wi_string_md5(wi_string_t *);
 WI_EXPORT wi_string_t *						wi_string_sha1(wi_string_t *);
 WI_EXPORT wi_string_t *						wi_string_base64(wi_string_t *);
 
-WI_EXPORT void								wi_string_convert_encoding(wi_string_t *, wi_string_encoding_t *, wi_string_encoding_t *);
 WI_EXPORT wi_string_t *						wi_string_by_converting_encoding(wi_string_t *, wi_string_encoding_t *, wi_string_encoding_t *);
 
 WI_EXPORT wi_boolean_t						wi_string_write_to_file(wi_string_t *, wi_string_t *);
+
+WI_EXPORT void								wi_mutable_string_set_cstring(wi_string_t *, const char *);
+WI_EXPORT void								wi_mutable_string_set_string(wi_string_t *, wi_string_t *);
+WI_EXPORT void								wi_mutable_string_set_format(wi_string_t *, wi_string_t *, ...);
+WI_EXPORT void								wi_mutable_string_set_format_and_arguments(wi_string_t *, wi_string_t *, va_list);
+
+WI_EXPORT void								wi_mutable_string_append_cstring(wi_mutable_string_t *, const char *);
+WI_EXPORT void								wi_mutable_string_append_bytes(wi_mutable_string_t *, const void *, wi_uinteger_t);
+WI_EXPORT void								wi_mutable_string_append_string(wi_mutable_string_t *, wi_string_t *);
+WI_EXPORT void								wi_mutable_string_append_format(wi_mutable_string_t *, wi_string_t *, ...);
+WI_EXPORT void								wi_mutable_string_append_format_and_arguments(wi_mutable_string_t *, wi_string_t *, va_list);
+
+WI_EXPORT void								wi_mutable_string_insert_string_at_index(wi_mutable_string_t *, wi_string_t *, wi_uinteger_t);
+WI_EXPORT void								wi_mutable_string_insert_cstring_at_index(wi_mutable_string_t *, const char *, wi_uinteger_t);
+
+WI_EXPORT void								wi_mutable_string_replace_string_with_string(wi_mutable_string_t *, wi_string_t *, wi_string_t *, wi_uinteger_t);
+
+WI_EXPORT void								wi_mutable_string_delete_characters_in_range(wi_mutable_string_t *, wi_range_t);
+WI_EXPORT void								wi_mutable_string_delete_characters_from_index(wi_mutable_string_t *, wi_uinteger_t);
+WI_EXPORT void								wi_mutable_string_delete_characters_to_index(wi_mutable_string_t *, wi_uinteger_t);
+WI_EXPORT void								wi_mutable_string_delete_surrounding_whitespace(wi_mutable_string_t *);
+
+WI_EXPORT void								wi_mutable_string_normalize_path(wi_mutable_string_t *);
+WI_EXPORT void								wi_mutable_string_resolve_aliases_in_path(wi_mutable_string_t *);
+WI_EXPORT void								wi_mutable_string_expand_tilde_in_path(wi_mutable_string_t *);
+WI_EXPORT void								wi_mutable_string_append_path_component(wi_mutable_string_t *, wi_string_t *);
+WI_EXPORT void								wi_mutable_string_delete_last_path_component(wi_mutable_string_t *);
+WI_EXPORT void								wi_mutable_string_append_path_extension(wi_mutable_string_t *, wi_string_t *);
+WI_EXPORT void								wi_mutable_string_delete_path_extension(wi_mutable_string_t *);
+
+WI_EXPORT void								wi_mutable_string_convert_encoding(wi_mutable_string_t *, wi_string_encoding_t *, wi_string_encoding_t *);
 
 
 enum _wi_string_encoding_options {

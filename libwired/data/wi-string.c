@@ -110,13 +110,15 @@ static wi_hash_code_t					_wi_string_hash(wi_runtime_instance_t *);
 
 static void								_wi_string_grow(wi_string_t *, wi_uinteger_t);
 static void								_wi_string_append_arguments(wi_string_t *, const char *, va_list);
+static void								_wi_string_append_cstring(wi_string_t *, const char *);
+static void								_wi_string_append_bytes(wi_string_t *, const void *, wi_uinteger_t);
 
-static wi_boolean_t						_wi_string_char_is_whitespace(char);
+static wi_boolean_t						_wi_mutable_string_char_is_whitespace(char);
 
 static wi_mutable_array_t *				_wi_string_path_components(wi_string_t *);
 
 #ifdef HAVE_CARBON_CARBON_H
-static void								_wi_string_resolve_mac_alias_in_path(wi_string_t *);
+static void								_wi_mutable_string_resolve_mac_alias_in_path(wi_string_t *);
 #endif
 
 
@@ -255,10 +257,35 @@ wi_string_t * wi_string_with_base64(wi_string_t *base64) {
 
 
 
+wi_mutable_string_t * wi_mutable_string(void) {
+	return wi_autorelease(wi_string_init(wi_mutable_string_alloc()));
+}
+
+
+
+wi_mutable_string_t * wi_mutable_string_with_format(wi_string_t *fmt, ...) {
+	wi_mutable_string_t		*string;
+	va_list					ap;
+	
+	va_start(ap, fmt);
+	string = wi_string_init_with_format_and_arguments(wi_mutable_string_alloc(), fmt, ap);
+	va_end(ap);
+	
+	return wi_autorelease(string);
+}
+
+
+
 #pragma mark -
 
 wi_string_t * wi_string_alloc(void) {
-	return wi_runtime_create_instance(_wi_string_runtime_id, sizeof(wi_string_t));
+	return wi_runtime_create_instance_with_options(_wi_string_runtime_id, sizeof(wi_string_t), WI_RUNTIME_OPTION_IMMUTABLE);
+}
+
+
+
+wi_mutable_string_t * wi_mutable_string_alloc(void) {
+	return wi_runtime_create_instance_with_options(_wi_string_runtime_id, sizeof(wi_string_t), WI_RUNTIME_OPTION_MUTABLE);
 }
 
 
@@ -294,7 +321,7 @@ wi_string_t * wi_string_init_with_cstring_no_copy(wi_string_t *string, char *cst
 wi_string_t * wi_string_init_with_cstring(wi_string_t *string, const char *cstring) {
 	string = wi_string_init_with_capacity(string, strlen(cstring));
 	
-	wi_string_append_cstring(string, cstring);
+	_wi_string_append_cstring(string, cstring);
 
 	return string;
 }
@@ -310,7 +337,7 @@ wi_string_t * wi_string_init_with_data(wi_string_t *string, wi_data_t *data) {
 wi_string_t * wi_string_init_with_bytes(wi_string_t *string, const void *buffer, wi_uinteger_t size) {
 	string = wi_string_init_with_capacity(string, size);
 	
-	wi_string_append_bytes(string, buffer, size);
+	_wi_string_append_bytes(string, buffer, size);
 
 	return string;
 }
@@ -363,12 +390,7 @@ wi_string_t * wi_string_init_with_format_and_arguments(wi_string_t *string, wi_s
 
 
 wi_string_t * wi_string_init_with_base64(wi_string_t *string, wi_string_t *base64) {
-	wi_data_t		*data;
-	
-	data = wi_data_from_base64_string(base64);
-	string = wi_string_init_with_data(string, data);
-	
-	return string;
+	return wi_string_init_with_data(string, wi_data_from_base64_string(base64));
 }
 
 
@@ -532,7 +554,7 @@ static void _wi_string_append_arguments(wi_string_t *string, const char *fmt, va
 		size = pfmt - p;
 		
 		if(size > 0)
-			wi_string_append_bytes(string, p, size);
+			_wi_string_append_bytes(string, p, size);
 		
 		if(!*pfmt)
 			return;
@@ -558,11 +580,11 @@ nextflag:
 				description = wi_description(va_arg(ap, wi_runtime_instance_t *));
 				
 				if(description) {
-					wi_string_append_cstring(string, description->string);
+					_wi_string_append_cstring(string, description->string);
 					totalsize += description->length;
 				}
 				else if(!alt) {
-					wi_string_append_cstring(string, "(null)");
+					_wi_string_append_cstring(string, "(null)");
 					totalsize += 6;
 				}
 				break;
@@ -640,12 +662,7 @@ nextflag:
 				else
 					size = snprintf(buffer, sizeof(buffer), cfmt, va_arg(ap, double));
 				
-				wi_string_append_bytes(string, buffer, size);
-				totalsize += size;
-				break;
-				
-				
-				wi_string_append_bytes(string, buffer, size);
+				_wi_string_append_bytes(string, buffer, size);
 				totalsize += size;
 				break;
 				
@@ -679,13 +696,13 @@ nextflag:
 				else
 					size = snprintf(buffer, sizeof(buffer), cfmt, va_arg(ap, int));
 				
-				wi_string_append_bytes(string, buffer, size);
+				_wi_string_append_bytes(string, buffer, size);
 				totalsize += size;
 				break;
 			
 			case 'm':
 				description = wi_error_string();
-				wi_string_append_cstring(string, description->string);
+				_wi_string_append_cstring(string, description->string);
 				totalsize += description->length;
 				break;
 			
@@ -720,13 +737,13 @@ nextflag:
 						size = wi_asprintf(&vbuffer, cfmt, s);
 					
 					if(size > 0 && vbuffer) {
-						wi_string_append_bytes(string, vbuffer, size);
+						_wi_string_append_bytes(string, vbuffer, size);
 						totalsize += size;
 						free(vbuffer);
 					}
 				}
 				else if(!alt) {
-					wi_string_append_cstring(string, "(null)");
+					_wi_string_append_cstring(string, "(null)");
 					totalsize += 6;
 				}
 				break;
@@ -743,7 +760,7 @@ nextflag:
 				
 				buffer[0] = ch;
 
-				wi_string_append_bytes(string, buffer, 1);
+				_wi_string_append_bytes(string, buffer, 1);
 				totalsize += 1;
 				break;
 		}
@@ -752,66 +769,13 @@ nextflag:
 
 
 
-#pragma mark -
-
-void wi_string_set_cstring(wi_string_t *string, const char *othercstring) {
-	if(string->string != othercstring) {
-		string->string[0]	= '\0';
-		string->length		= 0;
-
-		wi_string_append_cstring(string, othercstring);
-	}
+static void _wi_string_append_cstring(wi_string_t *string, const char *cstring) {
+	_wi_string_append_bytes(string, cstring, strlen(cstring));
 }
 
 
 
-void wi_string_set_string(wi_string_t *string, wi_string_t *otherstring) {
-	wi_string_set_cstring(string, otherstring->string);
-}
-
-
-
-void wi_string_set_format(wi_string_t *string, wi_string_t *fmt, ...) {
-	va_list		ap;
-	
-	va_start(ap, fmt);
-	wi_string_set_format_and_arguments(string, fmt, ap);
-	va_end(ap);
-	
-}
-
-
-
-void wi_string_set_format_and_arguments(wi_string_t *string, wi_string_t *fmt, va_list ap) {
-	wi_string_t		*newstring;
-	
-	newstring = wi_string_init_with_format_and_arguments(wi_string_alloc(), fmt, ap);
-	wi_string_set_string(string, newstring);
-	wi_release(newstring);
-}
-
-
-
-#pragma mark -
-
-void wi_string_append_cstring(wi_string_t *string, const char *cstring) {
-	wi_string_append_bytes(string, cstring, strlen(cstring));
-}
-
-
-
-wi_string_t * wi_string_by_appending_cstring(wi_string_t *string, const char *cstring) {
-	wi_string_t		*newstring;
-	
-	newstring = wi_copy(string);
-	wi_string_by_appending_cstring(newstring, cstring);
-	
-	return wi_autorelease(newstring);
-}
-
-
-
-void wi_string_append_bytes(wi_string_t *string, const void *buffer, wi_uinteger_t length) {
+static void _wi_string_append_bytes(wi_string_t *string, const void *buffer, wi_uinteger_t length) {
 	_WI_STRING_GROW(string, length);
 	
 	memmove(string->string + string->length, buffer, length);
@@ -822,69 +786,75 @@ void wi_string_append_bytes(wi_string_t *string, const void *buffer, wi_uinteger
 
 
 
-wi_string_t * wi_string_by_appending_bytes(wi_string_t *string, const void *buffer, wi_uinteger_t length) {
-	wi_string_t		*newstring;
+#pragma mark -
+
+wi_string_t * wi_string_by_appending_cstring(wi_string_t *string, const char *cstring) {
+	wi_mutable_string_t		*newstring;
 	
 	newstring = wi_copy(string);
-	wi_string_append_bytes(newstring, buffer, length);
+	
+	wi_mutable_string_append_cstring(newstring, cstring);
+	
+	wi_runtime_make_immutable(newstring);
 	
 	return wi_autorelease(newstring);
 }
 
 
 
-void wi_string_append_string(wi_string_t *string, wi_string_t *otherstring) {
-	wi_string_append_cstring(string, otherstring->string);
+wi_string_t * wi_string_by_appending_bytes(wi_string_t *string, const void *buffer, wi_uinteger_t length) {
+	wi_mutable_string_t		*newstring;
+	
+	newstring = wi_mutable_copy(string);
+
+	wi_mutable_string_append_bytes(newstring, buffer, length);
+	
+	wi_runtime_make_immutable(newstring);
+	
+	return wi_autorelease(newstring);
 }
 
 
 
 wi_string_t * wi_string_by_appending_string(wi_string_t *string, wi_string_t *otherstring) {
-	wi_string_t		*newstring;
+	wi_mutable_string_t		*newstring;
 	
-	newstring = wi_copy(string);
-	wi_string_append_cstring(newstring, otherstring->string);
+	newstring = wi_mutable_copy(string);
+
+	wi_mutable_string_append_cstring(newstring, otherstring->string);
+	
+	wi_runtime_make_immutable(newstring);
 	
 	return wi_autorelease(newstring);
-}
-
-
-
-void wi_string_append_format(wi_string_t *string, wi_string_t *fmt, ...) {
-	va_list			ap;
-	
-	va_start(ap, fmt);
-	_wi_string_append_arguments(string, wi_string_cstring(fmt), ap);
-	va_end(ap);
 }
 
 
 
 wi_string_t * wi_string_by_appending_format(wi_string_t *string, wi_string_t *fmt, ...) {
-	wi_string_t		*newstring;
-	va_list			ap;
+	wi_mutable_string_t		*newstring;
+	va_list					ap;
 	
+	newstring = wi_mutable_copy(string);
+
 	va_start(ap, fmt);
-	newstring = wi_copy(string);
-	_wi_string_append_arguments(newstring, wi_string_cstring(fmt), ap);
+	wi_mutable_string_append_format_and_arguments(newstring, fmt, ap);
 	va_end(ap);
 	
+	wi_runtime_make_immutable(newstring);
+	
 	return wi_autorelease(newstring);
-}
-
-
-
-void wi_string_append_format_and_arguments(wi_string_t *string, wi_string_t *fmt, va_list ap) {
-	_wi_string_append_arguments(string, wi_string_cstring(fmt), ap);
 }
 
 
 
 wi_string_t * wi_string_by_appending_format_and_arguments(wi_string_t *string, wi_string_t *fmt, va_list ap) {
-	wi_string_t		*newstring;
+	wi_mutable_string_t		*newstring;
 	
-	newstring = wi_copy(string);
-	_wi_string_append_arguments(newstring, wi_string_cstring(fmt), ap);
+	newstring = wi_mutable_copy(string);
+
+	wi_mutable_string_append_format_and_arguments(newstring, fmt, ap);
+	
+	wi_runtime_make_immutable(newstring);
 	
 	return wi_autorelease(newstring);
 }
@@ -892,23 +862,15 @@ wi_string_t * wi_string_by_appending_format_and_arguments(wi_string_t *string, w
 
 
 #pragma mark -
-
-void wi_string_replace_string_with_string(wi_string_t *string, wi_string_t *target, wi_string_t *replacement, wi_uinteger_t options) {
-	wi_range_t		range;
-	
-	while((range = wi_string_range_of_string(string, target, options)).location != WI_NOT_FOUND) {
-		wi_string_delete_characters_in_range(string, range);
-		wi_string_insert_string_at_index(string, replacement, range.location);
-	}
-}
-
-
 
 wi_string_t * wi_string_by_replacing_string_with_string(wi_string_t *string, wi_string_t *target, wi_string_t *replacement, wi_uinteger_t options) {
-	wi_string_t		*newstring;
+	wi_mutable_string_t		*newstring;
 	
-	newstring = wi_copy(string);
-	wi_string_replace_string_with_string(newstring, target, replacement, options);
+	newstring = wi_mutable_copy(string);
+
+	wi_mutable_string_replace_string_with_string(newstring, target, replacement, options);
+	
+	wi_runtime_make_immutable(newstring);
 	
 	return wi_autorelease(newstring);
 }
@@ -916,64 +878,17 @@ wi_string_t * wi_string_by_replacing_string_with_string(wi_string_t *string, wi_
 
 
 #pragma mark -
-
-void wi_string_insert_string_at_index(wi_string_t *string, wi_string_t *otherstring, wi_uinteger_t index) {
-	wi_string_insert_cstring_at_index(string, otherstring->string, index);
-}
-
-
-
-void wi_string_insert_cstring_at_index(wi_string_t *string, const char *otherstring, wi_uinteger_t index) {
-	wi_uinteger_t		length;
-	
-	_WI_STRING_INDEX_ASSERT(string, index);
-	
-	length = strlen(otherstring);
-	
-	_WI_STRING_GROW(string, length);
-	
-	memmove(string->string + index + length,
-			string->string + index,
-			string->length);
-	
-	memmove(string->string + index, otherstring, length);
-	
-	string->length += length;
-	string->string[string->length] = '\0';
-}
-
-
-
-#pragma mark -
-
-void wi_string_delete_characters_in_range(wi_string_t *string, wi_range_t range) {
-	_WI_STRING_RANGE_ASSERT(string, range);
-
-	if(range.location + range.length < string->length) {
-		memmove(string->string + range.location,
-				string->string + range.location + range.length,
-				string->length - range.location - range.length);
-	}
-	
-	string->length -= range.length;
-	string->string[string->length] = '\0';
-}
-
-
 
 wi_string_t * wi_string_by_deleting_characters_in_range(wi_string_t *string, wi_range_t range) {
 	wi_string_t		*newstring;
 	
-	newstring = wi_copy(string);
-	wi_string_delete_characters_in_range(newstring, range);
+	newstring = wi_mutable_copy(string);
+
+	wi_mutable_string_delete_characters_in_range(newstring, range);
+	
+	wi_runtime_make_immutable(newstring);
 	
 	return wi_autorelease(newstring);
-}
-
-
-
-void wi_string_delete_characters_from_index(wi_string_t *string, wi_uinteger_t index) {
-	wi_string_delete_characters_in_range(string, wi_make_range(index, string->length - index));
 }
 
 
@@ -981,16 +896,13 @@ void wi_string_delete_characters_from_index(wi_string_t *string, wi_uinteger_t i
 wi_string_t * wi_string_by_deleting_characters_from_index(wi_string_t *string, wi_uinteger_t index) {
 	wi_string_t		*newstring;
 	
-	newstring = wi_copy(string);
-	wi_string_delete_characters_from_index(newstring, index);
+	newstring = wi_mutable_copy(string);
+
+	wi_mutable_string_delete_characters_from_index(newstring, index);
+	
+	wi_runtime_make_immutable(newstring);
 	
 	return wi_autorelease(newstring);
-}
-
-
-
-void wi_string_delete_characters_to_index(wi_string_t *string, wi_uinteger_t index) {
-	wi_string_delete_characters_in_range(string, wi_make_range(0, index));
 }
 
 
@@ -998,26 +910,13 @@ void wi_string_delete_characters_to_index(wi_string_t *string, wi_uinteger_t ind
 wi_string_t * wi_string_by_deleting_characters_to_index(wi_string_t *string, wi_uinteger_t index) {
 	wi_string_t		*newstring;
 	
-	newstring = wi_copy(string);
-	wi_string_delete_characters_to_index(newstring, index);
+	newstring = wi_mutable_copy(string);
+
+	wi_mutable_string_delete_characters_to_index(newstring, index);
+	
+	wi_runtime_make_immutable(newstring);
 	
 	return wi_autorelease(newstring);
-}
-
-
-
-static wi_boolean_t _wi_string_char_is_whitespace(char ch) {
-	return (ch == ' ' || ch == '\t' || ch == '\n');
-}
-
-
-
-void wi_string_delete_surrounding_whitespace(wi_string_t *string) {
-	while(string->length > 0 && _wi_string_char_is_whitespace(string->string[0]))
-		wi_string_delete_characters_in_range(string, wi_make_range(0, 1));
-
-	while(string->length > 0 && _wi_string_char_is_whitespace(string->string[string->length - 1]))
-		wi_string_delete_characters_in_range(string, wi_make_range(string->length - 1, 1));
 }
 
 
@@ -1025,8 +924,11 @@ void wi_string_delete_surrounding_whitespace(wi_string_t *string) {
 wi_string_t * wi_string_by_deleting_surrounding_whitespace(wi_string_t *string) {
 	wi_string_t		*newstring;
 	
-	newstring = wi_copy(string);
-	wi_string_delete_surrounding_whitespace(newstring);
+	newstring = wi_mutable_copy(string);
+
+	wi_mutable_string_delete_surrounding_whitespace(newstring);
+	
+	wi_runtime_make_immutable(newstring);
 	
 	return wi_autorelease(newstring);
 }
@@ -1218,13 +1120,15 @@ wi_boolean_t wi_string_has_suffix(wi_string_t *string, wi_string_t *suffix) {
 #pragma mark -
 
 wi_string_t * wi_string_lowercase_string(wi_string_t *string) {
-	wi_string_t		*newstring;
-	wi_uinteger_t	i;
+	wi_mutable_string_t		*newstring;
+	wi_uinteger_t			i;
 	
-	newstring = wi_copy(string);
+	newstring = wi_mutable_copy(string);
 	
 	for(i = 0; i < newstring->length; i++)
 		newstring->string[i] = tolower((unsigned int) newstring->string[i]);
+	
+	wi_runtime_make_immutable(newstring);
 	
 	return wi_autorelease(newstring);
 }
@@ -1232,13 +1136,15 @@ wi_string_t * wi_string_lowercase_string(wi_string_t *string) {
 
 
 wi_string_t * wi_string_uppercase_string(wi_string_t *string) {
-	wi_string_t		*newstring;
-	wi_uinteger_t	i;
+	wi_mutable_string_t		*newstring;
+	wi_uinteger_t			i;
 	
-	newstring = wi_copy(string);
+	newstring = wi_mutable_copy(string);
 	
 	for(i = 0; i < newstring->length; i++)
 		newstring->string[i] = toupper((unsigned int) newstring->string[i]);
+	
+	wi_runtime_make_immutable(newstring);
 	
 	return wi_autorelease(newstring);
 }
@@ -1282,196 +1188,56 @@ wi_array_t * wi_string_path_components(wi_string_t *path) {
 
 
 
-void wi_string_normalize_path(wi_string_t *path) {
-	wi_mutable_array_t		*array;
-	wi_string_t				*component, *string;
-	wi_boolean_t			absolute;
-	wi_uinteger_t			i, count;
-	
-	if(wi_string_length(path) == 0 || wi_is_equal(path, WI_STR("/")))
-	   return;
-
-	wi_string_expand_tilde_in_path(path);
-
-	absolute	= wi_string_has_prefix(path, WI_STR("/"));
-	array		= _wi_string_path_components(path);
-	count		= wi_array_count(array);
-	
-	for(i = 0; i < count; i++) {
-		component = WI_ARRAY(array, i);
-
-		if(wi_string_length(component) == 0 || wi_is_equal(component, WI_STR("/"))) {
-			wi_mutable_array_remove_data_at_index(array, i);
-
-			i--;
-			count--;
-		}
-		else if(wi_is_equal(component, WI_STR("."))) {
-			wi_mutable_array_remove_data_at_index(array, i);
-			
-			i--;
-			count--;
-		}
-		else if(absolute && wi_is_equal(component, WI_STR("..")) && i > 0) {
-			wi_mutable_array_remove_data_at_index(array, i - 1);
-			wi_mutable_array_remove_data_at_index(array, i - 1);
-			
-			i -= 2;
-			count -= 2;
-		}
-	}
-	
-	string = wi_array_components_joined_by_string(array, WI_STR("/"));
-	
-	if(wi_string_has_prefix(path, WI_STR("/")))
-		wi_string_insert_string_at_index(string, WI_STR("/"), 0);
-		
-	wi_string_set_string(path, string);
-}
-
-
-
 wi_string_t * wi_string_by_normalizing_path(wi_string_t *path) {
-	wi_string_t		*string;
+	wi_mutable_string_t		*string;
 	
-	string = wi_copy(path);
-	wi_string_normalize_path(string);
+	string = wi_mutable_copy(path);
+	
+	wi_mutable_string_normalize_path(string);
+	
+	wi_runtime_make_immutable(string);
 	
 	return wi_autorelease(string);
-}
-
-
-
-#ifdef HAVE_CARBON_CARBON_H
-
-static void _wi_string_resolve_mac_alias_in_path(wi_string_t *path) {
-	FSRef		fsRef;
-	Boolean		isDir, isAlias;
-
-	if(FSPathMakeRef((UInt8 *) path->string, &fsRef, NULL) != noErr)
-		return;
-	
-	if(FSIsAliasFile(&fsRef, &isAlias, &isDir) != noErr)
-		return;
-	
-	if(!isAlias)
-		return;
-
-	if(FSResolveAliasFileWithMountFlags(&fsRef, true, &isDir, &isAlias, kResolveAliasFileNoUI | kResolveAliasTryFileIDFirst) != noErr)
-		return;
-
-	if(FSRefMakePath(&fsRef, (UInt8 *) path->string, WI_PATH_SIZE) != noErr)
-		return;
-	
-	path->length = strlen(path->string);
-}
-
-#endif
-
-
-
-void wi_string_resolve_aliases_in_path(wi_string_t *path) {
-	wi_string_t		*component, *partialpath;
-	wi_array_t		*components;
-	wi_uinteger_t	i, count;
-	
-	components = wi_string_path_components(path);
-	count = wi_array_count(components);
-	partialpath = wi_string_init_with_capacity(wi_string_alloc(), WI_PATH_SIZE);
-	
-	for(i = 0; i < count; i++) {
-		component = WI_ARRAY(components, i);
-		
-		wi_string_append_path_component(partialpath, component);
-		
-#ifdef HAVE_CARBON_CARBON_H
-		_wi_string_resolve_mac_alias_in_path(partialpath);
-#endif
-	}
-	
-	wi_string_set_string(path, partialpath);
-
-	wi_release(partialpath);
 }
 
 
 
 wi_string_t * wi_string_by_resolving_aliases_in_path(wi_string_t *path) {
-	wi_string_t		*string;
+	wi_mutable_string_t		*string;
 	
-	string = wi_copy(path);
-	wi_string_resolve_aliases_in_path(string);
+	string = wi_mutable_copy(path);
+	
+	wi_mutable_string_resolve_aliases_in_path(string);
+	
+	wi_runtime_make_immutable(string);
 	
 	return wi_autorelease(string);
-}
-
-
-
-void wi_string_expand_tilde_in_path(wi_string_t *path) {
-	wi_array_t		*array;
-	wi_string_t		*component, *string;
-	struct passwd	*user;
-	wi_uinteger_t	length;
-	
-	if(!wi_string_has_prefix(path, WI_STR("~")))
-		return;
-
-	array		= wi_string_path_components(path);
-	component	= WI_ARRAY(array, 0);
-	length		= wi_string_length(component);
-	
-	if(length == 1) {
-		user = getpwuid(getuid());
-	} else {
-		wi_string_delete_characters_to_index(component, 1);
-		
-		user = getpwnam(wi_string_cstring(component));
-	}
-	
-	if(user) {
-		wi_string_delete_characters_to_index(path, length);
-		
-		string = wi_string_init_with_cstring(wi_string_alloc(), user->pw_dir);
-		wi_string_insert_string_at_index(path, string, 0);
-		wi_release(string);
-	}
 }
 
 
 
 wi_string_t * wi_string_by_expanding_tilde_in_path(wi_string_t *path) {
-	wi_string_t		*string;
+	wi_mutable_string_t		*string;
 	
-	string = wi_copy(path);
-	wi_string_expand_tilde_in_path(string);
+	string = wi_mutable_copy(path);
+	
+	wi_mutable_string_expand_tilde_in_path(string);
+	
+	wi_runtime_make_immutable(string);
 	
 	return wi_autorelease(string);
 }
 
 
 
-void wi_string_append_path_component(wi_string_t *path, wi_string_t *component) {
-	if(wi_string_length(path) == 0) {
-		wi_string_append_string(path, component);
-	}
-	else if(wi_string_has_suffix(path, WI_STR("/"))) {
-		if(wi_string_has_prefix(component, WI_STR("/")))
-		   wi_string_delete_characters_from_index(path, path->length - 1);
-
-		wi_string_append_string(path, component);
-	}
-	else if(!wi_is_equal(component, WI_STR("/"))) {
-	   wi_string_append_format(path, WI_STR("/%@"), component);
-	}
-}
-
-
-
 wi_string_t * wi_string_by_appending_path_component(wi_string_t *path, wi_string_t *component) {
-	wi_string_t		*string;
+	wi_mutable_string_t		*string;
 	
-	string = wi_copy(path);
-	wi_string_append_path_component(string, component);
+	string = wi_mutable_copy(path);
+	
+	wi_mutable_string_append_path_component(string, component);
+	
+	wi_runtime_make_immutable(string);
 	
 	return wi_autorelease(string);
 }
@@ -1509,50 +1275,14 @@ wi_string_t * wi_string_last_path_component(wi_string_t *path) {
 
 
 
-void wi_string_delete_last_path_component(wi_string_t *path) {
-	wi_mutable_array_t		*array;
-	wi_string_t				*string;
-	wi_uinteger_t			count;
-	
-	if(wi_is_equal(path, WI_STR("/")))
-		return;
-	
-	array = _wi_string_path_components(path);
-	count = wi_array_count(array);
-	
-	if(count > 0) {
-		wi_mutable_array_remove_data_at_index(array, count - 1);
-		
-		string = wi_array_components_joined_by_string(array, WI_STR("/"));
-		wi_string_normalize_path(string);
-		wi_string_set_string(path, string);
-	}
-}
-
-
-
-wi_string_t * wi_string_by_deleting_last_path_component(wi_string_t *path) {
-	wi_string_t		*string;
-	
-	string = wi_copy(path);
-	wi_string_delete_last_path_component(string);
-	
-	return wi_autorelease(string);
-}
-
-
-
-void wi_string_append_path_extension(wi_string_t *path, wi_string_t *extension) {
-	wi_string_append_format(path, WI_STR(".%@"), extension);
-}
-
-
-
 wi_string_t * wi_string_by_appending_path_extension(wi_string_t *path, wi_string_t *extension) {
-	wi_string_t		*string;
+	wi_mutable_string_t		*string;
 	
-	string = wi_copy(path);
-	wi_string_append_path_extension(string, extension);
+	string = wi_mutable_copy(path);
+	
+	wi_mutable_string_append_path_extension(string, extension);
+	
+	wi_runtime_make_immutable(string);
 	
 	return wi_autorelease(string);
 }
@@ -1572,22 +1302,28 @@ wi_string_t * wi_string_path_extension(wi_string_t *path) {
 
 
 
-void wi_string_delete_path_extension(wi_string_t *path) {
-	wi_uinteger_t	index;
+wi_string_t * wi_string_by_deleting_last_path_component(wi_string_t *path) {
+	wi_mutable_string_t		*string;
 	
-	index = wi_string_index_of_char(path, '.', WI_STRING_BACKWARDS);
-
-	if(index != WI_NOT_FOUND)
-		wi_string_delete_characters_from_index(path, index);
+	string = wi_mutable_copy(path);
+	
+	wi_mutable_string_delete_last_path_component(string);
+	
+	wi_runtime_make_immutable(string);
+	
+	return wi_autorelease(string);
 }
 
 
 
 wi_string_t * wi_string_by_deleting_path_extension(wi_string_t *path) {
-	wi_string_t		*string;
+	wi_mutable_string_t		*string;
 	
-	string = wi_copy(path);
-	wi_string_delete_path_extension(string);
+	string = wi_mutable_copy(path);
+	
+	wi_mutable_string_delete_path_extension(string);
+	
+	wi_runtime_make_immutable(string);
 	
 	return wi_autorelease(string);
 }
@@ -1758,47 +1494,14 @@ wi_string_t * wi_string_base64(wi_string_t *string) {
 
 #ifdef WI_ICONV
 
-void wi_string_convert_encoding(wi_string_t *string, wi_string_encoding_t *from, wi_string_encoding_t *to) {
-	char		*in, *out, *buffer;
-	size_t		bytes, inbytes, outbytes, inbytesleft, outbytesleft;
-	iconv_t		conv;
-	
-	conv = iconv_open(wi_string_cstring(to->encoding), wi_string_cstring(from->encoding));
-	
-	if(conv == (iconv_t) -1)
-		return;
-	
-	inbytes = inbytesleft = string->length;
-	outbytes = outbytesleft = string->length * 4;
-	
-	buffer = wi_malloc(outbytes);
-	
-	in = string->string;
-	out = buffer;
-
-	bytes = iconv(conv, (void *) &in, &inbytesleft, (void *) &out, &outbytesleft);
-
-	if(bytes == (size_t) -1) {
-		wi_error_set_errno(errno);
-	} else {
-		string->string[0]	= '\0';
-		string->length		= 0;
-
-		wi_string_append_bytes(string, buffer, outbytes - outbytesleft);
-	}
-	
-	wi_free(buffer);
-	
-	iconv_close(conv);
-}
-
-
-
 wi_string_t * wi_string_by_converting_encoding(wi_string_t *string, wi_string_encoding_t *from, wi_string_encoding_t *to) {
 	wi_string_t		*newstring;
 	
-	newstring = wi_copy(string);
-	wi_string_convert_encoding(newstring, from, to);
+	newstring = wi_mutable_copy(string);
+	
+	wi_mutable_string_convert_encoding(newstring, from, to);
+	
+	wi_runtime_make_immutable(newstring);
 	
 	return wi_autorelease(newstring);
 }
@@ -1838,6 +1541,445 @@ wi_boolean_t wi_string_write_to_file(wi_string_t *string, wi_string_t *path) {
 }
 
 
+
+#pragma mark -
+
+void wi_mutable_string_set_cstring(wi_mutable_string_t *string, const char *othercstring) {
+	WI_RUNTIME_ASSERT_MUTABLE(string);
+	
+	if(string->string != othercstring) {
+		string->string[0]	= '\0';
+		string->length		= 0;
+
+		wi_mutable_string_append_cstring(string, othercstring);
+	}
+}
+
+
+
+void wi_mutable_string_set_string(wi_mutable_string_t *string, wi_string_t *otherstring) {
+	WI_RUNTIME_ASSERT_MUTABLE(string);
+	
+	wi_mutable_string_set_cstring(string, otherstring->string);
+}
+
+
+
+void wi_mutable_string_set_format(wi_mutable_string_t *string, wi_string_t *fmt, ...) {
+	va_list		ap;
+	
+	WI_RUNTIME_ASSERT_MUTABLE(string);
+	
+	va_start(ap, fmt);
+	wi_mutable_string_set_format_and_arguments(string, fmt, ap);
+	va_end(ap);
+}
+
+
+
+void wi_mutable_string_set_format_and_arguments(wi_mutable_string_t *string, wi_string_t *fmt, va_list ap) {
+	wi_string_t		*newstring;
+	
+	newstring = wi_string_init_with_format_and_arguments(wi_string_alloc(), fmt, ap);
+	wi_mutable_string_set_string(string, newstring);
+	wi_release(newstring);
+}
+
+
+
+#pragma mark -
+
+void wi_mutable_string_append_cstring(wi_mutable_string_t *string, const char *cstring) {
+	WI_RUNTIME_ASSERT_MUTABLE(string);
+	
+	_wi_string_append_bytes(string, cstring, strlen(cstring));
+}
+
+
+
+void wi_mutable_string_append_bytes(wi_mutable_string_t *string, const void *buffer, wi_uinteger_t length) {
+	WI_RUNTIME_ASSERT_MUTABLE(string);
+	
+	_wi_string_append_bytes(string, buffer, length);
+}
+
+
+
+void wi_mutable_string_append_string(wi_mutable_string_t *string, wi_string_t *otherstring) {
+	WI_RUNTIME_ASSERT_MUTABLE(string);
+	
+	wi_mutable_string_append_cstring(string, otherstring->string);
+}
+
+
+
+void wi_mutable_string_append_format(wi_mutable_string_t *string, wi_string_t *fmt, ...) {
+	va_list			ap;
+	
+	WI_RUNTIME_ASSERT_MUTABLE(string);
+	
+	va_start(ap, fmt);
+	_wi_string_append_arguments(string, wi_string_cstring(fmt), ap);
+	va_end(ap);
+}
+
+
+
+void wi_mutable_string_append_format_and_arguments(wi_mutable_string_t *string, wi_string_t *fmt, va_list ap) {
+	WI_RUNTIME_ASSERT_MUTABLE(string);
+	
+	_wi_string_append_arguments(string, wi_string_cstring(fmt), ap);
+}
+
+
+
+#pragma mark -
+
+void wi_mutable_string_insert_string_at_index(wi_mutable_string_t *string, wi_string_t *otherstring, wi_uinteger_t index) {
+	WI_RUNTIME_ASSERT_MUTABLE(string);
+	
+	wi_mutable_string_insert_cstring_at_index(string, otherstring->string, index);
+}
+
+
+
+void wi_mutable_string_insert_cstring_at_index(wi_mutable_string_t *string, const char *otherstring, wi_uinteger_t index) {
+	wi_uinteger_t		length;
+	
+	WI_RUNTIME_ASSERT_MUTABLE(string);
+	_WI_STRING_INDEX_ASSERT(string, index);
+	
+	length = strlen(otherstring);
+	
+	_WI_STRING_GROW(string, length);
+	
+	memmove(string->string + index + length,
+			string->string + index,
+			string->length);
+	
+	memmove(string->string + index, otherstring, length);
+	
+	string->length += length;
+	string->string[string->length] = '\0';
+}
+
+
+
+#pragma mark -
+
+void wi_mutable_string_replace_string_with_string(wi_mutable_string_t *string, wi_string_t *target, wi_string_t *replacement, wi_uinteger_t options) {
+	wi_range_t		range;
+	
+	WI_RUNTIME_ASSERT_MUTABLE(string);
+	
+	while((range = wi_string_range_of_string(string, target, options)).location != WI_NOT_FOUND) {
+		wi_mutable_string_delete_characters_in_range(string, range);
+		wi_mutable_string_insert_string_at_index(string, replacement, range.location);
+	}
+}
+
+
+
+#pragma mark -
+
+void wi_mutable_string_delete_characters_in_range(wi_mutable_string_t *string, wi_range_t range) {
+	WI_RUNTIME_ASSERT_MUTABLE(string);
+	_WI_STRING_RANGE_ASSERT(string, range);
+
+	if(range.location + range.length < string->length) {
+		memmove(string->string + range.location,
+				string->string + range.location + range.length,
+				string->length - range.location - range.length);
+	}
+	
+	string->length -= range.length;
+	string->string[string->length] = '\0';
+}
+
+
+
+void wi_mutable_string_delete_characters_from_index(wi_mutable_string_t *string, wi_uinteger_t index) {
+	WI_RUNTIME_ASSERT_MUTABLE(string);
+	
+	wi_mutable_string_delete_characters_in_range(string, wi_make_range(index, string->length - index));
+}
+
+
+
+void wi_mutable_string_delete_characters_to_index(wi_mutable_string_t *string, wi_uinteger_t index) {
+	WI_RUNTIME_ASSERT_MUTABLE(string);
+	
+	wi_mutable_string_delete_characters_in_range(string, wi_make_range(0, index));
+}
+
+
+
+static wi_boolean_t _wi_mutable_string_char_is_whitespace(char ch) {
+	return (ch == ' ' || ch == '\t' || ch == '\n');
+}
+
+
+
+void wi_mutable_string_delete_surrounding_whitespace(wi_mutable_string_t *string) {
+	WI_RUNTIME_ASSERT_MUTABLE(string);
+	
+	while(string->length > 0 && _wi_mutable_string_char_is_whitespace(string->string[0]))
+		wi_mutable_string_delete_characters_in_range(string, wi_make_range(0, 1));
+
+	while(string->length > 0 && _wi_mutable_string_char_is_whitespace(string->string[string->length - 1]))
+		wi_mutable_string_delete_characters_in_range(string, wi_make_range(string->length - 1, 1));
+}
+
+
+
+#pragma mark -
+
+void wi_mutable_string_normalize_path(wi_mutable_string_t *path) {
+	wi_mutable_array_t		*array;
+	wi_string_t				*component, *string;
+	wi_boolean_t			absolute;
+	wi_uinteger_t			i, count;
+	
+	WI_RUNTIME_ASSERT_MUTABLE(path);
+	
+	if(wi_string_length(path) == 0 || wi_is_equal(path, WI_STR("/")))
+	   return;
+
+	wi_mutable_string_expand_tilde_in_path(path);
+
+	absolute	= wi_string_has_prefix(path, WI_STR("/"));
+	array		= _wi_string_path_components(path);
+	count		= wi_array_count(array);
+	
+	for(i = 0; i < count; i++) {
+		component = WI_ARRAY(array, i);
+
+		if(wi_string_length(component) == 0 || wi_is_equal(component, WI_STR("/"))) {
+			wi_mutable_array_remove_data_at_index(array, i);
+
+			i--;
+			count--;
+		}
+		else if(wi_is_equal(component, WI_STR("."))) {
+			wi_mutable_array_remove_data_at_index(array, i);
+			
+			i--;
+			count--;
+		}
+		else if(absolute && wi_is_equal(component, WI_STR("..")) && i > 0) {
+			wi_mutable_array_remove_data_at_index(array, i - 1);
+			wi_mutable_array_remove_data_at_index(array, i - 1);
+			
+			i -= 2;
+			count -= 2;
+		}
+	}
+	
+	string = wi_array_components_joined_by_string(array, WI_STR("/"));
+	
+	if(wi_string_has_prefix(path, WI_STR("/")))
+		wi_mutable_string_set_format(path, WI_STR("/%@"), string);
+	else
+		wi_mutable_string_set_string(path, string);
+}
+
+
+
+#ifdef HAVE_CARBON_CARBON_H
+
+static void _wi_mutable_string_resolve_mac_alias_in_path(wi_mutable_string_t *path) {
+	FSRef		fsRef;
+	Boolean		isDir, isAlias;
+
+	if(FSPathMakeRef((UInt8 *) path->string, &fsRef, NULL) != noErr)
+		return;
+	
+	if(FSIsAliasFile(&fsRef, &isAlias, &isDir) != noErr)
+		return;
+	
+	if(!isAlias)
+		return;
+
+	if(FSResolveAliasFileWithMountFlags(&fsRef, true, &isDir, &isAlias, kResolveAliasFileNoUI | kResolveAliasTryFileIDFirst) != noErr)
+		return;
+
+	if(FSRefMakePath(&fsRef, (UInt8 *) path->string, WI_PATH_SIZE) != noErr)
+		return;
+	
+	path->length = strlen(path->string);
+}
+
+#endif
+
+
+
+void wi_mutable_string_resolve_aliases_in_path(wi_mutable_string_t *path) {
+	wi_string_t		*component, *partialpath;
+	wi_array_t		*components;
+	wi_uinteger_t	i, count;
+	
+	WI_RUNTIME_ASSERT_MUTABLE(path);
+	
+	components = wi_string_path_components(path);
+	count = wi_array_count(components);
+	partialpath = wi_string_init_with_capacity(wi_string_alloc(), WI_PATH_SIZE);
+	
+	for(i = 0; i < count; i++) {
+		component = WI_ARRAY(components, i);
+		
+		wi_mutable_string_append_path_component(partialpath, component);
+		
+#ifdef HAVE_CARBON_CARBON_H
+		_wi_mutable_string_resolve_mac_alias_in_path(partialpath);
+#endif
+	}
+	
+	wi_mutable_string_set_string(path, partialpath);
+
+	wi_release(partialpath);
+}
+
+
+
+void wi_mutable_string_expand_tilde_in_path(wi_mutable_string_t *path) {
+	wi_array_t		*array;
+	wi_string_t		*component, *string;
+	struct passwd	*user;
+	wi_uinteger_t	length;
+	
+	WI_RUNTIME_ASSERT_MUTABLE(path);
+	
+	if(!wi_string_has_prefix(path, WI_STR("~")))
+		return;
+
+	array		= wi_string_path_components(path);
+	component	= WI_ARRAY(array, 0);
+	length		= wi_string_length(component);
+	
+	if(length == 1) {
+		user = getpwuid(getuid());
+	} else {
+		wi_mutable_string_delete_characters_to_index(component, 1);
+		
+		user = getpwnam(wi_string_cstring(component));
+	}
+	
+	if(user) {
+		wi_mutable_string_delete_characters_to_index(path, length);
+		
+		string = wi_string_init_with_cstring(wi_string_alloc(), user->pw_dir);
+		wi_mutable_string_insert_string_at_index(path, string, 0);
+		wi_release(string);
+	}
+}
+
+
+
+void wi_mutable_string_append_path_component(wi_mutable_string_t *path, wi_string_t *component) {
+	WI_RUNTIME_ASSERT_MUTABLE(path);
+	
+	if(wi_string_length(path) == 0) {
+		wi_mutable_string_append_string(path, component);
+	}
+	else if(wi_string_has_suffix(path, WI_STR("/"))) {
+		if(wi_string_has_prefix(component, WI_STR("/")))
+		   wi_mutable_string_delete_characters_from_index(path, path->length - 1);
+
+		wi_mutable_string_append_string(path, component);
+	}
+	else if(!wi_is_equal(component, WI_STR("/"))) {
+	   wi_mutable_string_append_format(path, WI_STR("/%@"), component);
+	}
+}
+
+
+
+void wi_mutable_string_delete_last_path_component(wi_mutable_string_t *path) {
+	wi_mutable_array_t		*array;
+	wi_string_t				*string;
+	wi_uinteger_t			count;
+	
+	WI_RUNTIME_ASSERT_MUTABLE(path);
+	
+	if(wi_is_equal(path, WI_STR("/")))
+		return;
+	
+	array = _wi_string_path_components(path);
+	count = wi_array_count(array);
+	
+	if(count > 0) {
+		wi_mutable_array_remove_data_at_index(array, count - 1);
+		
+		string = wi_array_components_joined_by_string(array, WI_STR("/"));
+		wi_mutable_string_set_string(path, string);
+		wi_mutable_string_normalize_path(path);
+	}
+}
+
+
+
+void wi_mutable_string_append_path_extension(wi_mutable_string_t *path, wi_string_t *extension) {
+	WI_RUNTIME_ASSERT_MUTABLE(path);
+	
+	wi_mutable_string_append_format(path, WI_STR(".%@"), extension);
+}
+
+
+
+void wi_mutable_string_delete_path_extension(wi_mutable_string_t *path) {
+	wi_uinteger_t	index;
+	
+	WI_RUNTIME_ASSERT_MUTABLE(path);
+	
+	index = wi_string_index_of_char(path, '.', WI_STRING_BACKWARDS);
+
+	if(index != WI_NOT_FOUND)
+		wi_mutable_string_delete_characters_from_index(path, index);
+}
+
+
+
+#pragma mark -
+
+#ifdef WI_ICONV
+
+void wi_mutable_string_convert_encoding(wi_mutable_string_t *string, wi_string_encoding_t *from, wi_string_encoding_t *to) {
+	char		*in, *out, *buffer;
+	size_t		bytes, inbytes, outbytes, inbytesleft, outbytesleft;
+	iconv_t		conv;
+	
+	WI_RUNTIME_ASSERT_MUTABLE(string);
+	
+	conv = iconv_open(wi_string_cstring(to->encoding), wi_string_cstring(from->encoding));
+	
+	if(conv == (iconv_t) -1)
+		return;
+	
+	inbytes = inbytesleft = string->length;
+	outbytes = outbytesleft = string->length * 4;
+	
+	buffer = wi_malloc(outbytes);
+	
+	in = string->string;
+	out = buffer;
+
+	bytes = iconv(conv, (void *) &in, &inbytesleft, (void *) &out, &outbytesleft);
+
+	if(bytes == (size_t) -1) {
+		wi_error_set_errno(errno);
+	} else {
+		string->string[0]	= '\0';
+		string->length		= 0;
+
+		_wi_string_append_bytes(string, buffer, outbytes - outbytesleft);
+	}
+	
+	wi_free(buffer);
+	
+	iconv_close(conv);
+}
+
+#endif
 
 #pragma mark -
 

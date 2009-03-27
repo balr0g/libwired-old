@@ -332,12 +332,13 @@ static wi_boolean_t _wi_set_is_equal(wi_runtime_instance_t *instance1, wi_runtim
 
 
 static wi_string_t * _wi_set_description(wi_runtime_instance_t *instance) {
-	wi_set_t			*set = instance;
-	_wi_set_bucket_t	*bucket;
-	wi_string_t			*string, *description;
-	wi_uinteger_t		i;
+	wi_set_t				*set = instance;
+	_wi_set_bucket_t		*bucket;
+	wi_mutable_string_t		*string;
+	wi_string_t				*description;
+	wi_uinteger_t			i;
 
-	string = wi_string_with_format(WI_STR("<%@ %p>{count = %lu, mutable = %u, values = (\n"),
+	string = wi_mutable_string_with_format(WI_STR("<%@ %p>{count = %lu, mutable = %u, values = (\n"),
 		wi_runtime_class_name(set),
 		set,
 		set->data_count,
@@ -350,11 +351,13 @@ static wi_string_t * _wi_set_description(wi_runtime_instance_t *instance) {
 			else
 				description = wi_string_with_format(WI_STR("%p"), bucket->data);
 
-			wi_string_append_format(string, WI_STR("    %@\n"), description);
+			wi_mutable_string_append_format(string, WI_STR("    %@\n"), description);
 		}
 	}
 	
-	wi_string_append_string(string, WI_STR(")}"));
+	wi_mutable_string_append_string(string, WI_STR(")}"));
+	
+	wi_runtime_make_immutable(string);
 
 	return string;
 }

@@ -480,12 +480,13 @@ static wi_boolean_t _wi_array_is_equal(wi_runtime_instance_t *instance1, wi_runt
 
 
 static wi_string_t * _wi_array_description(wi_runtime_instance_t *instance) {
-	wi_array_t			*array = instance;
-	wi_string_t			*string, *description;
-	void				*data;
-	wi_uinteger_t		i;
+	wi_array_t				*array = instance;
+	wi_mutable_string_t		*string;
+	wi_string_t				*description;
+	void					*data;
+	wi_uinteger_t			i;
 	
-	string = wi_string_with_format(WI_STR("<%@ %p>{count = %lu, mutable = %u, values = (\n"),
+	string = wi_mutable_string_with_format(WI_STR("<%@ %p>{count = %lu, mutable = %u, values = (\n"),
 		wi_runtime_class_name(array),
 		array,
 		array->data_count,
@@ -499,10 +500,12 @@ static wi_string_t * _wi_array_description(wi_runtime_instance_t *instance) {
 		else
 			description = wi_string_with_format(WI_STR("%p"), data);
 		
-		wi_string_append_format(string, WI_STR("    %lu: %@\n"), i, description);
+		wi_mutable_string_append_format(string, WI_STR("    %lu: %@\n"), i, description);
 	}
 	
-	wi_string_append_string(string, WI_STR(")}"));
+	wi_mutable_string_append_string(string, WI_STR(")}"));
+	
+	wi_runtime_make_immutable(string);
 	
 	return string;
 }
@@ -624,11 +627,12 @@ void wi_array_get_data_in_range(wi_array_t *array, void **data, wi_range_t range
 
 
 wi_string_t * wi_array_components_joined_by_string(wi_array_t *array, wi_string_t *separator) {
-	wi_string_t		*string, *description;
-	void			*data;
-	wi_uinteger_t	i;
+	wi_mutable_string_t		*string;
+	wi_string_t				*description;
+	void					*data;
+	wi_uinteger_t			i;
 	
-	string = wi_string_init(wi_string_alloc());
+	string = wi_string_init(wi_mutable_string_alloc());
 	
 	for(i = 0; i < array->data_count; i++) {
 		data = WI_ARRAY(array, i);
@@ -638,11 +642,13 @@ wi_string_t * wi_array_components_joined_by_string(wi_array_t *array, wi_string_
 		else
 			description = wi_string_with_format(WI_STR("%p"), data);
 		
-		wi_string_append_string(string, description);
+		wi_mutable_string_append_string(string, description);
 	
 		if(i < array->data_count - 1)
-			wi_string_append_string(string, separator);
+			wi_mutable_string_append_string(string, separator);
 	}
+	
+	wi_runtime_make_immutable(string);
 	
 	return wi_autorelease(string);
 }
