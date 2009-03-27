@@ -126,7 +126,7 @@ static wi_boolean_t						_wi_socket_get_option_int(wi_socket_t *, int, int, int 
 
 
 #if defined(HAVE_OPENSSL_SSL_H) && defined(WI_PTHREADS)
-static wi_array_t						*_wi_socket_ssl_locks;
+static wi_mutable_array_t				*_wi_socket_ssl_locks;
 #endif
 
 #ifdef HAVE_OPENSSL_SSL_H
@@ -176,11 +176,11 @@ void wi_socket_initialize(void) {
 
 #ifdef WI_PTHREADS
 	count = CRYPTO_num_locks();
-	_wi_socket_ssl_locks = wi_array_init_with_capacity(wi_array_alloc(), count);
+	_wi_socket_ssl_locks = wi_array_init_with_capacity(wi_mutable_array_alloc(), count);
 	
 	for(i = 0; i < count; i++) {
 		lock = wi_lock_init(wi_lock_alloc());
-		wi_array_add_data(_wi_socket_ssl_locks, lock);
+		wi_mutable_array_add_data(_wi_socket_ssl_locks, lock);
 		wi_release(lock);
 	}
 
