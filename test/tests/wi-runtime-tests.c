@@ -47,7 +47,6 @@ typedef struct _wi_runtimetest			_wi_mutable_runtimetest_t;
 
 
 static _wi_runtimetest_t *				_wi_runtimetest_alloc(void);
-static _wi_mutable_runtimetest_t *		_wi_mutable_runtimetest_alloc(void);
 static _wi_runtimetest_t *				_wi_runtimetest_init_with_value(_wi_runtimetest_t *, wi_uinteger_t);
 static void								_wi_runtimetest_dealloc(wi_runtime_instance_t *);
 static wi_runtime_instance_t *			_wi_runtimetest_copy(wi_runtime_instance_t *);
@@ -79,12 +78,6 @@ void wi_test_runtime_initialize(void) {
 
 static _wi_runtimetest_t * _wi_runtimetest_alloc(void) {
 	return wi_runtime_create_instance_with_options(_wi_runtimetest_runtime_id, sizeof(_wi_runtimetest_t), WI_RUNTIME_OPTION_IMMUTABLE);
-}
-
-
-
-static _wi_mutable_runtimetest_t * _wi_mutable_runtimetest_alloc(void) {
-	return wi_runtime_create_instance_with_options(_wi_runtimetest_runtime_id, sizeof(_wi_runtimetest_t), WI_RUNTIME_OPTION_MUTABLE);
 }
 
 
