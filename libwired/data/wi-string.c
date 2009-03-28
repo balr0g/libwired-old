@@ -1259,6 +1259,20 @@ wi_string_t * wi_string_by_appending_path_component(wi_string_t *path, wi_string
 
 
 
+wi_string_t * wi_string_by_appending_path_components(wi_string_t *path, wi_array_t *components) {
+	wi_mutable_string_t		*string;
+	
+	string = wi_mutable_copy(path);
+	
+	wi_mutable_string_append_path_components(string, components);
+	
+	wi_runtime_make_immutable(string);
+	
+	return wi_autorelease(string);
+}
+
+
+
 wi_string_t * wi_string_last_path_component(wi_string_t *path) {
 	wi_range_t			range;
 	wi_uinteger_t		length, index;
@@ -1905,6 +1919,19 @@ void wi_mutable_string_append_path_component(wi_mutable_string_t *path, wi_strin
 	else if(!wi_is_equal(component, WI_STR("/"))) {
 	   wi_mutable_string_append_format(path, WI_STR("/%@"), component);
 	}
+}
+
+
+
+void wi_mutable_string_append_path_components(wi_mutable_string_t *path, wi_array_t *components) {
+	wi_uinteger_t		i, count;
+	
+	WI_RUNTIME_ASSERT_MUTABLE(path);
+	
+	count = wi_array_count(components);
+	
+	for(i = 0; i < count; i++)
+		wi_mutable_string_append_path_component(path, WI_ARRAY(components, i));
 }
 
 
