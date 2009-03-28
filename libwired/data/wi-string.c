@@ -1843,15 +1843,16 @@ static void _wi_mutable_string_resolve_mac_alias_in_path(wi_mutable_string_t *pa
 
 
 void wi_mutable_string_resolve_aliases_in_path(wi_mutable_string_t *path) {
-	wi_string_t		*component, *partialpath;
-	wi_array_t		*components;
-	wi_uinteger_t	i, count;
+	wi_mutable_string_t		*partialpath;
+	wi_string_t				*component;
+	wi_array_t				*components;
+	wi_uinteger_t			i, count;
 	
 	WI_RUNTIME_ASSERT_MUTABLE(path);
 	
-	components = wi_string_path_components(path);
-	count = wi_array_count(components);
-	partialpath = wi_string_init_with_capacity(wi_string_alloc(), WI_PATH_SIZE);
+	components		= wi_string_path_components(path);
+	count			= wi_array_count(components);
+	partialpath		= wi_string_init_with_capacity(wi_mutable_string_alloc(), WI_PATH_SIZE);
 	
 	for(i = 0; i < count; i++) {
 		component = WI_ARRAY(components, i);
