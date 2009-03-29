@@ -226,7 +226,7 @@ wi_boolean_t wi_config_write_file(wi_config_t *config) {
 	wi_enumerator_t		*enumerator;
 	wi_file_t			*file, *tmpfile;
 	wi_string_t			*string, *name, *value;
-	wi_set_t			*keys;
+	wi_mutable_set_t	*keys;
 	wi_boolean_t		write;
 	
 	file = wi_file_for_updating(config->path);
@@ -242,7 +242,7 @@ wi_boolean_t wi_config_write_file(wi_config_t *config) {
 	
 	wi_lock_lock(config->lock);
 	
-	keys = wi_autorelease(wi_copy(config->changes));
+	keys = wi_autorelease(wi_mutable_copy(config->changes));
 
 	while((string = wi_file_read_line(file))) {
 		if(wi_string_length(string) == 0) {
