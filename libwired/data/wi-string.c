@@ -344,7 +344,7 @@ wi_string_t * wi_string_init_with_bytes(wi_string_t *string, const void *buffer,
 
 
 wi_string_t * wi_string_init_with_bytes_no_copy(wi_string_t *string, void *buffer, wi_uinteger_t size, wi_boolean_t free) {
-	string->length		= strlen(buffer);
+	string->length		= size;
 	string->capacity	= string->length + 1;
 	string->string		= buffer;
 	string->free		= free;
@@ -790,7 +790,7 @@ static void _wi_string_append_bytes(wi_string_t *string, const void *buffer, wi_
 wi_string_t * wi_string_by_appending_cstring(wi_string_t *string, const char *cstring) {
 	wi_mutable_string_t		*newstring;
 	
-	newstring = wi_copy(string);
+	newstring = wi_mutable_copy(string);
 	
 	wi_mutable_string_append_cstring(newstring, cstring);
 	
