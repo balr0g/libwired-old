@@ -184,8 +184,12 @@ wi_lock_t * wi_lock_init(wi_lock_t *lock) {
 static void _wi_lock_dealloc(wi_runtime_instance_t *instance) {
 #ifdef WI_PTHREADS
 	wi_lock_t		*lock = instance;
+	int				err;
 
-	pthread_mutex_destroy(&lock->mutex);
+	err = pthread_mutex_destroy(&lock->mutex);
+	
+	if(err != 0)
+		WI_ASSERT(0, "pthread_mutex_destroy: %s", strerror(err));
 #endif
 }
 
@@ -265,8 +269,12 @@ wi_recursive_lock_t * wi_recursive_lock_init(wi_recursive_lock_t *lock) {
 static void _wi_recursive_lock_dealloc(wi_runtime_instance_t *instance) {
 #ifdef WI_PTHREADS
 	wi_recursive_lock_t		*lock = instance;
+	int						err;
+
+	err = pthread_mutex_destroy(&lock->mutex);
 	
-	pthread_mutex_destroy(&lock->mutex);
+	if(err != 0)
+		WI_ASSERT(0, "pthread_mutex_destroy: %s", strerror(err));
 #endif
 }
 
@@ -455,9 +463,17 @@ wi_condition_lock_t * wi_condition_lock_init_with_condition(wi_condition_lock_t 
 static void _wi_condition_lock_dealloc(wi_runtime_instance_t *instance) {
 #ifdef WI_PTHREADS
 	wi_condition_lock_t		*lock = instance;
+	int				err;
+
+	err = pthread_mutex_destroy(&lock->mutex);
 	
-	pthread_mutex_destroy(&lock->mutex);
-	pthread_cond_destroy(&lock->cond);
+	if(err != 0)
+		WI_ASSERT(0, "pthread_mutex_destroy: %s", strerror(err));
+	
+	err = pthread_cond_destroy(&lock->cond);
+	
+	if(err != 0)
+		WI_ASSERT(0, "pthread_cond_destroy: %s", strerror(err));
 #endif
 }
 
