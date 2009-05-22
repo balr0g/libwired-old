@@ -413,7 +413,7 @@ static wi_boolean_t _wi_fs_copy_directory(wi_string_t *frompath, wi_string_t *to
 	wi_uinteger_t			pathlength;
 	wi_boolean_t			result = true;
 
-	paths[0] = (char *) wi_string_cstring(frompath);;
+	paths[0] = (char *) wi_string_cstring(frompath);
 	paths[1] = NULL;
 
 	fts = wi_fts_open(paths, WI_FTS_LOGICAL | WI_FTS_NOSTAT, NULL);
@@ -424,8 +424,8 @@ static wi_boolean_t _wi_fs_copy_directory(wi_string_t *frompath, wi_string_t *to
 	pathlength = wi_string_length(frompath);
 
 	while((p = wi_fts_read(fts))) {
-		path		= wi_string_init_with_cstring(wi_mutable_string_alloc(), p->fts_path);
-		newpath		= wi_string_init_with_cstring(wi_string_alloc(), p->fts_path + pathlength);
+		path		= wi_string_init_with_cstring(wi_string_alloc(), p->fts_path);
+		newpath		= wi_string_init_with_cstring(wi_mutable_string_alloc(), p->fts_path + pathlength);
 
 		wi_mutable_string_insert_string_at_index(newpath, topath, 0);		
 
