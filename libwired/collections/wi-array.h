@@ -101,6 +101,7 @@ WI_EXPORT void							wi_mutable_array_set_array(wi_mutable_array_t *, wi_array_t
 WI_EXPORT void							wi_mutable_array_remove_data(wi_mutable_array_t *, void *);
 WI_EXPORT void							wi_mutable_array_remove_data_at_index(wi_mutable_array_t *, wi_uinteger_t);
 WI_EXPORT void							wi_mutable_array_remove_data_in_range(wi_mutable_array_t *, wi_range_t);
+WI_EXPORT void							wi_mutable_array_remove_data_in_array(wi_mutable_array_t *, wi_array_t *);
 WI_EXPORT void							wi_mutable_array_remove_all_data(wi_mutable_array_t *);
 
 WI_EXPORT void							wi_mutable_array_sort(wi_mutable_array_t *, wi_compare_func_t *);

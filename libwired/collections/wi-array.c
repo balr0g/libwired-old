@@ -1064,6 +1064,23 @@ void wi_mutable_array_remove_data_in_range(wi_mutable_array_t *array, wi_range_t
 
 
 
+void wi_mutable_array_remove_data_in_array(wi_mutable_array_t *array, wi_array_t *otherarray) {
+	wi_uinteger_t		i, count, index;
+	
+	WI_RUNTIME_ASSERT_MUTABLE(array);
+	
+	count = wi_array_count(otherarray);
+	
+	for(i = 0; i < count; i++) {
+		index = wi_array_index_of_data(array, WI_ARRAY(otherarray, i));
+		
+		if(index != WI_NOT_FOUND)
+			wi_mutable_array_remove_data_at_index(array, index);
+	}
+}
+
+
+
 void wi_mutable_array_remove_all_data(wi_mutable_array_t *array) {
 	WI_RUNTIME_ASSERT_MUTABLE(array);
 	
