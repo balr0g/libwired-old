@@ -121,7 +121,7 @@ WI_EXPORT wi_socket_t *					wi_socket_wait_multiple(wi_array_t *, wi_time_interv
 WI_EXPORT wi_socket_state_t				wi_socket_wait(wi_socket_t *, wi_time_interval_t);
 WI_EXPORT wi_socket_state_t				wi_socket_wait_descriptor(int, wi_time_interval_t, wi_boolean_t, wi_boolean_t);
 
-WI_EXPORT wi_boolean_t					wi_socket_listen(wi_socket_t *, wi_uinteger_t);
+WI_EXPORT wi_boolean_t					wi_socket_listen(wi_socket_t *);
 WI_EXPORT wi_boolean_t					wi_socket_connect(wi_socket_t *, wi_time_interval_t);
 WI_EXPORT wi_boolean_t					wi_socket_connect_tls(wi_socket_t *, wi_socket_tls_t *, wi_time_interval_t);
 WI_EXPORT wi_socket_t *					wi_socket_accept_multiple(wi_array_t *, wi_time_interval_t, wi_address_t **);

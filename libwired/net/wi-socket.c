@@ -958,7 +958,7 @@ wi_socket_state_t wi_socket_wait_descriptor(int sd, wi_time_interval_t timeout, 
 
 #pragma mark -
 
-wi_boolean_t wi_socket_listen(wi_socket_t *socket, wi_uinteger_t backlog) {
+wi_boolean_t wi_socket_listen(wi_socket_t *socket) {
 	struct sockaddr				*sa;
 	struct sockaddr_storage		ss;
 	wi_uinteger_t				port;
@@ -975,7 +975,7 @@ wi_boolean_t wi_socket_listen(wi_socket_t *socket, wi_uinteger_t backlog) {
 	}
 
 	if(socket->type == WI_SOCKET_TCP) {
-		if(listen(socket->sd, backlog) < 0) {
+		if(listen(socket->sd, SOMAXCONN) < 0) {
 			wi_error_set_errno(errno);
 
 			return false;
