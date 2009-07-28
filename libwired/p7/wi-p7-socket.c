@@ -1369,19 +1369,24 @@ static wi_boolean_t _wi_p7_socket_configure_compression(wi_p7_socket_t *p7_socke
 
 static wi_integer_t _wi_p7_socket_deflate(wi_p7_socket_t *p7_socket, const void *in_buffer, uint32_t in_size) {
 	wi_integer_t	bytes;
+	size_t			length;
 	int				err, enderr;
 	
-	p7_socket->compression_buffer_length = (in_size * 2) + 16;
+	length = (in_size * 2) + 16;
 
-	if(!p7_socket->compression_buffer)
-		p7_socket->compression_buffer = wi_malloc(p7_socket->compression_buffer_length);
-	else
-		p7_socket->compression_buffer = wi_realloc(p7_socket->compression_buffer, p7_socket->compression_buffer_length);
+	if(!p7_socket->compression_buffer) {
+		p7_socket->compression_buffer			= wi_malloc(length);
+		p7_socket->compression_buffer_length	= length;
+	}
+	else if(p7_socket->compression_buffer_length < length) {
+		p7_socket->compression_buffer			= wi_realloc(p7_socket->compression_buffer, length);
+		p7_socket->compression_buffer_length	= length;
+	}
 
-	p7_socket->deflate_stream.next_in		= (unsigned char *) in_buffer;
-	p7_socket->deflate_stream.avail_in		= in_size;
-	p7_socket->deflate_stream.next_out		= p7_socket->compression_buffer;
-	p7_socket->deflate_stream.avail_out		= p7_socket->compression_buffer_length;
+	p7_socket->deflate_stream.next_in			= (unsigned char *) in_buffer;
+	p7_socket->deflate_stream.avail_in			= in_size;
+	p7_socket->deflate_stream.next_out			= p7_socket->compression_buffer;
+	p7_socket->deflate_stream.avail_out			= p7_socket->compression_buffer_length;
 	
 	err		= deflate(&p7_socket->deflate_stream, Z_FINISH);
 	bytes	= p7_socket->deflate_stream.total_out;
