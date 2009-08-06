@@ -1966,6 +1966,9 @@ static _wi_p7_spec_collection_t * _wi_p7_spec_collection_with_node(wi_p7_spec_t 
 	
 	for(member_node = node->children; member_node != NULL; member_node = member_node->next) {
 		if(member_node->type == XML_ELEMENT_NODE) {
+			if(strcmp((const char *) member_node->name, "documentation") == 0)
+				continue;
+			
 			if(strcmp((const char *) member_node->name, "member") != 0) {
 				wi_error_set_libwired_error_with_format(WI_ERROR_P7_INVALIDSPEC,
 					WI_STR("Expected \"member\" node but got \"%s\""),
@@ -2073,6 +2076,9 @@ static wi_p7_spec_message_t * _wi_p7_spec_message_with_node(wi_p7_spec_t *p7_spe
 
 	for(parameter_node = node->children; parameter_node != NULL; parameter_node = parameter_node->next) {
 		if(parameter_node->type == XML_ELEMENT_NODE) {
+			if(strcmp((const char *) parameter_node->name, "documentation") == 0)
+				continue;
+			
 			if(strcmp((const char *) parameter_node->name, "parameter") != 0) {
 				wi_error_set_libwired_error_with_format(WI_ERROR_P7_INVALIDSPEC,
 					WI_STR("Expected \"parameter\" node but got \"%s\""),
@@ -2492,6 +2498,9 @@ static _wi_p7_spec_andor_t * _wi_p7_spec_andor(_wi_p7_spec_andor_type_t type, wi
 
 	for(andor_node = node->children; andor_node != NULL; andor_node = andor_node->next) {
 		if(andor_node->type == XML_ELEMENT_NODE) {
+			if(strcmp((const char *) andor_node->name, "documentation") == 0)
+				continue;
+			
 			if(strcmp((const char *) andor_node->name, "reply") == 0) {
 				reply = _wi_p7_spec_reply_with_node(p7_spec, andor_node, transaction);
 
