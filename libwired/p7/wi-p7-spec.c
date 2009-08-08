@@ -822,6 +822,9 @@ static wi_boolean_t _wi_p7_spec_load_spec(wi_p7_spec_t *p7_spec, xmlDocPtr doc) 
 
 	for(node = root_node->children; node != NULL; node = node->next) {
 		if(node->type == XML_ELEMENT_NODE) {
+			if(strcmp((const char *) node->name, "documentation") == 0)
+				continue;
+
 			if(strcmp((const char *) node->name, "types") == 0) {
 				if(!_wi_p7_spec_load_types(p7_spec, node))
 					return false;
@@ -845,6 +848,13 @@ static wi_boolean_t _wi_p7_spec_load_spec(wi_p7_spec_t *p7_spec, xmlDocPtr doc) 
 			else if(strcmp((const char *) node->name, "broadcasts") == 0) {
 				if(!_wi_p7_spec_load_broadcasts(p7_spec, node))
 					return false;
+			}
+			else {
+				wi_error_set_libwired_error_with_format(WI_ERROR_P7_INVALIDSPEC,
+					WI_STR("Expected \"types\", \"fields\", \"collections\", \"messages\", \"transactions\" or \"broadcasts\" node but got \"%s\""),
+					node->name);
+				
+				return false;
 			}
 		}
 	}
