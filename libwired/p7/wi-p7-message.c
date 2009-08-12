@@ -1504,22 +1504,35 @@ wi_date_t * wi_p7_message_date_for_name(wi_p7_message_t *p7_message, wi_string_t
 wi_boolean_t wi_p7_message_set_list_for_name(wi_p7_message_t *p7_message, wi_array_t *list, wi_string_t *field_name) {
 	wi_runtime_instance_t	*instance;
 	unsigned char			*binary;
+	wi_runtime_id_t			first_id, id;
 	wi_uinteger_t			i, count, offset;
 	uint32_t				field_id, field_size, string_size;
 	
 	count = wi_array_count(list);
 	field_size = 0;
 	
-	for(i = 0; i < count; i++) {
-		instance = WI_ARRAY(list, i);
-		
-		if(wi_runtime_id(instance) == wi_string_runtime_id()) {
-			field_size += 4 + wi_string_length(instance) + 1;
-		} else {
-			wi_error_set_libwired_error_with_format(WI_ERROR_P7_UNKNOWNFIELD,
-				WI_STR("Unhandled type %@ in list"), wi_runtime_class_name(instance));
+	if(count > 0) {
+		first_id = wi_runtime_id(wi_array_first_data(list));
+	
+		for(i = 0; i < count; i++) {
+			instance = WI_ARRAY(list, i);
+			id = wi_runtime_id(instance);
 			
-			return false;
+			if(id != first_id) {
+				wi_error_set_libwired_error_with_format(WI_ERROR_P7_UNKNOWNFIELD,
+					WI_STR("Mixed types in list"));
+				
+				return false;
+			}
+			
+			if(id == wi_string_runtime_id()) {
+				field_size += 4 + wi_string_length(instance) + 1;
+			} else {
+				wi_error_set_libwired_error_with_format(WI_ERROR_P7_UNKNOWNFIELD,
+					WI_STR("Unhandled type %@ in list"), wi_runtime_class_name(instance));
+				
+				return false;
+			}
 		}
 	}
 	
