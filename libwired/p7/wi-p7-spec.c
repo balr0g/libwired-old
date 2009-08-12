@@ -1855,6 +1855,9 @@ static wi_p7_spec_field_t * _wi_p7_spec_field_with_node(wi_p7_spec_t *p7_spec, x
 		
 		for(enum_node = node->children; enum_node != NULL; enum_node = enum_node->next) {
 			if(enum_node->type == XML_ELEMENT_NODE) {
+				if(strcmp((const char *) enum_node->name, "documentation") == 0)
+					continue;
+				
 				if(strcmp((const char *) enum_node->name, "enum") != 0) {
 					wi_error_set_libwired_error_with_format(WI_ERROR_P7_INVALIDSPEC,
 						WI_STR("Expected \"enum\" node but got \"%s\""),
