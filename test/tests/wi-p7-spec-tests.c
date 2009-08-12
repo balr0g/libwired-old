@@ -91,7 +91,8 @@ void wi_test_p7_spec_string(void) {
 	wi_p7_spec_t	*p7_spec;
 	wi_string_t		*string;
 	
-	string = wi_autorelease(wi_string_init_with_contents_of_file(wi_string_alloc(), wi_string_by_appending_path_component(wi_test_fixture_path, WI_STR("wi-p7-spec-tests-1.xml"))));
+	string = wi_autorelease(wi_string_init_with_contents_of_file(wi_string_alloc(),
+		wi_string_by_appending_path_component(wi_test_fixture_path, WI_STR("wi-p7-spec-tests-1.xml"))));
 	p7_spec = wi_autorelease(wi_p7_spec_init_with_string(wi_p7_spec_alloc(), string, WI_P7_CLIENT));
 	
 	WI_TEST_ASSERT_NOT_NULL(p7_spec, "%m");
