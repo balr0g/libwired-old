@@ -78,7 +78,7 @@ void wi_test_p7_spec_builtin(void) {
 	WI_TEST_ASSERT_EQUALS(wi_p7_spec_type_size(wi_p7_spec_type_with_id(p7_spec, WI_P7_DOUBLE)), 8U, "");
 	WI_TEST_ASSERT_EQUALS(wi_p7_spec_type_size(wi_p7_spec_type_with_id(p7_spec, WI_P7_STRING)), 0U, "");
 	WI_TEST_ASSERT_EQUALS(wi_p7_spec_type_size(wi_p7_spec_type_with_id(p7_spec, WI_P7_UUID)), 16U, "");
-	WI_TEST_ASSERT_EQUALS(wi_p7_spec_type_size(wi_p7_spec_type_with_id(p7_spec, WI_P7_DATE)), 26U, "");
+	WI_TEST_ASSERT_EQUALS(wi_p7_spec_type_size(wi_p7_spec_type_with_id(p7_spec, WI_P7_DATE)), 8U, "");
 	WI_TEST_ASSERT_EQUALS(wi_p7_spec_type_size(wi_p7_spec_type_with_id(p7_spec, WI_P7_DATA)), 0U, "");
 	WI_TEST_ASSERT_EQUALS(wi_p7_spec_type_size(wi_p7_spec_type_with_id(p7_spec, WI_P7_OOBDATA)), 8U, "");
 #endif

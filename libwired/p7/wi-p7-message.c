@@ -1465,38 +1465,25 @@ wi_uuid_t * wi_p7_message_uuid_for_name(wi_p7_message_t *p7_message, wi_string_t
 
 
 wi_boolean_t wi_p7_message_set_date_for_name(wi_p7_message_t *p7_message, wi_date_t *date, wi_string_t *field_name) {
-	wi_string_t		*string;
-	unsigned char	*binary;
-	uint32_t		field_id, field_size;
+	wi_time_interval_t	interval;
 	
 	if(!date)
 		date = wi_date();
 	
-	string = wi_date_rfc3339_string(date);
-	field_size = wi_string_length(string) + 1;
+	interval = wi_date_time_interval(date);
 	
-	if(!_wi_p7_message_get_binary_buffer_for_writing_for_name(p7_message, field_name, 0, &binary, &field_id))
-		return false;
-	
-	wi_write_swap_host_to_big_int32(binary, 0, field_id);
-	
-	memcpy(binary + 4, wi_string_cstring(string), field_size);
-	
-	return true;
+	return wi_p7_message_set_double_for_name(p7_message, interval, field_name);
 }
 
 
 
 wi_date_t * wi_p7_message_date_for_name(wi_p7_message_t *p7_message, wi_string_t *field_name) {
-	unsigned char	*binary;
-	uint32_t		field_size;
+	wi_time_interval_t	interval;
 	
-	if(!_wi_p7_message_get_binary_buffer_for_reading_for_name(p7_message, field_name, &binary, &field_size))
+	if(!wi_p7_message_get_double_for_name(p7_message, &interval, field_name))
 		return NULL;
 	
-	return wi_date_with_rfc3339_string(wi_string_with_bytes_no_copy(binary, field_size - 1, false));
-	
-	return NULL;
+	return wi_date_with_time_interval(interval);
 }
 
 

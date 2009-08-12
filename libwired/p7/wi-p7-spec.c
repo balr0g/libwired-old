@@ -357,7 +357,7 @@ static xmlChar								_wi_p7_spec_builtin[] =
 	"		<p7:type name=\"double\" id=\"7\" size=\"8\" />"
 	"		<p7:type name=\"string\" id=\"8\" />"
 	"		<p7:type name=\"uuid\" id=\"9\" size=\"16\" />"
-	"		<p7:type name=\"date\" id=\"10\" size=\"26\" />"
+	"		<p7:type name=\"date\" id=\"10\" size=\"8\" />"
 	"		<p7:type name=\"data\" id=\"11\" />"
 	"		<p7:type name=\"oobdata\" id=\"12\" size=\"8\" />"
 	"		<p7:type name=\"list\" id=\"13\" />"
