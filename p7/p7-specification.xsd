@@ -4,13 +4,19 @@
 		   targetNamespace="http://www.zankasoftware.com/P7/Specification"
 		   elementFormDefault="qualified"
 		   attributeFormDefault="unqualified">
+	<xs:element name="documentation" type="p7:documentation" />
 	<xs:element name="type" type="p7:type" />
 	<xs:element name="field" type="p7:field" />
 	<xs:element name="enum" type="p7:enum" />
+	<xs:element name="collection" type="p7:collection" />
+	<xs:element name="member" type="p7:member" />
 	<xs:element name="message" type="p7:message" />
 	<xs:element name="parameter" type="p7:parameter" />
 	<xs:element name="transaction" type="p7:transaction" />
 	<xs:element name="reply" type="p7:reply" />
+	<xs:element name="or" type="p7:or" />
+	<xs:element name="and" type="p7:and" />
+	<xs:element name="broadcast" type="p7:broadcast" />
 
 	<xs:simpleType name="use">
 		<xs:restriction base="xs:string">
@@ -29,8 +35,9 @@
 
 	<xs:element name="protocol">
 		<xs:complexType>
-			<xs:attribute name="id" type="xs:string" use="required" />
-			<xs:all>
+			<xs:sequence>
+				<xs:element ref="p7:documentation" minOccurs="0" maxOccurs="1" />
+
 				<xs:element name="types" minOccurs="0" maxOccurs="1">
 					<xs:complexType>
 						<xs:sequence>
@@ -43,6 +50,14 @@
 					<xs:complexType>
 						<xs:sequence>
 							<xs:element ref="p7:field" minOccurs="0" maxOccurs="unbounded" />
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+
+				<xs:element name="collections" minOccurs="0" maxOccurs="1">
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element ref="p7:collection" minOccurs="0" maxOccurs="unbounded" />
 						</xs:sequence>
 					</xs:complexType>
 				</xs:element>
@@ -62,9 +77,23 @@
 						</xs:sequence>
 					</xs:complexType>
 				</xs:element>
-			</xs:all>
+				
+				<xs:element name="broadcasts" minOccurs="0" maxOccurs="1">
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element ref="p7:broadcast" minOccurs="0" maxOccurs="unbounded" />
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+			</xs:sequence>
+			<xs:attribute name="name" type="xs:string" use="required" />
+			<xs:attribute name="version" type="xs:string" use="required" />
 		</xs:complexType>
 	</xs:element>
+	
+	<xs:simpleType name="documentation">
+		<xs:restriction base="xs:string" />
+	</xs:simpleType>
 	
 	<xs:complexType name="type">
 		<xs:attribute name="name" type="xs:string" use="required" />
@@ -81,6 +110,7 @@
 	
 	<xs:complexType name="field">
 		<xs:sequence>
+			<xs:element ref="p7:documentation" minOccurs="0" maxOccurs="1" />
 			<xs:element ref="p7:enum" minOccurs="0" maxOccurs="unbounded" />
 		</xs:sequence>
 		<xs:attribute name="name" type="xs:string" use="required" />
@@ -130,8 +160,20 @@
 		<xs:attribute name="value" type="xs:nonNegativeInteger" use="required" />
 	</xs:complexType>
 
+	<xs:complexType name="collection">
+		<xs:sequence>
+			<xs:element ref="p7:member" minOccurs="0" maxOccurs="unbounded" />
+		</xs:sequence>
+		<xs:attribute name="name" type="xs:string" use="required" />
+	</xs:complexType>
+
+	<xs:complexType name="member">
+		<xs:attribute name="field" type="xs:string" use="required" />
+	</xs:complexType>
+
 	<xs:complexType name="message">
 		<xs:sequence>
+			<xs:element ref="p7:documentation" minOccurs="0" maxOccurs="1" />
 			<xs:element ref="p7:parameter" minOccurs="0" maxOccurs="unbounded" />
 		</xs:sequence>
 		<xs:attribute name="name" type="xs:string" use="required" />
@@ -139,12 +181,15 @@
 	</xs:complexType>
 
 	<xs:complexType name="parameter">
-		<xs:attribute name="field" type="xs:string" use="required" />
+		<xs:attribute name="field" type="xs:string" />
+		<xs:attribute name="collection" type="xs:string" />
 		<xs:attribute name="use" type="p7:use" use="optional" default="optional" />
 	</xs:complexType>
 
 	<xs:complexType name="transaction">
 		<xs:sequence>
+			<xs:element ref="p7:documentation" minOccurs="0" maxOccurs="1" />
+			<xs:element ref="p7:or" minOccurs="0" maxOccurs="unbounded" />
 			<xs:element ref="p7:reply" minOccurs="0" maxOccurs="unbounded" />
 		</xs:sequence>
 		<xs:attribute name="message" type="xs:string" use="required" />
@@ -152,6 +197,19 @@
 		<xs:attribute name="use" type="p7:use" use="optional" default="optional" />
 	</xs:complexType>
 	
+	<xs:complexType name="or">
+		<xs:sequence>
+			<xs:element ref="p7:and" minOccurs="0" maxOccurs="unbounded" />
+			<xs:element ref="p7:reply" minOccurs="0" maxOccurs="unbounded" />
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:complexType name="and">
+		<xs:sequence>
+			<xs:element ref="p7:reply" minOccurs="1" maxOccurs="unbounded" />
+		</xs:sequence>
+	</xs:complexType>
+
 	<xs:complexType name="reply">
 		<xs:attribute name="message" type="xs:string" use="required" />
 		<xs:attribute name="count" use="required">
@@ -162,5 +220,12 @@
 			</xs:simpleType>
 		</xs:attribute>
 		<xs:attribute name="use" type="p7:use" use="optional" default="optional" />
+	</xs:complexType>
+	
+	<xs:complexType name="broadcast">
+		<xs:sequence>
+			<xs:element ref="p7:documentation" minOccurs="0" maxOccurs="1" />
+		</xs:sequence>
+		<xs:attribute name="message" type="xs:string" use="required" />
 	</xs:complexType>
 </xs:schema>
