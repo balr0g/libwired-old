@@ -41,10 +41,10 @@ static wi_p7_spec_t				*wc_spec;
 
 
 int main(int argc, const char **argv) {
-	wi_pool_t		*pool;
-	wi_string_t		*user, *password;
-	wi_url_t		*url;
-	int				ch;
+	wi_pool_t			*pool;
+	wi_string_t			*user, *password;
+	wi_mutable_url_t	*url;
+	int					ch;
 	
 	wi_initialize();
 	wi_load(argc, argv);
@@ -83,17 +83,17 @@ int main(int argc, const char **argv) {
 	if(argc != 1)
 		wc_usage();
 	
-	url = wi_url_init_with_string(wi_url_alloc(), wi_string_with_cstring(argv[0]));
-	wi_url_set_scheme(url, WI_STR("wired"));
+	url = wi_url_init_with_string(wi_mutable_url_alloc(), wi_string_with_cstring(argv[0]));
+	wi_mutable_url_set_scheme(url, WI_STR("wired"));
 	
 	if(!url)
 		wc_usage();
 	
-	wi_url_set_user(url, user);
-	wi_url_set_password(url, password);
+	wi_mutable_url_set_user(url, user);
+	wi_mutable_url_set_password(url, password);
 	
 	if(wi_url_port(url) == 0)
-		wi_url_set_port(url, 4871);
+		wi_mutable_url_set_port(url, 4871);
 	
 	if(!wi_url_is_valid(url))
 		wc_usage();
@@ -230,6 +230,7 @@ static wi_boolean_t wc_login(wi_p7_socket_t *socket, wi_url_t *url) {
 	message = wi_p7_message_with_name(WI_STR("wired.client_info"), wc_spec);
 	wi_p7_message_set_string_for_name(message, WI_STR("wiredclient"), WI_STR("wired.info.application.name"));
 	wi_p7_message_set_string_for_name(message, WI_STR("1.0"), WI_STR("wired.info.application.version"));
+	wi_p7_message_set_string_for_name(message, WI_STR("1"), WI_STR("wired.info.application.build"));
 	wi_p7_message_set_string_for_name(message, wi_process_os_name(wi_process()), WI_STR("wired.info.os.name"));
 	wi_p7_message_set_string_for_name(message, wi_process_os_release(wi_process()), WI_STR("wired.info.os.version"));
 	wi_p7_message_set_string_for_name(message, wi_process_os_arch(wi_process()), WI_STR("wired.info.arch"));
