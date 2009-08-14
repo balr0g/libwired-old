@@ -641,7 +641,7 @@ void wi_p7_message_serialize(wi_p7_message_t *p7_message, wi_p7_serialization_t 
 	wi_array_t				*list;
 	wi_uinteger_t			i, count;
 	uint32_t				message_size, field_id, field_size;
-
+	
 	if(serialization == WI_P7_XML && !p7_message->xml_buffer) {
 		doc			= xmlNewDoc((xmlChar *) "1.0");
 		root_node	= xmlNewNode(NULL, (xmlChar *) "message");
@@ -751,14 +751,12 @@ void wi_p7_message_serialize(wi_p7_message_t *p7_message, wi_p7_serialization_t 
 					list = wi_p7_message_list_for_name(p7_message, field_name);
 					
 					if(list) {
-						list_node = wi_xml_node_child_with_name(p7_message, field_name);
+						list_node = wi_xml_node_child_with_name(root_node, field_name);
 						
 						if(!list_node) {
 							list_type = wi_p7_spec_field_listtype(field);
 							list_node = xmlNewNode(ns, (xmlChar *) "field");
 							xmlSetProp(list_node, (xmlChar *) "name", (xmlChar *) wi_string_cstring(field_name));
-							xmlSetProp(list_node, (xmlChar *) "type", (xmlChar *) wi_string_cstring(wi_p7_spec_type_name(type)));
-							xmlSetProp(list_node, (xmlChar *) "listtype", (xmlChar *) wi_string_cstring(wi_p7_spec_type_name(list_type)));
 							xmlAddChild(root_node, list_node);
 						}
 						
@@ -778,12 +776,11 @@ void wi_p7_message_serialize(wi_p7_message_t *p7_message, wi_p7_serialization_t 
 			}
 			
 			if(field_value) {
-				item_node = wi_xml_node_child_with_name(p7_message, field_name);
+				item_node = wi_xml_node_child_with_name(root_node, field_name);
 				
 				if(!item_node) {
 					item_node = xmlNewNode(ns, (xmlChar *) "field");
 					xmlSetProp(item_node, (xmlChar *) "name", (xmlChar *) wi_string_cstring(field_name));
-					xmlSetProp(item_node, (xmlChar *) "type", (xmlChar *) wi_string_cstring(wi_p7_spec_type_name(type)));
 					xmlAddChild(root_node, item_node);
 				}
 				
@@ -804,9 +801,9 @@ void wi_p7_message_serialize(wi_p7_message_t *p7_message, wi_p7_serialization_t 
 void wi_p7_message_deserialize(wi_p7_message_t *p7_message, wi_p7_serialization_t serialization) {
 	xmlDocPtr					doc;
 	xmlNodePtr					root_node, field_node;
-	wi_string_t					*field_name, *field_value, *field_type;
+	wi_string_t					*field_name, *field_value;
 	wi_p7_spec_message_t		*message;
-	wi_p7_spec_type_t			*type;
+	wi_p7_spec_field_t			*field;
 	wi_uuid_t					*uuid;
 	wi_date_t					*date;
 	wi_data_t					*data;
@@ -832,18 +829,13 @@ void wi_p7_message_deserialize(wi_p7_message_t *p7_message, wi_p7_serialization_
 			if(field_node->type == XML_ELEMENT_NODE) {
 				if(wi_is_equal(wi_xml_node_name(field_node), WI_STR("field"))) {
 					field_name		= wi_xml_node_attribute_with_name(field_node, WI_STR("name"));
-					field_type		= wi_xml_node_attribute_with_name(field_node, WI_STR("type"));
 					field_value		= wi_xml_node_content(field_node);
+					field			= wi_p7_spec_field_with_name(p7_message->spec, field_name);
 					
-					if(!field_name || !field_type || !field_value)
+					if(!field_name || !field_value || !field)
 						continue;
 					
-					type = wi_p7_spec_type_with_name(p7_message->spec, field_type);
-					
-					if(!type)
-						continue;
-					
-					switch(wi_p7_spec_type_id(type)) {
+					switch(wi_p7_spec_type_id(wi_p7_spec_field_type(field))) {
 						case WI_P7_BOOL:
 							wi_p7_message_set_bool_for_name(p7_message, wi_string_bool(field_value), field_name);
 							break;

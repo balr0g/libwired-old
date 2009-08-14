@@ -137,10 +137,8 @@ WI_EXPORT wi_integer_t					wi_socket_recvfrom(wi_socket_t *, char *, size_t, wi_
 
 WI_EXPORT wi_integer_t					wi_socket_write_format(wi_socket_t *, wi_time_interval_t, wi_string_t *, ...);
 WI_EXPORT wi_integer_t					wi_socket_write_buffer(wi_socket_t *, wi_time_interval_t, const void *, size_t);
-WI_EXPORT wi_string_t *					wi_socket_read(wi_socket_t *, wi_time_interval_t, size_t);
+WI_EXPORT wi_string_t *					wi_socket_read_string(wi_socket_t *, wi_time_interval_t);
 WI_EXPORT wi_string_t *					wi_socket_read_to_string(wi_socket_t *, wi_time_interval_t, wi_string_t *);
 WI_EXPORT wi_integer_t					wi_socket_read_buffer(wi_socket_t *, wi_time_interval_t, void *, size_t);
-
-WI_EXPORT wi_mutable_string_t *			wi_socket_buffered_string(wi_socket_t *);
 
 #endif /* WI_SOCKET_H */

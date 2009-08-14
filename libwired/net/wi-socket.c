@@ -74,7 +74,7 @@
 #include <wired/wi-thread.h>
 #include <wired/wi-x509.h>
 
-#define _WI_SOCKET_BUFFER_MAX_SIZE		131072
+#define _WI_SOCKET_BUFFER_MAX_SIZE		262144
 
 
 struct _wi_socket_tls {
@@ -123,6 +123,8 @@ static wi_string_t *					_wi_socket_description(wi_runtime_instance_t *);
 
 static wi_boolean_t						_wi_socket_set_option_int(wi_socket_t *, int, int, int);
 static wi_boolean_t						_wi_socket_get_option_int(wi_socket_t *, int, int, int *);
+
+static wi_integer_t						_wi_socket_read_buffer(wi_socket_t *, wi_time_interval_t, void *, size_t);
 
 
 #if defined(HAVE_OPENSSL_SSL_H) && defined(WI_PTHREADS)
@@ -1508,45 +1510,22 @@ wi_integer_t wi_socket_write_buffer(wi_socket_t *socket, wi_time_interval_t time
 
 
 
-wi_string_t * wi_socket_read(wi_socket_t *socket, wi_time_interval_t timeout, size_t length) {
+wi_string_t * wi_socket_read_string(wi_socket_t *socket, wi_time_interval_t timeout) {
 	wi_mutable_string_t		*string;
 	char					buffer[WI_SOCKET_BUFFER_SIZE];
 	int						bytes = -1;
 	
-	string = wi_string_init_with_capacity(wi_mutable_string_alloc(), length);
+	string = wi_autorelease(wi_string_init_with_capacity(wi_mutable_string_alloc(), WI_SOCKET_BUFFER_SIZE));
+	bytes = _wi_socket_read_buffer(socket, timeout, buffer, WI_SOCKET_BUFFER_SIZE);
 	
-	while(length > sizeof(buffer)) {
-		bytes = wi_socket_read_buffer(socket, timeout, buffer, sizeof(buffer));
-		
-		if(bytes <= 0)
-			goto end;
-		
-		wi_mutable_string_append_bytes(string, buffer, bytes);
-		
-		length -= bytes;
-	}
-
-	if(length > 0) {
-		bytes = wi_socket_read_buffer(socket, timeout, buffer, length);
-		
-		if(bytes <= 0)
-			goto end;
-		
-		wi_mutable_string_append_bytes(string, buffer, bytes);
-	}
-
-end:
-	if(wi_string_length(string) == 0) {
-		if(bytes < 0) {
-			wi_release(string);
-			
-			string = NULL;
-		}
-	}
+	if(bytes <= 0)
+		return NULL;
 	
+	wi_mutable_string_append_bytes(string, buffer, bytes);
+
 	wi_runtime_make_immutable(string);
 
-	return wi_autorelease(string);
+	return string;
 }
 
 
@@ -1565,7 +1544,7 @@ wi_string_t * wi_socket_read_to_string(wi_socket_t *socket, wi_time_interval_t t
 		return substring;
 	}
 	
-	while((string = wi_socket_read(socket, timeout, WI_SOCKET_BUFFER_SIZE))) {
+	while((string = wi_socket_read_string(socket, timeout))) {
 		if(wi_string_length(string) == 0)
 			return string;
 
@@ -1575,11 +1554,11 @@ wi_string_t * wi_socket_read_to_string(wi_socket_t *socket, wi_time_interval_t t
 		
 		if(index == WI_NOT_FOUND) {
 			if(wi_string_length(socket->buffer) > _WI_SOCKET_BUFFER_MAX_SIZE) {
-				substring = wi_string_substring_to_index(socket->buffer, _WI_SOCKET_BUFFER_MAX_SIZE);
-
-				wi_mutable_string_delete_characters_in_range(socket->buffer, wi_make_range(0, wi_string_length(substring)));
+				wi_error_set_libwired_error_with_format(WI_ERROR_SOCKET_OVERFLOW, WI_STR("Buffer is %u bytes"), wi_string_length(socket->buffer));
 				
-				return substring;
+				wi_mutable_string_set_string(socket->buffer, WI_STR(""));
+			
+				return NULL;
 			}
 		} else {
 			substring = wi_string_substring_to_index(socket->buffer, index + wi_string_length(separator));
@@ -1596,13 +1575,15 @@ wi_string_t * wi_socket_read_to_string(wi_socket_t *socket, wi_time_interval_t t
 
 
 wi_integer_t wi_socket_read_buffer(wi_socket_t *socket, wi_time_interval_t timeout, void *buffer, size_t length) {
+#ifdef HAVE_OPENSSL_SSL_H
 	wi_socket_state_t	state;
+#endif
 	wi_uinteger_t		offset;
 	wi_integer_t		bytes;
 	
 	WI_ASSERT(buffer != NULL, "buffer of length %u should not be NULL", length);
 	WI_ASSERT(socket->sd >= 0, "socket %@ should be valid", socket);
-
+	
 #ifdef HAVE_OPENSSL_SSL_H
 	if(socket->ssl) {
 		while(true) {
@@ -1641,29 +1622,12 @@ wi_integer_t wi_socket_read_buffer(wi_socket_t *socket, wi_time_interval_t timeo
 		offset = 0;
 		
 		while(offset < length) {
-			if(timeout > 0.0) {
-				state = wi_socket_wait_descriptor(socket->sd, timeout, true, false);
-
-				if(state != WI_SOCKET_READY) {
-					if(state == WI_SOCKET_TIMEOUT)
-						wi_error_set_errno(ETIMEDOUT);
-					
-					return -1;
-				}
-			}
-
-			bytes = read(socket->sd, buffer + offset, length - offset);
+			bytes = _wi_socket_read_buffer(socket, timeout, buffer, length);
 			
-			if(bytes > 0) {
-				offset += bytes;
-			} else {
-				if(bytes < 0)
-					wi_error_set_errno(errno);
-				else
-					wi_error_set_libwired_error(WI_ERROR_SOCKET_EOF);
-				
+			if(bytes <= 0)
 				return -1;
-			}
+			
+			offset += bytes;
 		}
 		
 		return offset;
@@ -1676,8 +1640,64 @@ wi_integer_t wi_socket_read_buffer(wi_socket_t *socket, wi_time_interval_t timeo
 
 
 
-#pragma mark -
-
-wi_mutable_string_t * wi_socket_buffered_string(wi_socket_t *socket) {
-	return socket->buffer;
+static wi_integer_t _wi_socket_read_buffer(wi_socket_t *socket, wi_time_interval_t timeout, void *buffer, size_t length) {
+	wi_socket_state_t	state;
+	wi_integer_t		bytes;
+	
+#ifdef HAVE_OPENSSL_SSL_H
+	if(socket->ssl) {
+		if(timeout > 0.0 && SSL_pending(socket->ssl) == 0) {
+			state = wi_socket_wait_descriptor(socket->sd, timeout, true, false);
+			
+			if(state != WI_SOCKET_READY) {
+				if(state == WI_SOCKET_TIMEOUT)
+					wi_error_set_errno(ETIMEDOUT);
+				
+				return -1;
+			}
+		}
+		
+		ERR_clear_error();
+		
+		bytes = SSL_read(socket->ssl, buffer, length);
+		
+		if(bytes <= 0) {
+			wi_error_set_openssl_ssl_error_with_result(socket->ssl, bytes);
+			
+			ERR_clear_error();
+			
+			return -1;
+		}
+		
+		return bytes;
+	} else {
+#endif
+		if(timeout > 0.0) {
+			state = wi_socket_wait_descriptor(socket->sd, timeout, true, false);
+			
+			if(state != WI_SOCKET_READY) {
+				if(state == WI_SOCKET_TIMEOUT)
+					wi_error_set_errno(ETIMEDOUT);
+				
+				return -1;
+			}
+		}
+		
+		bytes = read(socket->sd, buffer, length);
+		
+		if(bytes <= 0) {
+			if(bytes < 0)
+				wi_error_set_errno(errno);
+			else
+				wi_error_set_libwired_error(WI_ERROR_SOCKET_EOF);
+			
+			return -1;
+		}
+		
+		return bytes;
+#ifdef HAVE_OPENSSL_SSL_H
+	}
+#endif
+	
+	return 0;
 }

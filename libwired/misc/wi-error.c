@@ -158,6 +158,8 @@ static const char 						*_wi_error_strings[] = {
 	"No valid cipher",
 	/* WI_ERROR_SOCKET_EOF */
 	"End of file",
+	/* WI_ERROR_SOCKET_OVERFLOW */
+	"Buffer overflow",
 	
 	/* WI_ERROR_SSL_ERROR_NONE */
 	"OpenSSL: No error",
