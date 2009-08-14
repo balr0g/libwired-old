@@ -25,11 +25,12 @@ sub main {
 	my($os_name, undef, $os_version, undef, $arch) = uname();
 
 	p7sendmessage($socket, "wired.client_info",
-		{ name => "wired.info.application.name", content => "$0", type => "string" },
-		{ name => "wired.info.application.version", content => "1.0", type => "string" },
-		{ name => "wired.info.os.name", content => $os_name, type => "string" },
-		{ name => "wired.info.os.version", content => $os_version, type => "string" },
-		{ name => "wired.info.arch", content => $arch, type => "string" },
+		{ name => "wired.info.application.name", content => "$0" },
+		{ name => "wired.info.application.version", content => "1.0" },
+		{ name => "wired.info.application.build", content => "1" },
+		{ name => "wired.info.os.name", content => $os_name },
+		{ name => "wired.info.os.version", content => $os_version },
+		{ name => "wired.info.arch", content => $arch },
 	);
 	
 	my $message = p7readmessage($socket);
@@ -38,8 +39,8 @@ sub main {
 	print "Logging in as guest...\n";
 	
 	p7sendmessage($socket, "wired.send_login",
-		{ name => "wired.user.login", content => "guest", type => "string" },
-		{ name => "wired.user.password", content => Digest::SHA1::sha1_hex(""), type => "string" }
+		{ name => "wired.user.login", content => "guest" },
+		{ name => "wired.user.password", content => Digest::SHA1::sha1_hex("") }
 	);
 	
 	$message = p7readmessage($socket);
@@ -51,7 +52,7 @@ sub main {
 	print "Listing files at /...\n";
 	
 	p7sendmessage($socket, "wired.file.list_directory",
-		{ name => "wired.file.path", content => "/", type => "string" }
+		{ name => "wired.file.path", content => "/" }
 	);
 	
 	while(($message = p7readmessage($socket))) {
@@ -80,9 +81,9 @@ sub p7connect {
 	print "Connected, performing P7 handshake...\n";
 	
 	p7sendmessage($socket, "p7.handshake.client_handshake",
-		{ name => "p7.handshake.version", content => "1.0", type => "string" },
-		{ name => "p7.handshake.protocol.name", content => "Wired", type => "string" },
-		{ name => "p7.handshake.protocol.version", content => "2.0", type => "string" },
+		{ name => "p7.handshake.version", content => "1.0" },
+		{ name => "p7.handshake.protocol.name", content => "Wired" },
+		{ name => "p7.handshake.protocol.version", content => "2.0" },
 	);
 	
 	my $message = p7readmessage($socket);
@@ -105,7 +106,7 @@ sub p7connect {
 		close(FH);
 		
 		p7sendmessage($socket, "p7.compatibility_check.specification",
-			{ name => "p7.compatibility_check.specification", content => $specification, type => "string" },
+			{ name => "p7.compatibility_check.specification", content => $specification },
 		);
 		
 		$message = p7readmessage($socket);
@@ -134,7 +135,7 @@ sub p7sendmessage {
 	
 	my $xml = XMLout($tree, "RootName" => "p7:message", XMLDecl => "<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
 	
-	print $socket $xml;
+	print $socket "$xml\r\n";
 }
 
 
@@ -147,8 +148,8 @@ sub p7readmessage {
 	while(<$socket>) {
 		$xml .= $_;
 		
-		if($xml =~ /<\/p7:message>$/) {
-			$message = XMLin($_);
+		if($xml =~ /\r\n$/) {
+			$message = XMLin($xml);
 			
 			last;
 		}
