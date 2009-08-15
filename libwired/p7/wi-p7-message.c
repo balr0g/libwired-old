@@ -816,86 +816,88 @@ void wi_p7_message_deserialize(wi_p7_message_t *p7_message, wi_p7_serialization_
 		if(message)
 			p7_message->name = wi_retain(wi_p7_spec_message_name(message));
 	} else {
-		doc			= xmlParseDoc((xmlChar *) wi_string_cstring(p7_message->xml_string));
-		root_node	= xmlDocGetRootElement(doc);
-		
 		p7_message->binary_capacity	= _WI_P7_MESSAGE_BINARY_BUFFER_INITIAL_SIZE;
 		p7_message->binary_buffer	= wi_malloc(p7_message->binary_capacity);
 		p7_message->binary_size		= WI_P7_MESSAGE_BINARY_HEADER_SIZE;
 		
-		wi_p7_message_set_name(p7_message, wi_xml_node_attribute_with_name(root_node, WI_STR("name")));
+		doc							= xmlParseDoc((xmlChar *) wi_string_cstring(p7_message->xml_string));
+		root_node					= xmlDocGetRootElement(doc);
 		
-		for(field_node = root_node->children; field_node != NULL; field_node = field_node->next) {
-			if(field_node->type == XML_ELEMENT_NODE) {
-				if(wi_is_equal(wi_xml_node_name(field_node), WI_STR("field"))) {
-					field_name		= wi_xml_node_attribute_with_name(field_node, WI_STR("name"));
-					field_value		= wi_xml_node_content(field_node);
-					field			= wi_p7_spec_field_with_name(p7_message->spec, field_name);
-					
-					if(!field_name || !field_value || !field)
-						continue;
-					
-					switch(wi_p7_spec_type_id(wi_p7_spec_field_type(field))) {
-						case WI_P7_BOOL:
-							wi_p7_message_set_bool_for_name(p7_message, wi_string_bool(field_value), field_name);
-							break;
-							
-						case WI_P7_ENUM:
-							wi_p7_message_set_enum_for_name(p7_message, wi_string_uint32(field_value), field_name);
-							break;
-							
-						case WI_P7_INT32:
-							wi_p7_message_set_int32_for_name(p7_message, wi_string_int32(field_value), field_name);
-							break;
-							
-						case WI_P7_UINT32:
-							wi_p7_message_set_uint32_for_name(p7_message, wi_string_uint32(field_value), field_name);
-							break;
-							
-						case WI_P7_INT64:
-							wi_p7_message_set_int64_for_name(p7_message, wi_string_int64(field_value), field_name);
-							break;
-							
-						case WI_P7_UINT64:
-							wi_p7_message_set_uint64_for_name(p7_message, wi_string_uint64(field_value), field_name);
-							break;
-							
-						case WI_P7_DOUBLE:
-							wi_p7_message_set_double_for_name(p7_message, wi_string_double(field_value), field_name);
-							break;
-							
-						case WI_P7_STRING:
-							wi_p7_message_set_string_for_name(p7_message, field_value, field_name);
-							break;
-							
-						case WI_P7_UUID:
-							uuid = wi_uuid_with_string(field_value);
+		if(root_node) {
+			wi_p7_message_set_name(p7_message, wi_xml_node_attribute_with_name(root_node, WI_STR("name")));
+			
+			for(field_node = root_node->children; field_node != NULL; field_node = field_node->next) {
+				if(field_node->type == XML_ELEMENT_NODE) {
+					if(wi_is_equal(wi_xml_node_name(field_node), WI_STR("field"))) {
+						field_name		= wi_xml_node_attribute_with_name(field_node, WI_STR("name"));
+						field_value		= wi_xml_node_content(field_node);
+						field			= wi_p7_spec_field_with_name(p7_message->spec, field_name);
+						
+						if(!field_name || !field_value || !field)
+							continue;
+						
+						switch(wi_p7_spec_type_id(wi_p7_spec_field_type(field))) {
+							case WI_P7_BOOL:
+								wi_p7_message_set_bool_for_name(p7_message, wi_string_bool(field_value), field_name);
+								break;
+								
+							case WI_P7_ENUM:
+								wi_p7_message_set_enum_for_name(p7_message, wi_string_uint32(field_value), field_name);
+								break;
+								
+							case WI_P7_INT32:
+								wi_p7_message_set_int32_for_name(p7_message, wi_string_int32(field_value), field_name);
+								break;
+								
+							case WI_P7_UINT32:
+								wi_p7_message_set_uint32_for_name(p7_message, wi_string_uint32(field_value), field_name);
+								break;
+								
+							case WI_P7_INT64:
+								wi_p7_message_set_int64_for_name(p7_message, wi_string_int64(field_value), field_name);
+								break;
+								
+							case WI_P7_UINT64:
+								wi_p7_message_set_uint64_for_name(p7_message, wi_string_uint64(field_value), field_name);
+								break;
+								
+							case WI_P7_DOUBLE:
+								wi_p7_message_set_double_for_name(p7_message, wi_string_double(field_value), field_name);
+								break;
+								
+							case WI_P7_STRING:
+								wi_p7_message_set_string_for_name(p7_message, field_value, field_name);
+								break;
+								
+							case WI_P7_UUID:
+								uuid = wi_uuid_with_string(field_value);
 
-							if(uuid)
-								wi_p7_message_set_uuid_for_name(p7_message, uuid, field_name);
-							break;
+								if(uuid)
+									wi_p7_message_set_uuid_for_name(p7_message, uuid, field_name);
+								break;
+								
+							case WI_P7_DATE:
+								date = wi_date_with_rfc3339_string(field_value);
+								
+								if(date)
+									wi_p7_message_set_date_for_name(p7_message, date, field_name);
+								break;
+								
+							case WI_P7_DATA:
+								data = wi_autorelease(wi_data_init_with_base64(wi_data_alloc(), field_value));
+								
+								if(data)
+									wi_p7_message_set_data_for_name(p7_message, data, field_name);
+								break;
 							
-						case WI_P7_DATE:
-							date = wi_date_with_rfc3339_string(field_value);
+							case WI_P7_OOBDATA:
+								wi_p7_message_set_oobdata_for_name(p7_message, wi_string_uint64(field_value), field_name);
+								break;
 							
-							if(date)
-								wi_p7_message_set_date_for_name(p7_message, date, field_name);
-							break;
-							
-						case WI_P7_DATA:
-							data = wi_autorelease(wi_data_init_with_base64(wi_data_alloc(), field_value));
-							
-							if(data)
-								wi_p7_message_set_data_for_name(p7_message, data, field_name);
-							break;
-						
-						case WI_P7_OOBDATA:
-							wi_p7_message_set_oobdata_for_name(p7_message, wi_string_uint64(field_value), field_name);
-							break;
-						
-						case WI_P7_LIST:
-							WI_ASSERT(0, "Can't deserialize XML with lists at the moment");
-							break;
+							case WI_P7_LIST:
+								WI_ASSERT(0, "Can't deserialize XML with lists at the moment");
+								break;
+						}
 					}
 				}
 			}
