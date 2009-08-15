@@ -153,11 +153,13 @@
 				</xs:restriction>
 			</xs:simpleType>
 		</xs:attribute>
+		<xs:attribute name="version" type="xs:string" use="required" />
 	</xs:complexType>
 	
 	<xs:complexType name="enum">
 		<xs:attribute name="name" type="xs:string" use="required" />
 		<xs:attribute name="value" type="xs:nonNegativeInteger" use="required" />
+		<xs:attribute name="version" type="xs:string" use="required" />
 	</xs:complexType>
 
 	<xs:complexType name="collection">
@@ -178,12 +180,14 @@
 		</xs:sequence>
 		<xs:attribute name="name" type="xs:string" use="required" />
 		<xs:attribute name="id" type="xs:nonNegativeInteger" use="optional" />
+		<xs:attribute name="version" type="xs:string" use="required" />
 	</xs:complexType>
 
 	<xs:complexType name="parameter">
 		<xs:attribute name="field" type="xs:string" />
 		<xs:attribute name="collection" type="xs:string" />
 		<xs:attribute name="use" type="p7:use" use="optional" default="optional" />
+		<xs:attribute name="version" type="xs:string" use="required" />
 	</xs:complexType>
 
 	<xs:complexType name="transaction">
@@ -195,6 +199,7 @@
 		<xs:attribute name="message" type="xs:string" use="required" />
 		<xs:attribute name="originator" type="p7:originator" use="required" />
 		<xs:attribute name="use" type="p7:use" use="optional" default="optional" />
+		<xs:attribute name="version" type="xs:string" use="required" />
 	</xs:complexType>
 	
 	<xs:complexType name="or">
@@ -227,5 +232,6 @@
 			<xs:element ref="p7:documentation" minOccurs="0" maxOccurs="1" />
 		</xs:sequence>
 		<xs:attribute name="message" type="xs:string" use="required" />
+		<xs:attribute name="version" type="xs:string" use="required" />
 	</xs:complexType>
 </xs:schema>
