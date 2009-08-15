@@ -464,7 +464,7 @@ static wi_string_t * _wi_p7_message_field_string_value(wi_p7_message_t *p7_messa
 			date = wi_p7_message_date_for_name(p7_message, field_name);
 			
 			if(date)
-				field_value = wi_string_with_format(WI_STR("%@"), wi_date_rfc3339_string(date));
+				field_value = wi_string_with_format(WI_STR("%@"), wi_date_string_with_format(date, WI_STR("%Y-%m-%d %H:%M:%S %z")));
 			break;
 			
 		case WI_P7_DATA:
