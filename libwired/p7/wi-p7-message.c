@@ -732,7 +732,7 @@ void wi_p7_message_serialize(wi_p7_message_t *p7_message, wi_p7_serialization_t 
 					date = wi_p7_message_date_for_name(p7_message, field_name);
 					
 					if(date)
-						field_value = wi_date_rfc3339_string(date);
+						field_value = wi_string_with_format(WI_STR("%f"), wi_date_time_interval(date));
 					break;
 					
 				case WI_P7_DATA:
