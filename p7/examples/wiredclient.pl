@@ -56,10 +56,14 @@ sub main {
 	);
 	
 	while(($message = p7readmessage($socket))) {
-		if($message->{"name"} eq "wired.file.list") {
+		if($message->{"name"} eq "wired.file.file_list") {
 			print "\t$message->{'p7:field'}->{'wired.file.path'}->{'content'}\n";
-		} else {
+		}
+		elsif($message->{"name"} eq "wired.file.file_list.done") {
 			last;
+		}
+		else {
+			print "Unhandled message $message->{name} received\n";
 		}
 	}
 	

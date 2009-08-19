@@ -150,9 +150,9 @@ static void wc_client(wi_url_t *url) {
 		wi_log_warn(WI_STR("Could not send message to %@: %m"), wi_url_host(url));
 	
 	while((message = wi_p7_socket_read_message(socket, 0.0))) {
-		if(wi_is_equal(wi_p7_message_name(message), WI_STR("wired.file.list")))
+		if(wi_is_equal(wi_p7_message_name(message), WI_STR("wired.file.file_list")))
 			wi_log_info(WI_STR("\t%@"), wi_p7_message_string_for_name(message, WI_STR("wired.file.path")));
-		else if(wi_is_equal(wi_p7_message_name(message), WI_STR("wired.file.list.done")))
+		else if(wi_is_equal(wi_p7_message_name(message), WI_STR("wired.file.file_list.done")))
 			break;
 	}
 	
