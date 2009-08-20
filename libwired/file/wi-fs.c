@@ -81,8 +81,10 @@ typedef struct _wi_fs_finderinfo		_wi_fs_finderinfo_t;
 
 
 #ifdef HAVE_CARBON_CARBON_H
-static wi_boolean_t						_wi_fs_set_finder_flags(const char *, uint16_t);
-static int32_t							_wi_fs_finder_flags(const char *);
+static wi_boolean_t						_wi_fs_set_finder_info_for_cpath(wi_data_t *, const char *);
+static wi_data_t *						_wi_fs_finder_info_for_cpath(const char *);
+static wi_boolean_t						_wi_fs_set_finder_flags_for_cpath(uint16_t, const char *);
+static int32_t							_wi_fs_finder_flags_for_cpath(const char *);
 #endif
 
 static wi_boolean_t						_wi_fs_delete_file(wi_string_t *, wi_fs_delete_path_callback_t *);
@@ -93,66 +95,6 @@ static wi_boolean_t						_wi_fs_copy_directory(wi_string_t *, wi_string_t *);
 
 static wi_boolean_t						_wi_fs_stat_path(wi_string_t *, wi_fs_stat_t *, wi_boolean_t);
 
-
-#ifdef HAVE_CARBON_CARBON_H
-
-static wi_boolean_t _wi_fs_set_finder_flags(const char *cpath, uint16_t flags) {
-	struct attrlist			attrs;
-	_wi_fs_finderinfo_t		finderinfo;
-	
-	attrs.bitmapcount		= ATTR_BIT_MAP_COUNT;
-	attrs.reserved			= 0;
-	attrs.commonattr		= ATTR_CMN_FNDRINFO;
-	attrs.volattr			= 0;
-	attrs.dirattr			= 0;
-	attrs.fileattr			= 0;
-	attrs.forkattr			= 0;
-	
-	if(getattrlist(cpath, &attrs, &finderinfo, sizeof(finderinfo), FSOPT_NOFOLLOW) < 0) {
-		wi_error_set_errno(errno);
-		
-		return false;
-	}
-	
-	wi_write_swap_host_to_big_int16(finderinfo.data, 8, flags);
-	
-	if(setattrlist(cpath, &attrs, &finderinfo.data, sizeof(finderinfo.data), FSOPT_NOFOLLOW) < 0) {
-		wi_error_set_errno(errno);
-		
-		return false;
-	}
-	
-	return true;
-}
-
-
-
-static int32_t _wi_fs_finder_flags(const char *cpath) {
-	struct attrlist			attrs;
-	_wi_fs_finderinfo_t		finderinfo;
-	
-	attrs.bitmapcount		= ATTR_BIT_MAP_COUNT;
-	attrs.reserved			= 0;
-	attrs.commonattr		= ATTR_CMN_FNDRINFO;
-	attrs.volattr			= 0;
-	attrs.dirattr			= 0;
-	attrs.fileattr			= 0;
-	attrs.forkattr			= 0;
-	
-	if(getattrlist(cpath, &attrs, &finderinfo, sizeof(finderinfo), FSOPT_NOFOLLOW) < 0) {
-		wi_error_set_errno(errno);
-		
-		return -1;
-	}
-	
-	return wi_read_swap_big_to_host_int16(finderinfo.data, 8);
-}
-
-#endif
-
-
-
-#pragma mark -
 
 wi_string_t * wi_fs_temporary_path_with_template(wi_string_t *template) {
 	char		path[WI_PATH_SIZE];
@@ -488,27 +430,29 @@ static wi_boolean_t _wi_fs_stat_path(wi_string_t *path, wi_fs_stat_t *sp, wi_boo
 		return false;
 	}
 	
-	sp->dev			= sb.st_dev;
-	sp->ino			= sb.st_ino;
-	sp->mode		= sb.st_mode;
-	sp->nlink		= sb.st_nlink;
-	sp->uid			= sb.st_uid;
-	sp->gid			= sb.st_gid;
-	sp->rdev		= sb.st_rdev;
-	sp->atime		= sb.st_atime;
-	sp->mtime		= sb.st_mtime;
-	sp->ctime		= sb.st_ctime;
-
+	if(sp) {
+		sp->dev			= sb.st_dev;
+		sp->ino			= sb.st_ino;
+		sp->mode		= sb.st_mode;
+		sp->nlink		= sb.st_nlink;
+		sp->uid			= sb.st_uid;
+		sp->gid			= sb.st_gid;
+		sp->rdev		= sb.st_rdev;
+		sp->atime		= sb.st_atime;
+		sp->mtime		= sb.st_mtime;
+		sp->ctime		= sb.st_ctime;
+		
 #ifdef HAVE_STRUCT_STAT64_ST_BIRTHTIME
-	sp->birthtime	= sb.st_birthtime;
+		sp->birthtime	= sb.st_birthtime;
 #else
-	sp->birthtime	= sb.st_ctime;
+		sp->birthtime	= sb.st_ctime;
 #endif
-	
-	sp->size		= sb.st_size;
-	sp->blocks		= sb.st_blocks;
-	sp->blksize		= sb.st_blksize;
-	
+		
+		sp->size		= sb.st_size;
+		sp->blocks		= sb.st_blocks;
+		sp->blksize		= sb.st_blksize;
+	}
+		
 	return true;
 #else
 	struct stat		sb;
@@ -520,27 +464,29 @@ static wi_boolean_t _wi_fs_stat_path(wi_string_t *path, wi_fs_stat_t *sp, wi_boo
 		return false;
 	}
 	
-	sp->dev			= sb.st_dev;
-	sp->ino			= sb.st_ino;
-	sp->mode		= sb.st_mode;
-	sp->nlink		= sb.st_nlink;
-	sp->uid			= sb.st_uid;
-	sp->gid			= sb.st_gid;
-	sp->rdev		= sb.st_rdev;
-	sp->atime		= sb.st_atime;
-	sp->mtime		= sb.st_mtime;
-	sp->ctime		= sb.st_ctime;
-	
+	if(sp) {
+		sp->dev			= sb.st_dev;
+		sp->ino			= sb.st_ino;
+		sp->mode		= sb.st_mode;
+		sp->nlink		= sb.st_nlink;
+		sp->uid			= sb.st_uid;
+		sp->gid			= sb.st_gid;
+		sp->rdev		= sb.st_rdev;
+		sp->atime		= sb.st_atime;
+		sp->mtime		= sb.st_mtime;
+		sp->ctime		= sb.st_ctime;
+		
 #ifdef HAVE_STRUCT_STAT_ST_BIRTHTIME
-	sp->birthtime	= sb.st_birthtime;
+		sp->birthtime	= sb.st_birthtime;
 #else
-	sp->birthtime	= sb.st_ctime;
+		sp->birthtime	= sb.st_ctime;
 #endif
-	
-	sp->size		= sb.st_size;
-	sp->blocks		= sb.st_blocks;
-	sp->blksize		= sb.st_blksize;
-	
+		
+		sp->size		= sb.st_size;
+		sp->blocks		= sb.st_blocks;
+		sp->blksize		= sb.st_blksize;
+	}
+		
 	return true;
 #endif
 }
@@ -621,6 +567,231 @@ wi_boolean_t wi_fs_path_exists(wi_string_t *path, wi_boolean_t *is_directory) {
 
 
 
+#pragma mark -
+
+wi_array_t * wi_fs_directory_contents_at_path(wi_string_t *path) {
+	wi_mutable_array_t		*contents;
+	wi_string_t				*name;
+	DIR						*dir;
+	struct dirent			de, *dep;
+	
+	dir = opendir(wi_string_cstring(path));
+	
+	if(!dir) {
+		wi_error_set_errno(errno);
+		
+		return NULL;
+	}
+	
+	contents = wi_array_init_with_capacity(wi_mutable_array_alloc(), 100);
+	
+	while(readdir_r(dir, &de, &dep) == 0 && dep) {
+		if(strcmp(dep->d_name, ".") != 0 && strcmp(dep->d_name, "..") != 0) {
+			name = wi_string_init_with_cstring(wi_string_alloc(), dep->d_name);
+			wi_mutable_array_add_data(contents, name);
+			wi_release(name);
+		}
+	}
+	
+	closedir(dir);
+	
+	wi_runtime_make_immutable(contents);
+	
+	return wi_autorelease(contents);
+}
+
+
+
+wi_fsenumerator_t * wi_fs_enumerator_at_path(wi_string_t *path) {
+	return wi_autorelease(wi_fsenumerator_init_with_path(wi_fsenumerator_alloc(), path));
+}
+
+
+
+#pragma mark -
+
+#ifdef WI_DIGESTS
+
+wi_string_t * wi_fs_sha1_for_path(wi_string_t *path, wi_file_offset_t offset) {
+	static unsigned char	hex[] = "0123456789abcdef";
+	FILE					*fp;
+	wi_sha1_ctx_t			c;
+	char					buffer[WI_FILE_BUFFER_SIZE];
+	unsigned char			sha1[WI_SHA1_DIGEST_LENGTH];
+	char					sha1_hex[sizeof(sha1) * 2 + 1];
+	size_t					bytes;
+	wi_uinteger_t			i;
+	wi_boolean_t			all;
+	
+	fp = fopen(wi_string_cstring(path), "r");
+	
+	if(!fp) {
+		wi_error_set_errno(errno);
+		
+		return NULL;
+	}
+	
+	all = (offset == 0);
+	
+	wi_sha1_init(&c);
+	
+	while((bytes = fread(buffer, 1, sizeof(buffer), fp)) > 0) {
+		if(!all)
+			bytes = bytes > offset ? offset : bytes;
+		
+		wi_sha1_update(&c, buffer, bytes);
+		
+		if(!all) {
+			offset -= bytes;
+			
+			if(offset == 0)
+				break;
+		}
+	}
+	
+	fclose(fp);
+	
+	wi_sha1_final(sha1, &c);
+	
+	for(i = 0; i < WI_SHA1_DIGEST_LENGTH; i++) {
+		sha1_hex[i + i]		= hex[sha1[i] >> 4];
+		sha1_hex[i + i + 1]	= hex[sha1[i] & 0x0F];
+	}
+	
+	sha1_hex[i + i] = '\0';
+	
+	return wi_string_with_cstring(sha1_hex);
+}
+
+#endif
+
+
+
+#pragma mark -
+
+#ifdef HAVE_CARBON_CARBON_H
+
+static wi_boolean_t _wi_fs_set_finder_info_for_cpath(wi_data_t *info, const char *cpath) {
+	struct attrlist			attrs;
+	_wi_fs_finderinfo_t		finderinfo;
+	
+	wi_data_get_bytes(info, finderinfo.data, sizeof(finderinfo.data));
+	
+	attrs.bitmapcount		= ATTR_BIT_MAP_COUNT;
+	attrs.reserved			= 0;
+	attrs.commonattr		= ATTR_CMN_FNDRINFO;
+	attrs.volattr			= 0;
+	attrs.dirattr			= 0;
+	attrs.fileattr			= 0;
+	attrs.forkattr			= 0;
+
+	if(setattrlist(cpath, &attrs, finderinfo.data, sizeof(finderinfo.data), FSOPT_NOFOLLOW) < 0) {
+		wi_error_set_errno(errno);
+		
+		return false;
+	}
+	
+	return true;
+}
+
+
+
+static wi_data_t * _wi_fs_finder_info_for_cpath(const char *cpath) {
+	struct attrlist			attrs;
+	_wi_fs_finderinfo_t		finderinfo;
+	
+	attrs.bitmapcount		= ATTR_BIT_MAP_COUNT;
+	attrs.reserved			= 0;
+	attrs.commonattr		= ATTR_CMN_FNDRINFO;
+	attrs.volattr			= 0;
+	attrs.dirattr			= 0;
+	attrs.fileattr			= 0;
+	attrs.forkattr			= 0;
+	
+	if(getattrlist(cpath, &attrs, &finderinfo, sizeof(finderinfo), FSOPT_NOFOLLOW) < 0) {
+		wi_error_set_errno(errno);
+		
+		return NULL;
+	}
+	
+	return wi_data_with_bytes(finderinfo.data, sizeof(finderinfo.data));
+}
+
+
+
+static wi_boolean_t _wi_fs_set_finder_flags_for_cpath(uint16_t flags, const char *cpath) {
+	wi_data_t				*info;
+	_wi_fs_finderinfo_t		finderinfo;
+	
+	info = _wi_fs_finder_info_for_cpath(cpath);
+	
+	if(!info)
+		return false;
+	
+	wi_data_get_bytes(info, finderinfo.data, sizeof(finderinfo.data));
+	
+	wi_write_swap_host_to_big_int16(finderinfo.data, 8, flags);
+	
+	info = wi_data_with_bytes_no_copy(finderinfo.data, sizeof(finderinfo.data), false);
+	
+	return _wi_fs_set_finder_info_for_cpath(info, cpath);
+}
+
+
+
+static int32_t _wi_fs_finder_flags_for_cpath(const char *cpath) {
+	wi_data_t				*info;
+	_wi_fs_finderinfo_t		finderinfo;
+	
+	info = _wi_fs_finder_info_for_cpath(cpath);
+	
+	if(!info)
+		return -1;
+	
+	wi_data_get_bytes(info, finderinfo.data, sizeof(finderinfo.data));
+	
+	return wi_read_swap_big_to_host_int16(finderinfo.data, 8);
+}
+
+#endif
+
+
+
+#pragma mark -
+
+wi_string_t * wi_fs_resource_fork_path_for_path(wi_string_t *path) {
+#ifdef HAVE_CARBON_CARBON_H
+	return wi_string_by_appending_path_components(path,
+		wi_array_with_data(WI_STR("..namedfork"), WI_STR("rsrc"), NULL));
+#else
+	wi_error_set_libwired_error(WI_ERROR_FILE_NOCARBON);
+	
+	return NULL;
+#endif
+}
+
+
+
+wi_file_offset_t wi_fs_resource_fork_size_for_path(wi_string_t *path) {
+#ifdef HAVE_CARBON_CARBON_H
+	FSRef			fileRef;
+	FSCatalogInfo	fileInfo;
+	
+	if(FSPathMakeRef((unsigned char *) wi_string_cstring(path), &fileRef, NULL) == noErr) {
+		if(FSGetCatalogInfo(&fileRef, kFSCatInfoRsrcSizes, &fileInfo, NULL, NULL, NULL) == noErr)
+			return fileInfo.rsrcLogicalSize;
+	}
+	
+	return 0;
+#else
+	return 0;
+#endif
+}
+
+
+
+#pragma mark -
+
 wi_boolean_t wi_fs_path_is_alias(wi_string_t *path) {
 	return wi_fs_cpath_is_alias(wi_string_cstring(path));
 }
@@ -631,7 +802,7 @@ wi_boolean_t wi_fs_cpath_is_alias(const char *cpath) {
 #ifdef HAVE_CARBON_CARBON_H
 	int32_t		flags;
 	
-	flags = _wi_fs_finder_flags(cpath);
+	flags = _wi_fs_finder_flags_for_cpath(cpath);
 	
 	return (flags < 0) ? false : flags & kIsAlias;
 #else
@@ -643,6 +814,8 @@ wi_boolean_t wi_fs_cpath_is_alias(const char *cpath) {
 
 
 
+#pragma mark -
+
 wi_boolean_t wi_fs_path_is_invisible(wi_string_t *path) {
 	return wi_fs_cpath_is_invisible(wi_string_cstring(path));
 }
@@ -653,7 +826,7 @@ wi_boolean_t wi_fs_cpath_is_invisible(const char *cpath) {
 #ifdef HAVE_CARBON_CARBON_H
 	int32_t		flags;
 	
-	flags = _wi_fs_finder_flags(cpath);
+	flags = _wi_fs_finder_flags_for_cpath(cpath);
 	
 	return (flags < 0) ? false : flags & kIsInvisible;
 #else
@@ -665,9 +838,10 @@ wi_boolean_t wi_fs_cpath_is_invisible(const char *cpath) {
 
 
 
+
 #pragma mark -
 
-wi_boolean_t wi_fs_set_finder_comment_for_path(wi_string_t *path, wi_string_t *comment) {
+wi_boolean_t wi_fs_set_finder_comment_for_path(wi_string_t *comment, wi_string_t *path) {
 #ifdef HAVE_CARBON_CARBON_H
 	FSRef			fileRef;
 	AEDesc			fileDesc, commentDesc, builtEvent, replyEvent;
@@ -808,11 +982,13 @@ end:
 
 
 
-wi_boolean_t wi_fs_set_finder_label_for_path(wi_string_t *path, wi_fs_finder_label_t label) {
+#pragma mark -
+
+wi_boolean_t wi_fs_set_finder_label_for_path(wi_fs_finder_label_t label, wi_string_t *path) {
 #ifdef HAVE_CARBON_CARBON_H
 	int32_t		flags;
 	
-	flags = _wi_fs_finder_flags(wi_string_cstring(path));
+	flags = _wi_fs_finder_flags_for_cpath(wi_string_cstring(path));
 	
 	if(flags < 0)
 		return false;
@@ -830,7 +1006,7 @@ wi_boolean_t wi_fs_set_finder_label_for_path(wi_string_t *path, wi_fs_finder_lab
 		case WI_FS_FINDER_LABEL_ORANGE:		flags |= (7) << kIsOnDesk;		break;
 	}
 	
-	return _wi_fs_set_finder_flags(wi_string_cstring(path), flags);
+	return _wi_fs_set_finder_flags_for_cpath(flags, wi_string_cstring(path));
 #else
 	wi_error_set_libwired_error(WI_ERROR_FILE_NOCARBON);
 
@@ -844,7 +1020,7 @@ wi_fs_finder_label_t wi_fs_finder_label_for_path(wi_string_t *path) {
 #ifdef HAVE_CARBON_CARBON_H
 	int32_t		flags;
 	
-	flags = _wi_fs_finder_flags(wi_string_cstring(path));
+	flags = _wi_fs_finder_flags_for_cpath(wi_string_cstring(path));
 	
 	if(flags >= 0) {
 		switch((flags & kColor) >> kIsOnDesk) {
@@ -858,107 +1034,33 @@ wi_fs_finder_label_t wi_fs_finder_label_for_path(wi_string_t *path) {
 			case 7:		return WI_FS_FINDER_LABEL_ORANGE;	break;
 		}
 	}
-#endif
-		
+	
 	return WI_FS_FINDER_LABEL_NONE;
-}
-
-
-
-#pragma mark -
-
-wi_array_t * wi_fs_directory_contents_at_path(wi_string_t *path) {
-	wi_mutable_array_t		*contents;
-	wi_string_t				*name;
-	DIR						*dir;
-	struct dirent			de, *dep;
-	
-	dir = opendir(wi_string_cstring(path));
-	
-	if(!dir) {
-		wi_error_set_errno(errno);
-		
-		return NULL;
-	}
-	
-	contents = wi_array_init_with_capacity(wi_mutable_array_alloc(), 100);
-	
-	while(readdir_r(dir, &de, &dep) == 0 && dep) {
-		if(strcmp(dep->d_name, ".") != 0 && strcmp(dep->d_name, "..") != 0) {
-			name = wi_string_init_with_cstring(wi_string_alloc(), dep->d_name);
-			wi_mutable_array_add_data(contents, name);
-			wi_release(name);
-		}
-	}
-
-	closedir(dir);
-	
-	wi_runtime_make_immutable(contents);
-	
-	return wi_autorelease(contents);
-}
-
-
-
-wi_fsenumerator_t * wi_fs_enumerator_at_path(wi_string_t *path) {
-	return wi_autorelease(wi_fsenumerator_init_with_path(wi_fsenumerator_alloc(), path));
-}
-
-
-
-#pragma mark -
-
-#ifdef WI_DIGESTS
-
-wi_string_t * wi_fs_sha1_for_path(wi_string_t *path, wi_file_offset_t offset) {
-	static unsigned char	hex[] = "0123456789abcdef";
-	FILE					*fp;
-	wi_sha1_ctx_t			c;
-	char					buffer[WI_FILE_BUFFER_SIZE];
-	unsigned char			sha1[WI_SHA1_DIGEST_LENGTH];
-	char					sha1_hex[sizeof(sha1) * 2 + 1];
-	size_t					bytes;
-	wi_uinteger_t			i;
-	wi_boolean_t			all;
-	
-	fp = fopen(wi_string_cstring(path), "r");
-	
-	if(!fp) {
-		wi_error_set_errno(errno);
-		
-		return NULL;
-	}
-	
-	all = (offset == 0);
-	
-	wi_sha1_init(&c);
-
-	while((bytes = fread(buffer, 1, sizeof(buffer), fp)) > 0) {
-		if(!all)
-			bytes = bytes > offset ? offset : bytes;
-
-		wi_sha1_update(&c, buffer, bytes);
-		
-		if(!all) {
-			offset -= bytes;
-			
-			if(offset == 0)
-				break;
-		}
-	}
-		
-	fclose(fp);
-
-	wi_sha1_final(sha1, &c);
-
-	for(i = 0; i < WI_SHA1_DIGEST_LENGTH; i++) {
-		sha1_hex[i + i]		= hex[sha1[i] >> 4];
-		sha1_hex[i + i + 1]	= hex[sha1[i] & 0x0F];
-	}
-
-	sha1_hex[i + i] = '\0';
-
-	return wi_string_with_cstring(sha1_hex);
-}
-
+#else
+	return WI_FS_FINDER_LABEL_NONE;
 #endif
+}
+
+
+
+wi_boolean_t wi_fs_set_finder_info_for_path(wi_data_t *info, wi_string_t *path) {
+#ifdef HAVE_CARBON_CARBON_H
+	return _wi_fs_set_finder_info_for_cpath(info, wi_string_cstring(path));
+#else
+	wi_error_set_libwired_error(WI_ERROR_FILE_NOCARBON);
+	
+	return false;
+#endif
+}
+
+
+
+wi_data_t * wi_fs_finder_info_for_path(wi_string_t *path) {
+#ifdef HAVE_CARBON_CARBON_H
+	return _wi_fs_finder_info_for_cpath(wi_string_cstring(path));
+#else
+	wi_error_set_libwired_error(WI_ERROR_FILE_NOCARBON);
+	
+	return NULL;
+#endif
+}

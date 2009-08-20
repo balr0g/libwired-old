@@ -103,18 +103,28 @@ WI_EXPORT wi_boolean_t					wi_fs_stat_path(wi_string_t *, wi_fs_stat_t *);
 WI_EXPORT wi_boolean_t					wi_fs_lstat_path(wi_string_t *, wi_fs_stat_t *);
 WI_EXPORT wi_boolean_t					wi_fs_statfs_path(wi_string_t *, wi_fs_statfs_t *);
 WI_EXPORT wi_boolean_t					wi_fs_path_exists(wi_string_t *, wi_boolean_t *);
-WI_EXPORT wi_boolean_t					wi_fs_path_is_alias(wi_string_t *);
-WI_EXPORT wi_boolean_t					wi_fs_cpath_is_alias(const char *);
-WI_EXPORT wi_boolean_t					wi_fs_path_is_invisible(wi_string_t *);
-WI_EXPORT wi_boolean_t					wi_fs_cpath_is_invisible(const char *);
-WI_EXPORT wi_boolean_t					wi_fs_set_finder_comment_for_path(wi_string_t *, wi_string_t *);
-WI_EXPORT wi_string_t *					wi_fs_finder_comment_for_path(wi_string_t *);
-WI_EXPORT wi_boolean_t					wi_fs_set_finder_label_for_path(wi_string_t *, wi_fs_finder_label_t);
-WI_EXPORT wi_fs_finder_label_t			wi_fs_finder_label_for_path(wi_string_t *);
 
 WI_EXPORT wi_array_t *					wi_fs_directory_contents_at_path(wi_string_t *);
 WI_EXPORT wi_fsenumerator_t *			wi_fs_enumerator_at_path(wi_string_t *);
 
 WI_EXPORT wi_string_t *					wi_fs_sha1_for_path(wi_string_t *, wi_file_offset_t);
+
+WI_EXPORT wi_string_t *					wi_fs_resource_fork_path_for_path(wi_string_t *);
+WI_EXPORT wi_file_offset_t				wi_fs_resource_fork_size_for_path(wi_string_t *);
+
+WI_EXPORT wi_boolean_t					wi_fs_path_is_alias(wi_string_t *);
+WI_EXPORT wi_boolean_t					wi_fs_cpath_is_alias(const char *);
+
+WI_EXPORT wi_boolean_t					wi_fs_path_is_invisible(wi_string_t *);
+WI_EXPORT wi_boolean_t					wi_fs_cpath_is_invisible(const char *);
+
+WI_EXPORT wi_boolean_t					wi_fs_set_finder_comment_for_path(wi_string_t *, wi_string_t *);
+WI_EXPORT wi_string_t *					wi_fs_finder_comment_for_path(wi_string_t *);
+
+WI_EXPORT wi_boolean_t					wi_fs_set_finder_label_for_path(wi_fs_finder_label_t, wi_string_t *);
+WI_EXPORT wi_fs_finder_label_t			wi_fs_finder_label_for_path(wi_string_t *);
+
+WI_EXPORT wi_boolean_t					wi_fs_set_finder_info_for_path(wi_data_t *, wi_string_t *);
+WI_EXPORT wi_data_t *					wi_fs_finder_info_for_path(wi_string_t *);
 
 #endif /* WI_FS_H */
