@@ -1622,7 +1622,7 @@ wi_integer_t wi_socket_read_buffer(wi_socket_t *socket, wi_time_interval_t timeo
 		offset = 0;
 		
 		while(offset < length) {
-			bytes = _wi_socket_read_buffer(socket, timeout, buffer, length);
+			bytes = _wi_socket_read_buffer(socket, timeout, buffer + offset, length - offset);
 			
 			if(bytes <= 0)
 				return -1;
