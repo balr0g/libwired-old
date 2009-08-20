@@ -502,16 +502,23 @@ static wi_boolean_t _wi_p7_message_get_binary_buffer_for_reading_for_id(wi_p7_me
 	
 	while((uint32_t) (buffer - start) < message_size) {
 		field_id	= wi_read_swap_big_to_host_int32(buffer, 0);
-		buffer		+= sizeof(field_id);
 		field		= wi_p7_spec_field_with_id(p7_message->spec, field_id);
 		
 		if(!field)
 			continue;
 		
+		if((uint32_t) (buffer - start) + message_size < sizeof(field_id))
+			break;
+
+		buffer		+= sizeof(field_id);
+		
 		field_size	= wi_p7_spec_field_size(field);
 	
 		if(field_size == 0) {
 			field_size = wi_read_swap_big_to_host_int32(buffer, 0);
+			
+			if((uint32_t) (buffer - start) + message_size < sizeof(field_size))
+				break;
 			
 			buffer += sizeof(field_size);
 		}
@@ -525,6 +532,9 @@ static wi_boolean_t _wi_p7_message_get_binary_buffer_for_reading_for_id(wi_p7_me
 			
 			return true;
 		}
+		
+		if((uint32_t) (buffer - start) + message_size < field_size)
+			break;
 		
 		buffer += field_size;
 	}
