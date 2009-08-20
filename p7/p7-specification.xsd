@@ -225,6 +225,7 @@
 			</xs:simpleType>
 		</xs:attribute>
 		<xs:attribute name="use" type="p7:use" use="optional" default="optional" />
+		<xs:attribute name="version" type="xs:string" use="required" />
 	</xs:complexType>
 	
 	<xs:complexType name="broadcast">
