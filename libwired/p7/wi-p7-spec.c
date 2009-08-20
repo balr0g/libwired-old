@@ -790,7 +790,7 @@ static wi_boolean_t _wi_p7_spec_load_string(wi_p7_spec_t *p7_spec, wi_string_t *
 
 
 static wi_boolean_t _wi_p7_spec_load_spec(wi_p7_spec_t *p7_spec, xmlDocPtr doc) {
-	xmlNodePtr		root_node, node;
+	xmlNodePtr		root_node, node, next_node;
 	
 	root_node = xmlDocGetRootElement(doc);
 	
@@ -820,10 +820,16 @@ static wi_boolean_t _wi_p7_spec_load_spec(wi_p7_spec_t *p7_spec, xmlDocPtr doc) 
 		return false;
 	}
 
-	for(node = root_node->children; node != NULL; node = node->next) {
+	for(node = root_node->children; node != NULL; node = next_node) {
+		next_node = node->next;
+		
 		if(node->type == XML_ELEMENT_NODE) {
-			if(strcmp((const char *) node->name, "documentation") == 0)
+			if(strcmp((const char *) node->name, "documentation") == 0) {
+				xmlUnlinkNode(node);
+				xmlFreeNode(node);
+				
 				continue;
+			}
 
 			if(strcmp((const char *) node->name, "types") == 0) {
 				if(!_wi_p7_spec_load_types(p7_spec, node))
@@ -1292,6 +1298,8 @@ static wi_boolean_t _wi_p7_spec_replies_are_compatible(wi_p7_spec_t *p7_spec, _w
 	
 	if(andor->type != other_andor->type)
 		return false;
+	
+	// TODO: order shouldn't matter
 	
 	enumerator = wi_array_data_enumerator(andor->replies_array);
 	count = wi_array_count(other_andor->replies_array);
@@ -1782,7 +1790,7 @@ wi_runtime_id_t wi_p7_spec_field_runtime_id(void) {
 #pragma mark -
 
 static wi_p7_spec_field_t * _wi_p7_spec_field_with_node(wi_p7_spec_t *p7_spec, xmlNodePtr node) {
-	xmlNodePtr					enum_node;
+	xmlNodePtr					enum_node, next_node;
 	wi_p7_spec_field_t			*field;
 	wi_string_t					*type, *listtype, *name;
 	wi_integer_t				value;
@@ -1852,35 +1860,49 @@ static wi_p7_spec_field_t * _wi_p7_spec_field_with_node(wi_p7_spec_t *p7_spec, x
 			20, wi_dictionary_default_key_callbacks, wi_dictionary_null_value_callbacks);
 		field->enums_value = wi_dictionary_init_with_capacity_and_callbacks(wi_mutable_dictionary_alloc(),
 			20, wi_dictionary_null_key_callbacks, wi_dictionary_default_value_callbacks);
+	}
 		
-		for(enum_node = node->children; enum_node != NULL; enum_node = enum_node->next) {
-			if(enum_node->type == XML_ELEMENT_NODE) {
-				if(strcmp((const char *) enum_node->name, "documentation") == 0)
-					continue;
+	for(enum_node = node->children; enum_node != NULL; enum_node = next_node) {
+		next_node = enum_node->next;
+		
+		if(enum_node->type == XML_ELEMENT_NODE) {
+			if(strcmp((const char *) enum_node->name, "documentation") == 0) {
+				xmlUnlinkNode(enum_node);
+				xmlFreeNode(enum_node);
 				
-				if(strcmp((const char *) enum_node->name, "enum") != 0) {
-					wi_error_set_libwired_error_with_format(WI_ERROR_P7_INVALIDSPEC,
-						WI_STR("Expected \"enum\" node but got \"%s\""),
-						enum_node->name);
-					
-					return false;
-				}
-				
-				name = wi_xml_node_attribute_with_name(enum_node, WI_STR("name"));
-				
-				if(!name) {
-					wi_error_set_libwired_error_with_format(WI_ERROR_P7_INVALIDSPEC,
-						WI_STR("Field \"%@\" enum has no \"name\""),
-						field->name);
-					
-					return NULL;
-				}
-				
-				value = wi_xml_node_integer_attribute_with_name(enum_node, WI_STR("value"));
-				
-				wi_mutable_dictionary_set_data_for_key(field->enums_name, (void *) value, name);
-				wi_mutable_dictionary_set_data_for_key(field->enums_value, name, (void *) value);
+				continue;
 			}
+			
+			if(field->type->id != WI_P7_ENUM) {
+				wi_error_set_libwired_error_with_format(WI_ERROR_P7_INVALIDSPEC,
+					WI_STR("Expected no more nodes but got \"%s\""),
+					enum_node->name);
+				
+				return NULL;
+			}
+			
+			if(strcmp((const char *) enum_node->name, "enum") != 0) {
+				wi_error_set_libwired_error_with_format(WI_ERROR_P7_INVALIDSPEC,
+					WI_STR("Expected \"enum\" node but got \"%s\""),
+					enum_node->name);
+				
+				return NULL;
+			}
+			
+			name = wi_xml_node_attribute_with_name(enum_node, WI_STR("name"));
+			
+			if(!name) {
+				wi_error_set_libwired_error_with_format(WI_ERROR_P7_INVALIDSPEC,
+					WI_STR("Field \"%@\" enum has no \"name\""),
+					field->name);
+				
+				return NULL;
+			}
+			
+			value = wi_xml_node_integer_attribute_with_name(enum_node, WI_STR("value"));
+			
+			wi_mutable_dictionary_set_data_for_key(field->enums_name, (void *) value, name);
+			wi_mutable_dictionary_set_data_for_key(field->enums_value, name, (void *) value);
 		}
 	}
 	
@@ -1960,7 +1982,7 @@ wi_dictionary_t * wi_p7_spec_field_enums_by_value(wi_p7_spec_field_t *field) {
 #pragma mark -
 
 static _wi_p7_spec_collection_t * _wi_p7_spec_collection_with_node(wi_p7_spec_t *p7_spec, xmlNodePtr node) {
-	xmlNodePtr					member_node;
+	xmlNodePtr					member_node, next_node;
 	_wi_p7_spec_collection_t	*collection;
 	wi_p7_spec_field_t			*field;
 	wi_string_t					*field_name;
@@ -1977,10 +1999,16 @@ static _wi_p7_spec_collection_t * _wi_p7_spec_collection_with_node(wi_p7_spec_t 
 	
 	collection->fields = wi_array_init(wi_mutable_array_alloc());
 	
-	for(member_node = node->children; member_node != NULL; member_node = member_node->next) {
+	for(member_node = node->children; member_node != NULL; member_node = next_node) {
+		next_node = member_node->next;
+		
 		if(member_node->type == XML_ELEMENT_NODE) {
-			if(strcmp((const char *) member_node->name, "documentation") == 0)
+			if(strcmp((const char *) member_node->name, "documentation") == 0) {
+				xmlUnlinkNode(member_node);
+				xmlFreeNode(member_node);
+				
 				continue;
+			}
 			
 			if(strcmp((const char *) member_node->name, "member") != 0) {
 				wi_error_set_libwired_error_with_format(WI_ERROR_P7_INVALIDSPEC,
@@ -2056,7 +2084,7 @@ wi_runtime_id_t wi_p7_spec_message_runtime_id(void) {
 static wi_p7_spec_message_t * _wi_p7_spec_message_with_node(wi_p7_spec_t *p7_spec, xmlNodePtr node) {
 	wi_enumerator_t				*enumerator;
 	wi_string_t					*field_name, *collection_name, *use;
-	xmlNodePtr					parameter_node;
+	xmlNodePtr					parameter_node, next_node;
 	wi_p7_spec_message_t		*message;
 	wi_p7_spec_parameter_t		*parameter;
 	_wi_p7_spec_collection_t	*collection;
@@ -2087,10 +2115,16 @@ static wi_p7_spec_message_t * _wi_p7_spec_message_with_node(wi_p7_spec_t *p7_spe
 	message->parameters_id		= wi_dictionary_init_with_capacity_and_callbacks(wi_mutable_dictionary_alloc(),
 		20, wi_dictionary_null_key_callbacks, wi_dictionary_default_value_callbacks);
 
-	for(parameter_node = node->children; parameter_node != NULL; parameter_node = parameter_node->next) {
+	for(parameter_node = node->children; parameter_node != NULL; parameter_node = next_node) {
+		next_node = parameter_node->next;
+		
 		if(parameter_node->type == XML_ELEMENT_NODE) {
-			if(strcmp((const char *) parameter_node->name, "documentation") == 0)
+			if(strcmp((const char *) parameter_node->name, "documentation") == 0) {
+				xmlUnlinkNode(parameter_node);
+				xmlFreeNode(parameter_node);
+				
 				continue;
+			}
 			
 			if(strcmp((const char *) parameter_node->name, "parameter") != 0) {
 				wi_error_set_libwired_error_with_format(WI_ERROR_P7_INVALIDSPEC,
@@ -2446,6 +2480,7 @@ static wi_string_t * _wi_p7_spec_transaction_description(wi_runtime_instance_t *
 #pragma mark -
 
 static _wi_p7_spec_broadcast_t * _wi_p7_spec_broadcast_with_node(wi_p7_spec_t *p7_spec, xmlNodePtr node) {
+	xmlNodePtr					broadcast_node, next_node;
 	wi_string_t					*message;
 	_wi_p7_spec_broadcast_t		*broadcast;
 
@@ -2470,6 +2505,19 @@ static _wi_p7_spec_broadcast_t * _wi_p7_spec_broadcast_with_node(wi_p7_spec_t *p
 			message);
 		
 		return NULL;
+	}
+	
+	for(broadcast_node = node->children; broadcast_node != NULL; broadcast_node = broadcast_node->next) {
+		next_node = broadcast_node->next;
+		
+		if(broadcast_node->type == XML_ELEMENT_NODE) {
+			if(strcmp((const char *) broadcast_node->name, "documentation") == 0) {
+				xmlUnlinkNode(broadcast_node);
+				xmlFreeNode(broadcast_node);
+				
+				continue;
+			}
+		}
 	}
 	
 	return broadcast;
@@ -2499,7 +2547,7 @@ static wi_string_t * _wi_p7_spec_broadcast_description(wi_runtime_instance_t *in
 #pragma mark -
 
 static _wi_p7_spec_andor_t * _wi_p7_spec_andor(_wi_p7_spec_andor_type_t type, wi_p7_spec_t *p7_spec, xmlNodePtr node, _wi_p7_spec_transaction_t *transaction) {
-	xmlNodePtr				andor_node;
+	xmlNodePtr				andor_node, next_node;
 	_wi_p7_spec_andor_t		*andor, *child_andor;
 	_wi_p7_spec_reply_t		*reply;
 
@@ -2510,9 +2558,15 @@ static _wi_p7_spec_andor_t * _wi_p7_spec_andor(_wi_p7_spec_andor_type_t type, wi
 	andor->replies_dictionary	= wi_dictionary_init_with_capacity(wi_mutable_dictionary_alloc(), 10);
 
 	for(andor_node = node->children; andor_node != NULL; andor_node = andor_node->next) {
+		next_node = andor_node->next;
+		
 		if(andor_node->type == XML_ELEMENT_NODE) {
-			if(strcmp((const char *) andor_node->name, "documentation") == 0)
+			if(strcmp((const char *) andor_node->name, "documentation") == 0) {
+				xmlUnlinkNode(andor_node);
+				xmlFreeNode(andor_node);
+				
 				continue;
+			}
 			
 			if(strcmp((const char *) andor_node->name, "reply") == 0) {
 				reply = _wi_p7_spec_reply_with_node(p7_spec, andor_node, transaction);
