@@ -314,6 +314,12 @@ wi_uinteger_t wi_data_length(wi_data_t *data) {
 
 
 
+void wi_data_get_bytes(wi_data_t *data, void *bytes, wi_uinteger_t length) {
+	memcpy(bytes, data->bytes, length);
+}
+
+
+
 #pragma mark -
 
 static void _wi_data_append_bytes(wi_mutable_data_t *data, const void *bytes, wi_uinteger_t length) {
