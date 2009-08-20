@@ -87,8 +87,6 @@ typedef enum _wi_file_mode			wi_file_mode_t;
 typedef struct _wi_file				wi_file_t;
 
 
-WI_EXPORT wi_string_t *				wi_file_temporary_path_with_template(wi_string_t *);
-
 WI_EXPORT wi_boolean_t				wi_file_delete(wi_string_t *);
 WI_EXPORT wi_boolean_t				wi_file_clear(wi_string_t *);
 WI_EXPORT wi_boolean_t				wi_file_rename(wi_string_t *, wi_string_t *);
