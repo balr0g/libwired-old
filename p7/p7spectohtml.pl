@@ -13,10 +13,13 @@ sub main {
 
 	my $protocol = $tree->[1];
 	my $info = $protocol->[0];
+	$info->{"file"} = $file;
 
-	my @fields;
 	my %fields;
 	my %collections;
+	my %messages;
+
+	my @fields;
 	my @messages;
 	my @transactions;
 	my @broadcasts;
@@ -27,7 +30,30 @@ sub main {
 		if($node eq "p7:documentation") {
 			$info->{"documentation"} = documentation($protocol->[$i + 1]->[2]);
 		}
-		elsif($node eq "p7:fields") {
+		elsif($node eq "p7:collections") {
+			for(my $j = 0; $j < @{$protocol->[$i + 1]}; $j++) {
+				if($protocol->[$i + 1]->[$j] eq "p7:collection") {
+					my $collectionnode = $protocol->[$i + 1]->[$j + 1];
+					my $collection = $collectionnode->[0];
+					
+					my @fields;
+					
+					for(my $k = 0; $k < @{$collectionnode}; $k++) {
+						if($collectionnode->[$k] eq "p7:member") {
+							push(@fields, $collectionnode->[$k + 1]->[0]->{"field"});
+						}
+					}
+					
+					$collections{$collection->{"name"}} = \@fields;
+				}
+			}
+		}
+	}
+
+	for(my $i = 0; $i < @$protocol; $i++) {
+		my $node = $protocol->[$i];
+		
+		if($node eq "p7:fields") {
 			for(my $j = 0; $j < @{$protocol->[$i + 1]}; $j++) {
 				if($protocol->[$i + 1]->[$j] eq "p7:field") {
 					my $fieldnode = $protocol->[$i + 1]->[$j + 1];
@@ -45,7 +71,9 @@ sub main {
 					}
 
 					$field->{"enums"} = \@enums;
-					$field->{"type"} = type($field->{"type"});
+					$field->{"formattedtype"} = type($field->{"type"});
+					$field->{"formattedlisttype"} = type($field->{"listtype"}) if $field->{"listtype"};
+					$field->{"messages"} = [];
 
 					$fields{$field->{"name"}} = $field;
 
@@ -53,25 +81,12 @@ sub main {
 				}
 			}
 		}
-		elsif($node eq "p7:collections") {
-			for(my $j = 0; $j < @{$protocol->[$i + 1]}; $j++) {
-				if($protocol->[$i + 1]->[$j] eq "p7:collection") {
-					my $collectionnode = $protocol->[$i + 1]->[$j + 1];
-					my $collection = $collectionnode->[0];
+	}
 
-					my @fields;
-
-					for(my $k = 0; $k < @{$collectionnode}; $k++) {
-						if($collectionnode->[$k] eq "p7:member") {
-							push(@fields, $collectionnode->[$k + 1]->[0]->{"field"});
-						}
-					}
-
-					$collections{$collection->{"name"}} = \@fields;
-				}
-			}
-		}
-		elsif($node eq "p7:messages") {
+	for(my $i = 0; $i < @$protocol; $i++) {
+		my $node = $protocol->[$i];
+		
+		if($node eq "p7:messages") {
 			for(my $j = 0; $j < @{$protocol->[$i + 1]}; $j++) {
 				if($protocol->[$i + 1]->[$j] eq "p7:message") {
 					my $messagenode = $protocol->[$i + 1]->[$j + 1];
@@ -82,11 +97,7 @@ sub main {
 
 					for(my $k = 0; $k < @{$messagenode}; $k++) {
 						if($messagenode->[$k] eq "p7:parameter") {
-							my $optional = 0;
-
-							if(!$messagenode->[$k + 1]->[0]->{"use"} || $messagenode->[$k + 1]->[0]->{"use"} eq "optional") {
-								$optional = 1;
-							}
+							$messagenode->[$k + 1]->[0]->{"use"} ||= "optional";
 
 							foreach my $parameter ($messagenode->[$k + 1]->[0]) {
 								my $fields = $collections{$parameter->{"collection"}};
@@ -97,21 +108,26 @@ sub main {
 
 										$collection_parameter->{"field"} = $fields{$field};
 										$collection_parameter->{"version"} = $parameter->{"version"};
+										$collection_parameter->{"use"} = $parameter->{"use"};
 
-										if($optional) {
+										if($collection_parameter->{"use"} eq "optional") {
 											push(@optional_parameters, $collection_parameter);
 										} else {
 											push(@required_parameters, $collection_parameter);
 										}
+
+										push(@{$collection_parameter->{"field"}->{"messages"}}, $message->{"name"});
 									}
 								} else {
 									$parameter->{"field"} = $fields{$parameter->{"field"}};
 
-									if($optional) {
+									if($parameter->{"use"} eq "optional") {
 										push(@optional_parameters, $parameter);
 									} else {
 										push(@required_parameters, $parameter);
 									}
+									
+									push(@{$parameter->{"field"}->{"messages"}}, $message->{"name"});
 								}
 							}
 						}
@@ -122,12 +138,21 @@ sub main {
 
 					$message->{"required_parameters"} = \@required_parameters;
 					$message->{"optional_parameters"} = \@optional_parameters;
+					$message->{"transactions"} = [];
+					$message->{"broadcasts"} = [];
+					
+					$messages{$message->{"name"}} = $message;
 
 					push(@messages, $message);
 				}
 			}
 		}
-		elsif($node eq "p7:transactions") {
+	}
+
+	for(my $i = 0; $i < @$protocol; $i++) {
+		my $node = $protocol->[$i];
+		
+		if($node eq "p7:transactions") {
 			for(my $j = 0; $j < @{$protocol->[$i + 1]}; $j++) {
 				if($protocol->[$i + 1]->[$j] eq "p7:transaction") {
 					my $transactionnode = $protocol->[$i + 1]->[$j + 1];
@@ -149,6 +174,11 @@ sub main {
 										for(my $m = 0; $m < @{$replynode->[$l + 1]}; $m++) {
 											if($replynode->[$l + 1]->[$m] eq "p7:reply") {
 												$replies[$index1]->[$index2] = $replynode->[$l + 1]->[$m + 1]->[0];
+												$replies[$index1]->[$index2]->{"message"} = $messages{$replies[$index1]->[$index2]->{"message"}};
+												$replies[$index1]->[$index2]->{"use"} ||= "optional";
+												
+												push(@{$replies[$index1]->[$index2]->{"message"}->{"transactions"}}, $transaction->{"message"});
+												
 												$index2++;
 											}
 										}
@@ -157,13 +187,22 @@ sub main {
 									}
 									elsif($replynode->[$l] eq "p7:reply") {
 										$replies[$index1]->[$index2] = $replynode->[$l + 1]->[0];
+										$replies[$index1]->[$index2]->{"message"} = $messages{$replies[$index1]->[$index2]->{"message"}};
+										$replies[$index1]->[$index2]->{"use"} ||= "optional";
+										
+										push(@{$replies[$index1]->[$index2]->{"message"}->{"transactions"}}, $transaction->{"message"});
+
 										$index1++;
 									}
 								}
 							}
 							elsif($transactionnode->[$k] eq "p7:reply") {
 								$replies[$index1]->[$index2] = $replynode->[0];
+								$replies[$index1]->[$index2]->{"message"} = $messages{$replies[$index1]->[$index2]->{"message"}};
+								$replies[$index1]->[$index2]->{"use"} ||= "optional";
 
+								push(@{$replies[$index1]->[$index2]->{"message"}->{"transactions"}}, $transaction->{"message"});
+								
 								$index2++;
 							}
 						}
@@ -172,8 +211,11 @@ sub main {
 						}
 					}
 
-					$transaction->{"originator"} = originator($transaction->{"originator"});
+					$transaction->{"use"} ||= "optional";
+					$transaction->{"formattedoriginator"} = originator($transaction->{"originator"});
 					$transaction->{"replies"} = \@replies;
+
+					push(@{$messages{$transaction->{"message"}}->{"transactions"}}, $transaction->{"message"});
 
 					push(@transactions, $transaction);
 				}
@@ -190,19 +232,24 @@ sub main {
 							$broadcast->{"documentation"} = documentation($broadcastnode->[$k + 1]->[2]);
 						}
 					}
-
+					
+					push(@{$messages{$broadcast->{"message"}}->{"broadcasts"}}, $broadcast->{"message"});
+					
 					push(@broadcasts, $broadcast);
 				}
 			}
 		}
 	}
 
+	printhtmlheader($info);
+
 	printheader($info, \@fields, \@messages, \@transactions, \@broadcasts);
 	printfields(\@fields);
 	printmessages(\@messages);
 	printtransactions(\@transactions);
 	printbroadcasts(\@broadcasts);
-	printfooter();
+	
+	printhtmlfooter();
 }
 
 
@@ -252,33 +299,57 @@ sub originator {
 }
 
 
-sub printheader {
-	my($info, $fields, $messages, $transactions, $broadcasts) = @_;
-
+sub printhtmlheader {
+	my($info) = @_;
+	
 	print <<EOF;
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
     "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-
+	
 <!-- baka baka minna baka -->
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-	<title>Zanka Software</title>
+	<title>$info->{"name"} $info->{"version"} Documentation</title>
 	<link rel="stylesheet" type="text/css" href="http://www.zankasoftware.com/css/index.css">
 </head>
 <body>
+EOF
+}
 
-<span class="largetitle">$info->{"name"} $info->{"version"}</span>
+
+sub printheader {
+	my($info, $fields, $messages, $transactions, $broadcasts) = @_;
+
+	print <<EOF;
+<span class="protocoltitle">$info->{"name"} $info->{"version"}</span>
 
 <br />
 <br />
+
+<code class="protocol">&lt;p7:protocol xmlns:p7="$info->{"xmlns:p7"}"
+             xmlns:xsi="$info->{"xmlns:xsi"}"
+             xsi:schemaLocation="$info->{"xsi:schemaLocation"}"
+             name="$info->{"name"}"
+             version="$info->{"version"}" /&gt;</code>
+
+<br />
+
+Automatically generated from <a href="$info->{"file"}">$info->{"file"}</a>.
+
+<br />
+<br />
+
+<span class="protocolsectiontitle">Overview</span><br />
+<hr class="protocol" />
 
 $info->{"documentation"}
 
 <br />
 <br />
 
-<span class="mediumtitle">Fields</span><br />
+<span class="protocolsectiontitle">Fields</span><br />
+<hr class="protocol" />
 
 <blockquote>
 EOF
@@ -295,7 +366,8 @@ EOF
 <br />
 <br />
 
-<span class="mediumtitle">Messages</span><br />
+<span class="protocolsectiontitle">Messages</span><br />
+<hr class="protocol" />
 
 <blockquote>
 EOF
@@ -312,7 +384,8 @@ EOF
 <br />
 <br />
 
-<span class="mediumtitle">Transactions</span><br />
+<span class="protocolsectiontitle">Transactions</span><br />
+<hr class="protocol" />
 
 <blockquote>
 EOF
@@ -329,7 +402,8 @@ EOF
 <br />
 <br />
 
-<span class="mediumtitle">Broadcasts</span><br />
+<span class="protocolsectiontitle">Broadcasts</span><br />
+<hr class="protocol" />
 
 <blockquote>
 EOF
@@ -354,44 +428,67 @@ sub printfields {
 	my($fields) = @_;
 
 	print <<EOF;
-<a class="largetitle" name="fields">Fields</span>
+<a class="protocolsectiontitle" name="fields">Fields</span>
+<hr class="protocol" />
 
-<br />
 <br />
 EOF
 
 	foreach my $field (@$fields) {
 		print <<EOF;
-<a name="field,$field->{"name"}"><span class="mediumtitle">$field->{"name"}</span></a>
+<a name="field,$field->{"name"}"><span class="protocolitemtitle">$field->{"name"}</span></a>
 
 <br />
 <br />
+		
+EOF
+		
+		if(@{$field->{"enums"}} > 0) {
+			print <<EOF;
+<code class="protocol">&lt;p7:field name="$field->{"name"}" type="$field->{"type"}" id="$field->{"id"}"&gt;
+EOF
 
+			foreach my $enum (@{$field->{"enums"}}) {
+				print <<EOF;
+    &lt;p7:enum name="$enum->{"name"}" value="$enum->{"value"}" /&gt;
+EOF
+			}
+			
+			print <<EOF;
+&lt;/p7:field&gt;</code>
+EOF
+		} else {
+			print <<EOF;
+<code class="protocol">&lt;p7:field name="$field->{"name"}" type="$field->{"type"}" id="$field->{"id"}" /&gt;</code>
+EOF
+		}
+		
+		print <<EOF;
+<br />
+		
 $field->{"documentation"}
 
 <br />
 <br />
 
-<b>ID</b><br />
+<span class="protocolitemsubtitle">ID</span><br />
 $field->{"id"}
 
 <br />
 <br />
 
-<b>Type</b><br />
-$field->{"type"}
+<span class="protocolitemsubtitle">Type</span><br />
+$field->{"formattedtype"}
 
 <br />
 <br />
+
 EOF
 
 		if($field->{"type"} eq "list") {
 			print <<EOF;
-<br />
-<br />
-
-<b>List Type</b><br />
-$field->{"listtype"}
+<span class="protocolitemsubtitle">List Type</span><br />
+$field->{"formattedlisttype"}
 
 <br />
 <br />
@@ -401,12 +498,12 @@ EOF
 
 		if(@{$field->{"enums"}} > 0) {
 			print <<EOF;
-<b>Values</b><br />
+<span class="protocolitemsubtitle">Values</span><br />
 EOF
 
 			foreach my $enum (@{$field->{"enums"}}) {
 				print <<EOF;
-<a name="enum,$enum->{"name"}">$enum->{"name"} = $enum->{"value"}</a><br />
+<a name="enum,$enum->{"name"}" href="#enum,$enum->{"name"}" class="protocolanchor">$enum->{"name"} = $enum->{"value"}</a><br />
 <blockquote>Available in version $enum->{"version"} and later.</blockquote>
 EOF
 			}
@@ -415,9 +512,21 @@ EOF
 <br />
 EOF
 		}
+		
+		print <<EOF;
+<span class="protocolitemsubtitle">Included in Messages</span><br />
+EOF
+		
+		foreach my $message (@{$field->{"messages"}}) {
+			print <<EOF;
+<a href="#message,$message">$message</a><br />
+EOF
+		}
 
 		print <<EOF;
-<b>Availability</b><br />
+<br />
+
+<span class="protocolitemsubtitle">Availability</span><br />
 Available in version $field->{"version"} and later.
 
 <br />
@@ -437,57 +546,96 @@ sub printmessages {
 	my($messages) = @_;
 
 	print <<EOF;
-<a class="largetitle" name="messages">Messages</span>
+<a class="protocolsectiontitle" name="messages">Messages</span>
+<hr class="protocol" />
 
-<br />
 <br />
 EOF
 
 	foreach my $message (@$messages) {
 		print <<EOF;
-<a name="message,$message->{"name"}"><span class="mediumtitle">$message->{"name"}</span></a>
+<a name="message,$message->{"name"}" href="#message,$message->{"name"}" class="protocolanchor"><span class="protocolitemtitle">$message->{"name"}</span></a>
 
 <br />
 <br />
 
+<code class="protocol">&lt;p7:message name="$message->{"name"}" id="$message->{"id"}" version="$message->{"version"}"&gt;
+EOF
+			
+		foreach my $parameter ((@{$message->{"required_parameters"}}, @{$message->{"optional_parameters"}})) {
+			print <<EOF;
+    &lt;p7:parameter field="$parameter->{"field"}->{"name"}" use="$parameter->{"use"}" version="$parameter->{"version"}" /&gt;
+EOF
+		}
+			
+		print <<EOF;
+&lt;/p7:message&gt;</code>
+		
+<br />
+		
 $message->{"documentation"}
 
 <br />
 <br />
 
-<b>ID</b><br />
+<span class="protocolitemsubtitle">ID</span><br />
 $message->{"id"}
 
-<br />
 <br />
 EOF
 
 		if(@{$message->{"required_parameters"}} > 0) {
 			print <<EOF;
-<b>Required Parameters</b><br />
+<br />
+
+<span class="protocolitemsubtitle">Required Parameters</span><br />
 EOF
 
 			printparameters($message->{"required_parameters"});
-
-			print <<EOF;
-<br />
-EOF
 		}
 
 		if(@{$message->{"optional_parameters"}} > 0) {
 			print <<EOF;
-<b>Optional Parameters</b><br />
+<br />
+
+<span class="protocolitemsubtitle">Optional Parameters</span><br />
 EOF
 
 			printparameters($message->{"optional_parameters"});
-
+		}
+		
+		if(@{$message->{"transactions"}}) {
 			print <<EOF;
 <br />
+
+<span class="protocolitemsubtitle">Included in Transactions</span><br />
 EOF
+		
+			foreach my $transaction (@{$message->{"transactions"}}) {
+				print <<EOF;
+<a href="#transaction,$transaction">$transaction</a><br />
+EOF
+			}
 		}
 
+		if(@{$message->{"broadcasts"}}) {
+			print <<EOF;
+<br />
+
+<span class="protocolitemsubtitle">Included in Broadcasts</span><br />
+EOF
+			
+			foreach my $broadcast (@{$message->{"broadcasts"}}) {
+				print <<EOF;
+<a href="#broadcast,$broadcast">$broadcast</a><br />
+EOF
+			}
+		}
+		
 		print <<EOF;
-<b>Availability</b><br />
+<br />
+
+<span class="protocolitemsubtitle">Availability</span><br />
 Available in version $message->{"version"} and later.
 
 <br />
@@ -520,17 +668,67 @@ sub printtransactions {
 	my($transactions) = @_;
 
 	print <<EOF;
-<a class="largetitle" name="transactions">Transactions</span>
+<a class="protocolsectiontitle" name="transactions">Transactions</span>
+<hr class="protocol" />
 
-<br />
 <br />
 EOF
 
 	foreach my $transaction (@$transactions) {
 		print <<EOF;
-<a name="transaction,$transaction->{"message"}"><span class="mediumtitle">$transaction->{"message"}</span></a>
+<a name="transaction,$transaction->{"message"}" href="#transaction,$transaction->{"message"}" class="protocolanchor"><span class="protocolitemtitle">$transaction->{"message"}</span></a>
 
 <br />
+<br />
+EOF
+		
+		print <<EOF;
+<code class="protocol">&lt;p7:transaction message="$transaction->{"message"}" originator="$transaction->{"originator"}" use="$transaction->{"use"}" version="$transaction->{"version"}"&gt;
+EOF
+
+		my $replies1 = $transaction->{"replies"};
+
+		if(@{$replies1} > 1) {
+			print <<EOF;
+    &lt;p7:or&gt;
+EOF
+		}
+		
+		for(my $index1 = 0; $index1 < @$replies1; $index1++) {
+			my $replies2 = $replies1->[$index1];
+			
+			if(@{$replies1} > 1 && @{$replies2} > 1) {
+				print <<EOF;
+        &lt;p7:and&gt;
+EOF
+			}
+			
+			for(my $index2 = 0; $index2 < @$replies2; $index2++) {
+				my $reply = $replies1->[$index1]->[$index2];
+				
+				my $indent = " " x (4 + (4 * (@{$replies1} > 1)) + (4 * (@{$replies2} > 1)));
+				
+				print <<EOF;
+$indent&lt;p7:reply message="$reply->{"message"}->{"name"}" count="$reply->{"count"}" use="$reply->{"use"}" /&gt;
+EOF
+			}
+			
+			if(@{$replies2} > 1) {
+				print <<EOF;
+        &lt;/p7:and&gt;
+EOF
+			}
+		}
+		
+		if(@{$replies1} > 1) {
+			print <<EOF;
+    &lt;/p7:or&gt;
+EOF
+		}
+
+		print <<EOF;
+&lt;/p7:transaction&gt;</code>
+
 <br />
 
 $transaction->{"documentation"}
@@ -538,22 +736,20 @@ $transaction->{"documentation"}
 <br />
 <br />
 
-<b>Message</b><br />
+<span class="protocolitemsubtitle">Message</span><br />
 <a href="#message,$transaction->{"message"}">$transaction->{"message"}</a>
 
 <br />
 <br />
 
-<b>Originator</b><br />
-$transaction->{"originator"}
+<span class="protocolitemsubtitle">Originator</span><br />
+$transaction->{"formattedoriginator"}
 
 <br />
 <br />
 
-<b>Replies</b><br />
+<span class="protocolitemsubtitle">Replies</span><br />
 EOF
-
-		my $replies1 = $transaction->{"replies"};
 
 		for(my $index1 = 0; $index1 < @$replies1; $index1++) {
 			my $replies2 = $replies1->[$index1];
@@ -579,13 +775,14 @@ EOF
 				}
 
 				print <<EOF;
-$count <a href="#message,$reply->{"message"}">$reply->{"message"}</a><br />
+$count <a href="#message,$reply->{"message"}->{"name"}">$reply->{"message"}->{"name"}</a> ($reply->{"use"})<br />
+<blockquote>Available in version $reply->{"version"} and later.</blockquote>
 EOF
 			}
 
 			if($index1 < @$replies1 - 1) {
 				print <<EOF;
-<i>or</i><br />
+<br /><i>or</i><br /><br />
 EOF
 			}
 		}
@@ -593,7 +790,7 @@ EOF
 		print <<EOF;
 <br />
 
-<b>Availability</b><br />
+<span class="protocolitemsubtitle">Availability</span><br />
 Available in version $transaction->{"version"} and later.
 
 <br />
@@ -613,18 +810,21 @@ sub printbroadcasts {
 	my($broadcasts) = @_;
 
 	print <<EOF;
-<a class="largetitle" name="broadcasts">Broadcasts</span>
+<a class="protocolsectiontitle" name="broadcasts">Broadcasts</span>
+<hr class="protocol" />
 
 <br />
-<br />
-
 EOF
 
 	foreach my $broadcast (@$broadcasts) {
 		print <<EOF;
-<a name="broadcast,$broadcast->{"message"}"><span class="mediumtitle">$broadcast->{"message"}</span></a>
+<a name="broadcast,$broadcast->{"message"}" href="#broadcast,$broadcast->{"message"}" class="protocolanchor"><span class="protocolitemtitle">$broadcast->{"message"}</span></a>
 
 <br />
+<br />
+
+<code class="protocol">&lt;p7:broadcast message="$broadcast->{"message"}" version="$broadcast->{"version"}" /&gt;</code>
+
 <br />
 
 $broadcast->{"documentation"}
@@ -632,21 +832,21 @@ $broadcast->{"documentation"}
 <br />
 <br />
 
-<b>Message</b><br />
+<span class="protocolitemsubtitle">Message</span><br />
 <a href="#message,$broadcast->{"message"}">$broadcast->{"message"}</a><br />
 EOF
 
 		print <<EOF;
 <br />
 
-<b>Availability</b><br />
+<span class="protocolitemsubtitle">Availability</span><br />
 Available in version $broadcast->{"version"} and later.
 EOF
 
 		if($broadcast != $broadcasts->[-1]) {
 			print <<EOF;
 <br />
-	<br />
+<br />
 <br />
 EOF
 		}
@@ -655,7 +855,7 @@ EOF
 
 
 
-sub printfooter {
+sub printhtmlfooter {
 	print <<EOF;
 </body>
 </html>
