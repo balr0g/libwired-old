@@ -633,7 +633,7 @@ void wi_p7_message_serialize(wi_p7_message_t *p7_message, wi_p7_serialization_t 
 	xmlNsPtr				ns;
 	xmlNodePtr				root_node, list_node, item_node;
 	wi_p7_spec_field_t		*field;
-	wi_p7_spec_type_t		*type, *list_type;
+	wi_p7_spec_type_t		*type;
 	wi_runtime_instance_t	*instance;
 	wi_string_t				*field_name, *field_value;
 	unsigned char			*buffer, *start;
@@ -764,7 +764,6 @@ void wi_p7_message_serialize(wi_p7_message_t *p7_message, wi_p7_serialization_t 
 						list_node = wi_xml_node_child_with_name(root_node, field_name);
 						
 						if(!list_node) {
-							list_type = wi_p7_spec_field_listtype(field);
 							list_node = xmlNewNode(ns, (xmlChar *) "field");
 							xmlSetProp(list_node, (xmlChar *) "name", (xmlChar *) wi_string_cstring(field_name));
 							xmlAddChild(root_node, list_node);
