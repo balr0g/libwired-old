@@ -872,9 +872,11 @@ static wi_boolean_t _wi_p7_spec_load_spec(wi_p7_spec_t *p7_spec, xmlDocPtr doc) 
 
 static wi_boolean_t _wi_p7_spec_load_types(wi_p7_spec_t *p7_spec, xmlNodePtr node) {
 	wi_p7_spec_type_t		*type;
-	xmlNodePtr				type_node;
+	xmlNodePtr				type_node, next_node;
 	
-	for(type_node = node->children; type_node != NULL; type_node = type_node->next) {
+	for(type_node = node->children; type_node != NULL; type_node = next_node) {
+		next_node = type_node->next;
+		
 		if(type_node->type == XML_ELEMENT_NODE) {
 			if(strcmp((const char *) type_node->name, "type") != 0) {
 				wi_error_set_libwired_error_with_format(WI_ERROR_P7_INVALIDSPEC,
@@ -917,9 +919,11 @@ static wi_boolean_t _wi_p7_spec_load_types(wi_p7_spec_t *p7_spec, xmlNodePtr nod
 
 static wi_boolean_t _wi_p7_spec_load_fields(wi_p7_spec_t *p7_spec, xmlNodePtr node) {
 	wi_p7_spec_field_t		*field;
-	xmlNodePtr				field_node;
+	xmlNodePtr				field_node, next_node;
 	
-	for(field_node = node->children; field_node != NULL; field_node = field_node->next) {
+	for(field_node = node->children; field_node != NULL; field_node = next_node) {
+		next_node = field_node->next;
+		
 		if(field_node->type == XML_ELEMENT_NODE) {
 			if(strcmp((const char *) field_node->name, "field") != 0) {
 				wi_error_set_libwired_error_with_format(WI_ERROR_P7_INVALIDSPEC,
@@ -980,9 +984,11 @@ static wi_boolean_t _wi_p7_spec_load_fields(wi_p7_spec_t *p7_spec, xmlNodePtr no
 
 static wi_boolean_t _wi_p7_spec_load_collections(wi_p7_spec_t *p7_spec, xmlNodePtr node) {
 	_wi_p7_spec_collection_t	*collection;
-	xmlNodePtr					collection_node;
+	xmlNodePtr					collection_node, next_node;
 	
-	for(collection_node = node->children; collection_node != NULL; collection_node = collection_node->next) {
+	for(collection_node = node->children; collection_node != NULL; collection_node = next_node) {
+		next_node = collection_node->next;
+		
 		if(collection_node->type == XML_ELEMENT_NODE) {
 			if(strcmp((const char *) collection_node->name, "collection") != 0) {
 				wi_error_set_libwired_error_with_format(WI_ERROR_P7_INVALIDSPEC,
@@ -1016,9 +1022,11 @@ static wi_boolean_t _wi_p7_spec_load_collections(wi_p7_spec_t *p7_spec, xmlNodeP
 
 static wi_boolean_t _wi_p7_spec_load_messages(wi_p7_spec_t *p7_spec, xmlNodePtr node) {
 	wi_p7_spec_message_t	*message;
-	xmlNodePtr				message_node;
+	xmlNodePtr				message_node, next_node;
 	
-	for(message_node = node->children; message_node != NULL; message_node = message_node->next) {
+	for(message_node = node->children; message_node != NULL; message_node = next_node) {
+		next_node = message_node->next;
+		
 		if(message_node->type == XML_ELEMENT_NODE) {
 			if(strcmp((const char *) message_node->name, "message") != 0) {
 				wi_error_set_libwired_error_with_format(WI_ERROR_P7_INVALIDSPEC,
@@ -1079,9 +1087,11 @@ static wi_boolean_t _wi_p7_spec_load_messages(wi_p7_spec_t *p7_spec, xmlNodePtr 
 
 static wi_boolean_t _wi_p7_spec_load_transactions(wi_p7_spec_t *p7_spec, xmlNodePtr node) {
 	_wi_p7_spec_transaction_t	*transaction;
-	xmlNodePtr					transaction_node;
+	xmlNodePtr					transaction_node, next_node;
 	
-	for(transaction_node = node->children; transaction_node != NULL; transaction_node = transaction_node->next) {
+	for(transaction_node = node->children; transaction_node != NULL; transaction_node = next_node) {
+		next_node = transaction_node->next;
+		
 		if(transaction_node->type == XML_ELEMENT_NODE) {
 			if(strcmp((const char *) transaction_node->name, "transaction") != 0) {
 				wi_error_set_libwired_error_with_format(WI_ERROR_P7_INVALIDSPEC,
@@ -1115,9 +1125,11 @@ static wi_boolean_t _wi_p7_spec_load_transactions(wi_p7_spec_t *p7_spec, xmlNode
 
 static wi_boolean_t _wi_p7_spec_load_broadcasts(wi_p7_spec_t *p7_spec, xmlNodePtr node) {
 	_wi_p7_spec_broadcast_t		*broadcast;
-	xmlNodePtr					broadcast_node;
+	xmlNodePtr					broadcast_node, next_node;
 	
-	for(broadcast_node = node->children; broadcast_node != NULL; broadcast_node = broadcast_node->next) {
+	for(broadcast_node = node->children; broadcast_node != NULL; broadcast_node = next_node) {
+		next_node = broadcast_node->next;
+		
 		if(broadcast_node->type == XML_ELEMENT_NODE) {
 			if(strcmp((const char *) broadcast_node->name, "broadcast") != 0) {
 				wi_error_set_libwired_error_with_format(WI_ERROR_P7_INVALIDSPEC,
@@ -1192,11 +1204,11 @@ static wi_boolean_t _wi_p7_spec_transaction_is_compatible(wi_p7_spec_t *p7_spec,
 	if(transaction->required) {
 		if(!other_transaction || !other_transaction->required) {
 			if(!other_transaction) {
-				wi_error_set_libwired_error_with_format(WI_ERROR_P7_INCOMPATIBLE_SPEC,
+				wi_error_set_libwired_error_with_format(WI_ERROR_P7_INCOMPATIBLESPEC,
 					WI_STR("Transaction \"%@\" is required, but peer lacks it"),
 					transaction->message->name);
 			} else {
-				wi_error_set_libwired_error_with_format(WI_ERROR_P7_INCOMPATIBLE_SPEC,
+				wi_error_set_libwired_error_with_format(WI_ERROR_P7_INCOMPATIBLESPEC,
 					WI_STR("Transaction \"%@\" is required, but peer has it optional"),
 					transaction->message->name);
 			}
@@ -1207,7 +1219,7 @@ static wi_boolean_t _wi_p7_spec_transaction_is_compatible(wi_p7_spec_t *p7_spec,
 	
 	if(other_transaction) {
 		if(transaction->originator != other_transaction->originator) {
-			wi_error_set_libwired_error_with_format(WI_ERROR_P7_INCOMPATIBLE_SPEC,
+			wi_error_set_libwired_error_with_format(WI_ERROR_P7_INCOMPATIBLESPEC,
 				WI_STR("Transaction \"%@\" should be sent by %@, but peer sends it by %@"),
 				transaction->message->name,
 				_wi_p7_spec_originator(transaction->originator),
@@ -1232,11 +1244,11 @@ static wi_boolean_t _wi_p7_spec_broadcast_is_compatible(wi_p7_spec_t *p7_spec, _
 	if(broadcast->required) {
 		if(!other_broadcast || !other_broadcast->required) {
 			if(!other_broadcast) {
-				wi_error_set_libwired_error_with_format(WI_ERROR_P7_INCOMPATIBLE_SPEC,
+				wi_error_set_libwired_error_with_format(WI_ERROR_P7_INCOMPATIBLESPEC,
 					WI_STR("Broadcast \"%@\" is required, but peer lacks it"),
 					broadcast->message->name);
 			} else {
-				wi_error_set_libwired_error_with_format(WI_ERROR_P7_INCOMPATIBLE_SPEC,
+				wi_error_set_libwired_error_with_format(WI_ERROR_P7_INCOMPATIBLESPEC,
 					WI_STR("Broadcast \"%@\" is required, but peer has it optional"),
 					broadcast->message->name);
 			}
@@ -1269,7 +1281,7 @@ static wi_boolean_t _wi_p7_spec_andor_is_compatible(wi_p7_spec_t *p7_spec, _wi_p
 	other_count = wi_array_count(other_andor->children);
 	
 	if(count != other_count) {
-		wi_error_set_libwired_error_with_format(WI_ERROR_P7_INCOMPATIBLE_SPEC,
+		wi_error_set_libwired_error_with_format(WI_ERROR_P7_INCOMPATIBLESPEC,
 			WI_STR("Transaction \"%@\" should have %lu %@, but peer has %lu"),
 			transaction->message->name,
 			count,
@@ -1342,11 +1354,11 @@ static wi_boolean_t _wi_p7_spec_reply_is_compatible(wi_p7_spec_t *p7_spec, _wi_p
 	if(reply->required) {
 		if(!other_reply || !other_reply->required) {
 			if(!other_reply) {
-				wi_error_set_libwired_error_with_format(WI_ERROR_P7_INCOMPATIBLE_SPEC,
+				wi_error_set_libwired_error_with_format(WI_ERROR_P7_INCOMPATIBLESPEC,
 					WI_STR("Reply \"%@\" in transaction \"%@\" is required, but peer lacks it"),
 					reply->message->name, transaction->message->name);
 			} else {
-				wi_error_set_libwired_error_with_format(WI_ERROR_P7_INCOMPATIBLE_SPEC,
+				wi_error_set_libwired_error_with_format(WI_ERROR_P7_INCOMPATIBLESPEC,
 					WI_STR("Reply \"%@\" in transaction \"%@\" is required, but peer has it optional"),
 					reply->message->name, transaction->message->name);
 			}
@@ -1367,7 +1379,7 @@ static wi_boolean_t _wi_p7_spec_reply_is_compatible(wi_p7_spec_t *p7_spec, _wi_p
 				compatible = (reply->count == other_reply->count);
 			
 			if(!compatible) {
-				wi_error_set_libwired_error_with_format(WI_ERROR_P7_INCOMPATIBLE_SPEC,
+				wi_error_set_libwired_error_with_format(WI_ERROR_P7_INCOMPATIBLESPEC,
 					WI_STR("Reply \"%@\" in transaction \"%@\" should be sent %@, but peer sends it %@"),
 					reply->message->name,
 					transaction->message->name,
@@ -1394,7 +1406,7 @@ static wi_boolean_t _wi_p7_spec_message_is_compatible(wi_p7_spec_t *p7_spec, wi_
 	wi_p7_spec_field_t		*field, *other_field;
 	
 	if(!wi_is_equal(message->name, other_message->name)) {
-		wi_error_set_libwired_error_with_format(WI_ERROR_P7_INCOMPATIBLE_SPEC,
+		wi_error_set_libwired_error_with_format(WI_ERROR_P7_INCOMPATIBLESPEC,
 			WI_STR("Message should be \"%@\", but peer has \"%@\""),
 				message->name, other_message->name);
 		
@@ -1402,7 +1414,7 @@ static wi_boolean_t _wi_p7_spec_message_is_compatible(wi_p7_spec_t *p7_spec, wi_
 	}
 	
 	if(message->id != other_message->id) {
-		wi_error_set_libwired_error_with_format(WI_ERROR_P7_INCOMPATIBLE_SPEC,
+		wi_error_set_libwired_error_with_format(WI_ERROR_P7_INCOMPATIBLESPEC,
 			WI_STR("Message should have id %lu, but peer has id %lu"),
 			message->id, other_message->id);
 		
@@ -1418,11 +1430,11 @@ static wi_boolean_t _wi_p7_spec_message_is_compatible(wi_p7_spec_t *p7_spec, wi_
 		if(parameter->required) {
 			if(!other_parameter || !other_parameter->required) {
 				if(!other_parameter) {
-					wi_error_set_libwired_error_with_format(WI_ERROR_P7_INCOMPATIBLE_SPEC,
+					wi_error_set_libwired_error_with_format(WI_ERROR_P7_INCOMPATIBLESPEC,
 						WI_STR("Parameter \"%@\" in message \"%@\" is required, but peer lacks it"),
 						parameter->field->name, message->name);
 				} else {
-					wi_error_set_libwired_error_with_format(WI_ERROR_P7_INCOMPATIBLE_SPEC,
+					wi_error_set_libwired_error_with_format(WI_ERROR_P7_INCOMPATIBLESPEC,
 						WI_STR("Parameter \"%@\" in message \"%@\" is required, but peer has it optional"),
 						parameter->field->name, message->name);
 				}
@@ -1436,7 +1448,7 @@ static wi_boolean_t _wi_p7_spec_message_is_compatible(wi_p7_spec_t *p7_spec, wi_
 			other_field = other_parameter->field;
 			
 			if(field->id != other_field->id) {
-				wi_error_set_libwired_error_with_format(WI_ERROR_P7_INCOMPATIBLE_SPEC,
+				wi_error_set_libwired_error_with_format(WI_ERROR_P7_INCOMPATIBLESPEC,
 					WI_STR("Field in parameter \"%@\" in message \"%@\" should have id %lu, but peer has id %lu"),
 					parameter->field->name, message->name, field->id, other_field->id);
 				
@@ -1444,7 +1456,7 @@ static wi_boolean_t _wi_p7_spec_message_is_compatible(wi_p7_spec_t *p7_spec, wi_
 			}
 			
 			if(field->type->id != other_field->type->id) {
-				wi_error_set_libwired_error_with_format(WI_ERROR_P7_INCOMPATIBLE_SPEC,
+				wi_error_set_libwired_error_with_format(WI_ERROR_P7_INCOMPATIBLESPEC,
 					WI_STR("Parameter \"%@\" in message \"%@\" should be of type \"%@\", but peer has it as \"%@\""),
 					parameter->field->name, message->name, field->type->name, other_field->type->name);
 
@@ -1453,7 +1465,7 @@ static wi_boolean_t _wi_p7_spec_message_is_compatible(wi_p7_spec_t *p7_spec, wi_
 			
 			if(field->type->id == WI_P7_ENUM) {
 				if(!wi_is_equal(field->enums_name, other_field->enums_name)) {
-					wi_error_set_libwired_error_with_format(WI_ERROR_P7_INCOMPATIBLE_SPEC,
+					wi_error_set_libwired_error_with_format(WI_ERROR_P7_INCOMPATIBLESPEC,
 						WI_STR("Parameter \"%@\" in message \"%@\" have enumerations that differ with those of peer"),
 						parameter->field->name, message->name);
 					
@@ -2507,7 +2519,7 @@ static _wi_p7_spec_broadcast_t * _wi_p7_spec_broadcast_with_node(wi_p7_spec_t *p
 		return NULL;
 	}
 	
-	for(broadcast_node = node->children; broadcast_node != NULL; broadcast_node = broadcast_node->next) {
+	for(broadcast_node = node->children; broadcast_node != NULL; broadcast_node = next_node) {
 		next_node = broadcast_node->next;
 		
 		if(broadcast_node->type == XML_ELEMENT_NODE) {
@@ -2557,7 +2569,7 @@ static _wi_p7_spec_andor_t * _wi_p7_spec_andor(_wi_p7_spec_andor_type_t type, wi
 	andor->replies_array		= wi_array_init_with_capacity(wi_mutable_array_alloc(), 10);
 	andor->replies_dictionary	= wi_dictionary_init_with_capacity(wi_mutable_dictionary_alloc(), 10);
 
-	for(andor_node = node->children; andor_node != NULL; andor_node = andor_node->next) {
+	for(andor_node = node->children; andor_node != NULL; andor_node = next_node) {
 		next_node = andor_node->next;
 		
 		if(andor_node->type == XML_ELEMENT_NODE) {

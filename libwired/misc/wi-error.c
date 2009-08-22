@@ -112,13 +112,15 @@ static const char 						*_wi_error_strings[] = {
 	"Invalid specification",
 	/* WI_ERROR_P7_INVALIDMESSAGE */
 	"Invalid message",
+	/* WI_ERROR_P7_INVALIDARGUMENT */
+	"Invalid argument",
 	/* WI_ERROR_P7_UNKNOWNMESSAGE */
 	"Unknown message",
 	/* WI_ERROR_P7_UNKNOWNFIELD */
 	"Unknown field",
 	/* WI_ERROR_P7_HANDSHAKEFAILED */
 	"Handshake failed",
-	/* WI_ERROR_P7_INCOMPATIBLE_SPEC */
+	/* WI_ERROR_P7_INCOMPATIBLESPEC */
 	"",
 	/* WI_ERROR_P7_AUTHENTICATIONFAILED */
 	"Authentication failed",

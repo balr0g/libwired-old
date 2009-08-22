@@ -1282,33 +1282,65 @@ wi_data_t * wi_p7_message_data_for_name(wi_p7_message_t *p7_message, wi_string_t
 
 
 wi_boolean_t wi_p7_message_set_number_for_name(wi_p7_message_t *p7_message, wi_number_t *number, wi_string_t *field_name) {
+	wi_p7_spec_field_t		*field;
+	wi_p7_spec_type_t		*type;
+	
 	if(!number)
 		number = wi_number_with_int32(0);
 	
-	if(wi_number_type(number) == WI_NUMBER_BOOL) {
-		return wi_p7_message_set_bool_for_name(p7_message, wi_number_bool(number), field_name);
-	} else {
-		switch(wi_number_storage_type(number)) {
-			case WI_NUMBER_STORAGE_INT8:
-			case WI_NUMBER_STORAGE_INT16:
-			case WI_NUMBER_STORAGE_INT32:
-				return wi_p7_message_set_int32_for_name(p7_message, wi_number_int32(number), field_name);
-				break;
-
-			case WI_NUMBER_STORAGE_INT64:
-				return wi_p7_message_set_int64_for_name(p7_message, wi_number_int64(number), field_name);
-				break;
-
-			case WI_NUMBER_STORAGE_FLOAT:
-				return wi_p7_message_set_double_for_name(p7_message, wi_number_float(number), field_name);
-				break;
-
-			case WI_NUMBER_STORAGE_DOUBLE:
-				return wi_p7_message_set_double_for_name(p7_message, wi_number_double(number), field_name);
-				break;
-		}
+	field = wi_p7_spec_field_with_name(p7_message->spec, field_name);
+	
+	if(!field) {
+		wi_error_set_libwired_error_with_format(WI_ERROR_P7_UNKNOWNFIELD,
+			WI_STR("No id found for field \"%@\""), field_name);
+		
+		return false;
 	}
 	
+	type = wi_p7_spec_field_type(field);
+	
+	if(!type) {
+		wi_error_set_libwired_error_with_format(WI_ERROR_P7_UNKNOWNFIELD,
+			WI_STR("No type found for field \"%@\""), field_name);
+		
+		return false;
+	}
+	
+	switch(wi_p7_spec_type_id(type)) {
+		case WI_P7_BOOL:
+			return wi_p7_message_set_bool_for_name(p7_message, wi_number_bool(number), field_name);
+			break;
+			
+		case WI_P7_ENUM:
+			return wi_p7_message_set_enum_for_name(p7_message, wi_number_int32(number), field_name);
+			break;
+			
+		case WI_P7_INT32:
+			return wi_p7_message_set_int32_for_name(p7_message, wi_number_int32(number), field_name);
+			break;
+			
+		case WI_P7_UINT32:
+			return wi_p7_message_set_uint32_for_name(p7_message, wi_number_int32(number), field_name);
+			break;
+			
+		case WI_P7_INT64:
+			return wi_p7_message_set_int64_for_name(p7_message, wi_number_int64(number), field_name);
+			break;
+			
+		case WI_P7_UINT64:
+			return wi_p7_message_set_uint64_for_name(p7_message, wi_number_int64(number), field_name);
+			break;
+			
+		case WI_P7_DOUBLE:
+			return wi_p7_message_set_double_for_name(p7_message, wi_number_double(number), field_name);
+			break;
+			
+		default:
+			wi_error_set_libwired_error_with_format(WI_ERROR_P7_INVALIDARGUMENT,
+				WI_STR("Field \"%@\" is not a number"), field_name);
+			break;
+	}
+
 	return false;
 }
 
@@ -1318,6 +1350,7 @@ wi_number_t * wi_p7_message_number_for_name(wi_p7_message_t *p7_message, wi_stri
 	wi_p7_spec_field_t		*field;
 	wi_p7_spec_type_t		*type;
 	wi_p7_boolean_t			p7_bool;
+	wi_p7_enum_t			p7_enum;
 	wi_p7_int32_t			p7_int32;
 	wi_p7_uint32_t			p7_uint32;
 	wi_p7_int64_t			p7_int64;
@@ -1326,13 +1359,21 @@ wi_number_t * wi_p7_message_number_for_name(wi_p7_message_t *p7_message, wi_stri
 	
 	field = wi_p7_spec_field_with_name(p7_message->spec, field_name);
 	
-	if(!field)
+	if(!field) {
+		wi_error_set_libwired_error_with_format(WI_ERROR_P7_UNKNOWNFIELD,
+			WI_STR("No id found for field \"%@\""), field_name);
+		
 		return NULL;
+	}
 	
 	type = wi_p7_spec_field_type(field);
 	
-	if(!type)
+	if(!type) {
+		wi_error_set_libwired_error_with_format(WI_ERROR_P7_UNKNOWNFIELD,
+			WI_STR("No type found for field \"%@\""), field_name);
+		
 		return NULL;
+	}
 	
 	switch(wi_p7_spec_type_id(type)) {
 		case WI_P7_BOOL:
@@ -1340,6 +1381,11 @@ wi_number_t * wi_p7_message_number_for_name(wi_p7_message_t *p7_message, wi_stri
 				return wi_number_with_bool(p7_bool);
 			break;
 		
+		case WI_P7_ENUM:
+			if(wi_p7_message_get_enum_for_name(p7_message, &p7_enum, field_name))
+				return wi_number_with_int32(p7_enum);
+			break;
+			
 		case WI_P7_INT32:
 			if(wi_p7_message_get_int32_for_name(p7_message, &p7_int32, field_name))
 				return wi_number_with_int32(p7_int32);
@@ -1366,6 +1412,8 @@ wi_number_t * wi_p7_message_number_for_name(wi_p7_message_t *p7_message, wi_stri
 			break;
 		
 		default:
+			wi_error_set_libwired_error_with_format(WI_ERROR_P7_INVALIDARGUMENT,
+				WI_STR("Field \"%@\" is not a number"), field_name);
 			break;
 	}
 	
