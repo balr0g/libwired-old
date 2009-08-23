@@ -970,6 +970,11 @@ wi_boolean_t wi_socket_listen(wi_socket_t *socket) {
 	sa		= wi_address_sa(socket->address);
 	length	= wi_address_sa_length(socket->address);
 	
+	if(socket->type == WI_SOCKET_TCP) {
+		if(wi_address_family(socket->address) == WI_ADDRESS_IPV6)
+			_wi_socket_set_option_int(socket, IPPROTO_IPV6, IPV6_V6ONLY, 1);
+	}
+	
 	if(bind(socket->sd, sa, length) < 0) {
 		wi_error_set_errno(errno);
 		
