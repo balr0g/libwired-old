@@ -65,7 +65,7 @@ static wi_boolean_t						_wi_host_is_equal(wi_runtime_instance_t *, wi_runtime_i
 static wi_string_t *					_wi_host_description(wi_runtime_instance_t *);
 static wi_hash_code_t					_wi_host_hash(wi_runtime_instance_t *);
 
-static wi_array_t *						_wi_host_addresses_for_interface_string(wi_string_t *string);
+static wi_array_t *						_wi_host_addresses_for_interface_string(wi_string_t *);
 static wi_array_t *						_wi_host_addresses_for_host_string(wi_string_t *);
 
 
@@ -225,6 +225,9 @@ static wi_array_t * _wi_host_addresses_for_interface_string(wi_string_t *string)
 	name		= string ? wi_string_cstring(string) : NULL;
 
 	for(ifp = ifap; ifp; ifp = ifp->ifa_next) {
+		if(!ifp->ifa_addr)
+			continue;
+		
 		if(ifp->ifa_addr->sa_family != AF_INET && ifp->ifa_addr->sa_family != AF_INET6)
 			continue;
 
