@@ -230,168 +230,6 @@ static wi_string_t * _wi_p7_message_description(wi_runtime_instance_t *instance)
 
 #pragma mark -
 
-/* Copyright (C) 1989-1991 Apple Computer, Inc.
- *
- * All rights reserved.
- *
- * Warranty Information
- *  Even though Apple has reviewed this software, Apple makes no warranty
- *  or representation, either express or implied, with respect to this
- *  software, its quality, accuracy, merchantability, or fitness for a
- *  particular purpose.  As a result, this software is provided "as is,"
- *  and you, its user, are assuming the entire risk as to its quality
- *  and accuracy.
- *
- * This code may be used and freely distributed as long as it includes
- * this copyright notice and the above warranty information.
- *
- * Machine-independent I/O routines for IEEE floating-point numbers.
- *
- * NaN's and infinities are converted to HUGE_VAL or HUGE, which
- * happens to be infinity on IEEE machines.  Unfortunately, it is
- * impossible to preserve NaN's in a machine-independent way.
- * Infinities are, however, preserved on IEEE machines.
- *
- * These routines have been tested on the following machines:
- *	Apple Macintosh, MPW 3.1 C compiler
- *	Apple Macintosh, THINK C compiler
- *	Silicon Graphics IRIS, MIPS compiler
- *	Cray X/MP and Y/MP
- *	Digital Equipment VAX
- *	Sequent Balance (Multiprocesor 386)
- *	NeXT
- *
- *
- * Implemented by Malcolm Slaney and Ken Turkowski.
- *
- * Malcolm Slaney contributions during 1988-1990 include big- and little-
- * endian file I/O, conversion to and from Motorola's extended 80-bit
- * floating-point format, and conversions to and from IEEE single-
- * precision floating-point format.
- *
- * In 1991, Ken Turkowski implemented the conversions to and from
- * IEEE double-precision format, added more precision to the extended
- * conversions, and accommodated conversions involving +/- infinity,
- * NaN's, and denormalized numbers.
- */
-
-#define _WI_P7_MESSAGE_IEEE754_EXP_MAX			2047
-#define _WI_P7_MESSAGE_IEEE754_EXP_OFFSET		1023
-#define _WI_P7_MESSAGE_IEEE754_EXP_SIZE			11
-#define _WI_P7_MESSAGE_IEEE754_EXP_POSITION		(32 - _WI_P7_MESSAGE_IEEE754_EXP_SIZE - 1)
-
-
-static double									_wi_p7_message_ieee754_to_double(const unsigned char *);
-static void										_wi_p7_message_double_to_ieee754(double, unsigned char *);
-
-
-static double _wi_p7_message_ieee754_to_double(const unsigned char *bytes) {
-	double			value;
-	int32_t			mantissa, exp;
-	uint32_t		first, second;
-
-	first	= (((uint32_t) (bytes[0] & 0xFF) << 24) |
-			   ((uint32_t) (bytes[1] & 0xFF) << 16) |
-			   ((uint32_t) (bytes[2] & 0xFF) <<  8) |
-			    (uint32_t) (bytes[3] & 0xFF));
-	second	= (((uint32_t) (bytes[4] & 0xFF) << 24) |
-			   ((uint32_t) (bytes[5] & 0xFF) << 16) |
-			   ((uint32_t) (bytes[6] & 0xFF) <<  8) |
-			    (uint32_t) (bytes[7] & 0xFF));
-	
-	if(first == 0 && second == 0) {
-		value = 0.0;
-	} else {
-		exp = (first & 0x7FF00000) >> _WI_P7_MESSAGE_IEEE754_EXP_POSITION;
-
-		if(exp == _WI_P7_MESSAGE_IEEE754_EXP_MAX) {	/* Infinity or NaN */
-			value = HUGE_VAL;	/* Map NaN's to infinity */
-		} else {
-			if(exp == 0) {	/* Denormalized number */
-				mantissa	= (first & 0x000FFFFF);
-				value		= ldexp((double) mantissa, exp - _WI_P7_MESSAGE_IEEE754_EXP_OFFSET - _WI_P7_MESSAGE_IEEE754_EXP_POSITION + 1);
-				value		+= ldexp((double) second,   exp - _WI_P7_MESSAGE_IEEE754_EXP_OFFSET - _WI_P7_MESSAGE_IEEE754_EXP_POSITION + 1 - 32);
-			} else {	/* Normalized number */
-				mantissa	= (first & 0x000FFFFF) + 0x00100000;	/* Insert hidden bit */
-				value		= ldexp((double) mantissa, exp - _WI_P7_MESSAGE_IEEE754_EXP_OFFSET - _WI_P7_MESSAGE_IEEE754_EXP_POSITION);
-				value		+= ldexp((double) second,   exp - _WI_P7_MESSAGE_IEEE754_EXP_OFFSET - _WI_P7_MESSAGE_IEEE754_EXP_POSITION - 32);
-			}
-		}
-	}
-
-	if(first & 0x80000000)
-		return -value;
-	else
-		return value;
-}
-
-
-
-static void _wi_p7_message_double_to_ieee754(double value, unsigned char *bytes) {
-	double		fmantissa, fsmantissa;
-	int32_t		sign, exp, mantissa, shift;
-	uint32_t	first, second;
-
-	if(value < 0.0) {	/* Can't distinguish a negative zero */
-		sign	= 0x80000000;
-		value	*= -1;
-	} else {
-		sign	= 0;
-	}
-
-	if(value == 0.0) {
-		first	= 0;
-		second	= 0;
-	} else {
-		fmantissa = frexp(value, &exp);
-
-		if((exp > _WI_P7_MESSAGE_IEEE754_EXP_MAX - _WI_P7_MESSAGE_IEEE754_EXP_OFFSET + 1) || !(fmantissa < 1.0)) {
-			/* NaN's and infinities fail second test */
-			first = sign | 0x7FF00000;	/* +/- infinity */
-			second = 0;
-		} else {
-			if (exp < -(_WI_P7_MESSAGE_IEEE754_EXP_OFFSET - 2)) {	/* Smaller than normalized */
-				shift = (_WI_P7_MESSAGE_IEEE754_EXP_POSITION + 1) + (_WI_P7_MESSAGE_IEEE754_EXP_OFFSET - 2) + exp;
-				
-				if(shift < 0) {	/* Too small for something in the MS word */
-					first = sign;
-					shift += 32;
-					
-					if(shift < 0)	/* Way too small: flush to zero */
-						second = 0;
-					else			/* Pretty small demorn */
-						second = (uint32_t) floor(ldexp(fmantissa, shift));
-				} else {			/* Nonzero denormalized number */
-					fsmantissa	= ldexp(fmantissa, shift);
-					mantissa	= (int32_t) floor(fsmantissa);
-					first		= sign | mantissa;
-					second		= (uint32_t) floor(ldexp(fsmantissa - mantissa, 32));
-				}
-			} else {	/* Normalized number */
-				fsmantissa	= ldexp(fmantissa, _WI_P7_MESSAGE_IEEE754_EXP_POSITION + 1);
-				mantissa	= (int32_t) floor(fsmantissa);
-				mantissa	-= (1L << _WI_P7_MESSAGE_IEEE754_EXP_POSITION);	/* Hide MSB */
-				fsmantissa	-= (1L << _WI_P7_MESSAGE_IEEE754_EXP_POSITION);
-				first		= sign | ((int32_t) ((exp + _WI_P7_MESSAGE_IEEE754_EXP_OFFSET - 1)) << _WI_P7_MESSAGE_IEEE754_EXP_POSITION) | mantissa;
-				second		= (uint32_t) floor(ldexp(fsmantissa - mantissa, 32));
-			}
-		}
-	}
-	
-	bytes[0] = first >> 24;
-	bytes[1] = first >> 16;
-	bytes[2] = first >>  8;
-	bytes[3] = first;
-	bytes[4] = second >> 24;
-	bytes[5] = second >> 16;
-	bytes[6] = second >>  8;
-	bytes[7] = second;
-}
-
-
-
-#pragma mark -
-
 static wi_string_t * _wi_p7_message_field_string_value(wi_p7_message_t *p7_message, wi_p7_spec_field_t *field) {
 	wi_string_t				*field_name, *field_value = NULL;
 	wi_uuid_t				*uuid;
@@ -504,14 +342,20 @@ static wi_boolean_t _wi_p7_message_get_binary_buffer_for_reading_for_id(wi_p7_me
 		field_id	= wi_read_swap_big_to_host_int32(buffer, 0);
 		field		= wi_p7_spec_field_with_id(p7_message->spec, field_id);
 		
-		if(!field)
-			continue;
+		if(!field) {
+			wi_error_set_libwired_error_with_format(WI_ERROR_P7_UNKNOWNFIELD,
+				WI_STR("No field found for ID %u"), field_id);
+			
+			if(wi_p7_message_debug)
+				wi_log_debug(WI_STR("_wi_p7_message_get_binary_buffer_for_reading_for_id: %m"));
+			
+			break;
+		}
 		
 		if((uint32_t) (buffer - start) + message_size < sizeof(field_id))
 			break;
 
 		buffer		+= sizeof(field_id);
-		
 		field_size	= wi_p7_spec_field_size(field);
 	
 		if(field_size == 0) {
@@ -1161,8 +1005,7 @@ wi_boolean_t wi_p7_message_set_double_for_name(wi_p7_message_t *p7_message, wi_p
 		return false;
 	
 	wi_write_swap_host_to_big_int32(binary, 0, field_id);
-	
-	_wi_p7_message_double_to_ieee754(value, binary + 4);
+	wi_write_double_to_ieee754(binary, 4, value);
 
 	return true;
 }
@@ -1175,7 +1018,7 @@ wi_boolean_t wi_p7_message_get_double_for_name(wi_p7_message_t *p7_message, wi_p
 	if(!_wi_p7_message_get_binary_buffer_for_reading_for_name(p7_message, field_name, &binary, NULL))
 		return false;
 	
-	*value = _wi_p7_message_ieee754_to_double(binary);
+	*value = wi_read_double_from_ieee754(binary, 0);
 	
 	return true;
 }

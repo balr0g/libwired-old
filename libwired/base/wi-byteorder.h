@@ -29,6 +29,8 @@
 #ifndef WI_BYTEORDER_H
 #define WI_BYTEORDER_H 1
 
+#include <wired/wi-base.h>
+
 #include <sys/param.h>
 #include <inttypes.h>
 
@@ -152,5 +154,9 @@ static inline void wi_write_swap_host_to_big_int32(void *base, uintptr_t offset,
 static inline void wi_write_swap_host_to_big_int64(void *base, uintptr_t offset, uint64_t n) {
 	*(uint64_t *) ((uintptr_t) base + offset) = WI_SWAP_HOST_TO_BIG_INT64(n);
 }
+
+
+WI_EXPORT double wi_read_double_from_ieee754(void *, uintptr_t);
+WI_EXPORT void wi_write_double_to_ieee754(void *, uintptr_t, double);
 
 #endif
