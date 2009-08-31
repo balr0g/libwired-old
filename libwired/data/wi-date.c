@@ -278,7 +278,7 @@ wi_date_t * wi_date_init_with_string(wi_date_t *date, wi_string_t *string, wi_st
 
 wi_date_t * wi_date_init_with_rfc3339_string(wi_date_t *date, wi_string_t *string) {
 	wi_mutable_string_t		*fullstring;
-	wi_string_t				*timezone, *datetime;
+	wi_string_t				*timezone;
 
 	wi_release(date);
 	
