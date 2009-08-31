@@ -96,6 +96,7 @@ WI_EXPORT wi_string_t *						wi_string_by_appending_format_and_arguments(wi_stri
 
 WI_EXPORT wi_string_t *						wi_string_by_inserting_string_at_index(wi_string_t *, wi_string_t *, wi_uinteger_t);
 
+WI_EXPORT wi_string_t *						wi_string_by_replacing_characters_in_range_with_string(wi_string_t *, wi_range_t, wi_string_t *);
 WI_EXPORT wi_string_t *						wi_string_by_replacing_string_with_string(wi_string_t *, wi_string_t *, wi_string_t *, wi_uinteger_t);
 
 WI_EXPORT wi_string_t *						wi_string_by_deleting_characters_in_range(wi_string_t *, wi_range_t);
@@ -165,6 +166,7 @@ WI_EXPORT void								wi_mutable_string_append_format_and_arguments(wi_mutable_s
 WI_EXPORT void								wi_mutable_string_insert_string_at_index(wi_mutable_string_t *, wi_string_t *, wi_uinteger_t);
 WI_EXPORT void								wi_mutable_string_insert_cstring_at_index(wi_mutable_string_t *, const char *, wi_uinteger_t);
 
+WI_EXPORT void								wi_mutable_string_replace_characters_in_range_with_string(wi_mutable_string_t *, wi_range_t, wi_string_t *);
 WI_EXPORT void								wi_mutable_string_replace_string_with_string(wi_mutable_string_t *, wi_string_t *, wi_string_t *, wi_uinteger_t);
 
 WI_EXPORT void								wi_mutable_string_delete_characters_in_range(wi_mutable_string_t *, wi_range_t);

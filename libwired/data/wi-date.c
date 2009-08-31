@@ -134,7 +134,10 @@ wi_string_t * wi_time_interval_string_with_format(wi_time_interval_t interval, w
 
 	memset(&tm, 0, sizeof(tm));
 	
-	localtime_r(&time, &tm);
+	if(wi_string_contains_string(format, WI_STR("%z"), WI_STRING_CASE_INSENSITIVE))
+		localtime_r(&time, &tm);
+	else
+		gmtime_r(&time, &tm);
 	
 	(void) strftime(string, sizeof(string), wi_string_cstring(format), &tm);
 	
@@ -265,7 +268,7 @@ wi_date_t * wi_date_init_with_string(wi_date_t *date, wi_string_t *string, wi_st
 	}
 
 	tm.tm_isdst = -1;
-
+	
 	time = mktime(&tm);
 	
 	return wi_date_init_with_time(date, time);
@@ -274,31 +277,23 @@ wi_date_t * wi_date_init_with_string(wi_date_t *date, wi_string_t *string, wi_st
 
 
 wi_date_t * wi_date_init_with_rfc3339_string(wi_date_t *date, wi_string_t *string) {
-	wi_string_t		*timezone, *datetime;
+	wi_mutable_string_t		*fullstring;
+	wi_string_t				*timezone, *datetime;
 
 	wi_release(date);
 	
 	if(wi_string_length(string) < 19)
 		return NULL;
 	
-	datetime = wi_string_substring_to_index(string, 19);
-	timezone = wi_string_substring_from_index(string, 19);
+	fullstring	= wi_mutable_copy(string);
+	timezone	= wi_string_substring_from_index(fullstring, 19);
 	
-	if(wi_is_equal(timezone, WI_STR("Z"))) {
-		date = wi_date_init_with_string(wi_date_alloc(), datetime, WI_STR("%Y-%m-%dT%H:%M:%S"));
-		
-		if(date)
-			return date;
-	}
-	else if(wi_string_length(timezone) == 6) {
-		timezone = wi_string_by_deleting_characters_in_range(timezone, wi_make_range(3, 1));
-		date = wi_date_init_with_string(wi_date_alloc(), wi_string_by_appending_string(datetime, timezone), WI_STR("%Y-%m-%dT%H:%M:%S%z"));
-		
-		if(date)
-			return date;
-	}
+	if(wi_is_equal(timezone, WI_STR("Z")))
+		wi_mutable_string_replace_characters_in_range_with_string(fullstring, wi_make_range(19, 1), WI_STR("+0000"));
+	else if(wi_string_length(timezone) == 6)
+		wi_mutable_string_delete_characters_in_range(fullstring, wi_make_range(22, 1));
 	
-	return NULL;
+	return wi_date_init_with_string(wi_date_alloc(), fullstring, WI_STR("%Y-%m-%dT%H:%M:%S%z"));
 }
 
 
