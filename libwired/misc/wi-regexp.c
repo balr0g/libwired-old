@@ -257,7 +257,6 @@ wi_boolean_t wi_regexp_matches_cstring(wi_regexp_t *regexp, const char *cstring)
 
 
 wi_string_t * wi_regexp_string_by_matching_string(wi_regexp_t *regexp, wi_string_t *string, wi_uinteger_t index) {
-	wi_string_t		*substring;
 	regmatch_t		matches[32];
 
 	if(index >= 32)
