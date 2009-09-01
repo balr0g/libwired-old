@@ -93,6 +93,14 @@ wi_runtime_id_t wi_regexp_runtime_id(void) {
 
 #pragma mark -
 
+wi_regexp_t * wi_regexp_with_string(wi_string_t *string) {
+	return wi_autorelease(wi_regexp_init_with_string(wi_regexp_alloc(), string));
+}
+
+
+
+#pragma mark -
+
 wi_regexp_t * wi_regexp_alloc(void) {
 	return wi_runtime_create_instance(_wi_regexp_runtime_id, sizeof(wi_regexp_t));
 }
@@ -186,7 +194,7 @@ static wi_boolean_t _wi_regexp_compile(wi_regexp_t *regexp) {
 	}
 
 	*p = '\0';
-	options = REG_EXTENDED | REG_NOSUB;
+	options = REG_EXTENDED;
 
 	while(*++p) {
 		switch(*p) {
@@ -209,7 +217,7 @@ static wi_boolean_t _wi_regexp_compile(wi_regexp_t *regexp) {
 	err = regcomp(&regexp->regex, ss, options);
 
 	if(err != 0) {
-		wi_error_set_error(WI_ERROR_DOMAIN_REGEX, err);
+		wi_error_set_regex_error(&regexp->regex, err);
 		
 		goto end;
 	}
@@ -234,15 +242,32 @@ wi_string_t * wi_regexp_string(wi_regexp_t *regexp) {
 
 
 
-wi_boolean_t wi_regexp_match_string(wi_regexp_t *regexp, wi_string_t *string) {
-	return wi_regexp_match_cstring(regexp, wi_string_cstring(string));
+#pragma mark -
+
+wi_boolean_t wi_regexp_matches_string(wi_regexp_t *regexp, wi_string_t *string) {
+	return wi_regexp_matches_cstring(regexp, wi_string_cstring(string));
 }
 
 
 
-wi_boolean_t wi_regexp_match_cstring(wi_regexp_t *regexp, const char *cstring) {
-	if(regexp && regexp->compiled)
-		return (regexec(&regexp->regex, cstring, 0, NULL, 0) == 0);
+wi_boolean_t wi_regexp_matches_cstring(wi_regexp_t *regexp, const char *cstring) {
+	return (regexec(&regexp->regex, cstring, 0, NULL, 0) == 0);
+}
 
-	return false;
+
+
+wi_string_t * wi_regexp_string_by_matching_string(wi_regexp_t *regexp, wi_string_t *string, wi_uinteger_t index) {
+	wi_string_t		*substring;
+	regmatch_t		matches[32];
+
+	if(index >= 32)
+		return NULL;
+
+	memset(matches, 0, sizeof(matches));
+
+	if(regexec(&regexp->regex, wi_string_cstring(string), 32, matches, 0) != 0)
+		return NULL;
+
+	return wi_string_substring_with_range(string,
+		wi_make_range(matches[index].rm_so, matches[index].rm_eo - matches[index].rm_so));
 }

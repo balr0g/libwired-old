@@ -37,11 +37,15 @@ typedef struct _wi_regexp			wi_regexp_t;
 
 WI_EXPORT wi_runtime_id_t			wi_regexp_runtime_id(void);
 
+WI_EXPORT wi_regexp_t *				wi_regexp_with_string(wi_string_t *);
+
 WI_EXPORT wi_regexp_t *				wi_regexp_alloc(void);
 WI_EXPORT wi_regexp_t *				wi_regexp_init_with_string(wi_regexp_t *, wi_string_t *);
 
 WI_EXPORT wi_string_t *				wi_regexp_string(wi_regexp_t *);
-WI_EXPORT wi_boolean_t				wi_regexp_match_string(wi_regexp_t *, wi_string_t *);
-WI_EXPORT wi_boolean_t				wi_regexp_match_cstring(wi_regexp_t *, const char *);
+
+WI_EXPORT wi_boolean_t				wi_regexp_matches_string(wi_regexp_t *, wi_string_t *);
+WI_EXPORT wi_boolean_t				wi_regexp_matches_cstring(wi_regexp_t *, const char *);
+WI_EXPORT wi_string_t *				wi_regexp_string_by_matching_string(wi_regexp_t *, wi_string_t *, wi_uinteger_t);
 
 #endif /* WI_REGEXP_H */
