@@ -36,6 +36,7 @@
 #include <wired/wi-macros.h>
 #include <wired/wi-pool.h>
 #include <wired/wi-private.h>
+#include <wired/wi-regexp.h>
 #include <wired/wi-runtime.h>
 #include <wired/wi-string.h>
 #include <wired/wi-system.h>
@@ -134,10 +135,10 @@ wi_string_t * wi_time_interval_string_with_format(wi_time_interval_t interval, w
 
 	memset(&tm, 0, sizeof(tm));
 	
-	if(wi_string_contains_string(format, WI_STR("%z"), WI_STRING_CASE_INSENSITIVE))
-		localtime_r(&time, &tm);
-	else
+	if(wi_string_has_suffix(format, WI_STR("Z")))
 		gmtime_r(&time, &tm);
+	else
+		localtime_r(&time, &tm);
 	
 	(void) strftime(string, sizeof(string), wi_string_cstring(format), &tm);
 	
@@ -147,30 +148,15 @@ wi_string_t * wi_time_interval_string_with_format(wi_time_interval_t interval, w
 
 
 wi_string_t * wi_time_interval_rfc3339_string(wi_time_interval_t interval) {
-	char		*buffer;
-	struct tm	tm;
-	time_t		time;
-	
-	time = interval;
+	wi_mutable_string_t		*string;
 
-	memset(&tm, 0, sizeof(tm));
-	
-	localtime_r(&time, &tm);
-	
-	buffer = wi_malloc(32);
-	
-	snprintf(buffer, 32, "%u-%02u-%02uT%02u:%02u:%02u%c%02u:%02u",
-		tm.tm_year + 1900,
-		tm.tm_mon + 1,
-		tm.tm_mday,
-		tm.tm_hour,
-		tm.tm_min,
-		tm.tm_sec,
-		(tm.tm_gmtoff >= 0) ? '+' : '-',
-		(unsigned int) (WI_ABS(tm.tm_gmtoff) / 3600),
-		(unsigned int) ((WI_ABS(tm.tm_gmtoff) % 3600) / 60));
-	
-	return wi_string_with_cstring_no_copy(buffer, true);
+	string = wi_mutable_copy(wi_time_interval_string_with_format(interval, WI_STR("%Y-%m-%dT%H:%M:%S%z")));
+
+	wi_mutable_string_insert_string_at_index(string, WI_STR(":"), 22);
+
+	wi_runtime_make_immutable(string);
+
+	return wi_autorelease(string);
 }
 
 
@@ -256,8 +242,13 @@ wi_date_t * wi_date_init_with_ts(wi_date_t *date, struct timespec ts) {
 
 
 wi_date_t * wi_date_init_with_string(wi_date_t *date, wi_string_t *string, wi_string_t *format) {
-	struct tm		tm;
-	time_t			time;
+	wi_regexp_t			*regexp;
+	wi_string_t			*match;
+	struct tm			tm;
+	time_t				clock;
+	wi_uinteger_t		offset, hours, minutes;
+
+	offset = 0;
 
 	memset(&tm, 0, sizeof(tm));
 
@@ -267,11 +258,24 @@ wi_date_t * wi_date_init_with_string(wi_date_t *date, wi_string_t *string, wi_st
 		return NULL;
 	}
 
-	tm.tm_isdst = -1;
-	
-	time = mktime(&tm);
-	
-	return wi_date_init_with_time(date, time);
+	if(wi_string_contains_string(format, WI_STR("%z"), WI_STRING_CASE_INSENSITIVE)) {
+		regexp = wi_regexp_with_string(WI_STR("/((\\+|\\-)[0-9]{4})/"));
+		match = wi_regexp_string_by_matching_string(regexp, string, 1);
+
+		if(match) {
+			hours = wi_string_uinteger(wi_string_substring_with_range(match, wi_make_range(1, 2)));
+			minutes = wi_string_uinteger(wi_string_substring_with_range(match, wi_make_range(3, 2)));
+
+			offset = (hours * 3600) + (minutes * 60);
+
+			if(wi_string_has_prefix(match, WI_STR("-")))
+				offset = -offset;
+		}
+	}
+
+	clock = timegm(&tm) - offset;
+
+	return wi_date_init_with_time(date, clock);
 }
 
 
@@ -280,20 +284,25 @@ wi_date_t * wi_date_init_with_rfc3339_string(wi_date_t *date, wi_string_t *strin
 	wi_mutable_string_t		*fullstring;
 	wi_string_t				*timezone;
 
+	if(wi_string_length(string) >= 19) {
+		fullstring	= wi_mutable_copy(string);
+		timezone	= wi_string_substring_from_index(fullstring, 19);
+		
+		if(wi_is_equal(timezone, WI_STR("Z"))) {
+			wi_mutable_string_delete_characters_in_range(fullstring, wi_make_range(19, 1));
+
+			return wi_date_init_with_string(date, fullstring, WI_STR("%Y-%m-%dT%H:%M:%S"));
+		}
+		else if(wi_string_length(timezone) == 6) {
+			wi_mutable_string_delete_characters_in_range(fullstring, wi_make_range(22, 1));
+
+			return wi_date_init_with_string(date, fullstring, WI_STR("%Y-%m-%dT%H:%M:%S%z"));
+		}
+	}
+	
 	wi_release(date);
-	
-	if(wi_string_length(string) < 19)
-		return NULL;
-	
-	fullstring	= wi_mutable_copy(string);
-	timezone	= wi_string_substring_from_index(fullstring, 19);
-	
-	if(wi_is_equal(timezone, WI_STR("Z")))
-		wi_mutable_string_replace_characters_in_range_with_string(fullstring, wi_make_range(19, 1), WI_STR("+0000"));
-	else if(wi_string_length(timezone) == 6)
-		wi_mutable_string_delete_characters_in_range(fullstring, wi_make_range(22, 1));
-	
-	return wi_date_init_with_string(wi_date_alloc(), fullstring, WI_STR("%Y-%m-%dT%H:%M:%S%z"));
+
+	return NULL;
 }
 
 
