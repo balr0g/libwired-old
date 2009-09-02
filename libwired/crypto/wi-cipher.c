@@ -249,7 +249,7 @@ static wi_cipher_t * _wi_cipher_init_with_key(wi_cipher_t *cipher, wi_data_t *ke
 
 static void _wi_cipher_dealloc(wi_runtime_instance_t *instance) {
 	wi_cipher_t		*cipher = instance;
-	
+
 #ifdef WI_CIPHER_OPENSSL
 	EVP_CIPHER_CTX_cleanup(&cipher->encrypt_ctx);
 	EVP_CIPHER_CTX_cleanup(&cipher->decrypt_ctx);
@@ -384,7 +384,7 @@ wi_string_t * wi_cipher_name(wi_cipher_t *cipher) {
 
 wi_uinteger_t wi_cipher_bits(wi_cipher_t *cipher) {
 #ifdef WI_CIPHER_OPENSSL
-	return EVP_CIPHER_CTX_key_length(&cipher->encrypt_ctx) * 8;
+	return EVP_CIPHER_key_length(cipher->cipher) * 8;
 #endif
 
 #ifdef WI_CIPHER_COMMONCRYPTO
