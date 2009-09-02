@@ -85,7 +85,7 @@ static void _wi_test_crypto_cipher(wi_cipher_type_t type, wi_string_t *name, wi_
 		wi_string_data(WI_STR("hello world")),
 		"%m");
 	
-	cipher = wi_autorelease(wi_cipher_init_with_random_key(wi_cipher_alloc(), type)); 					
+	cipher = wi_autorelease(wi_cipher_init_with_random_key(wi_cipher_alloc(), type));
 
 	WI_TEST_ASSERT_NOT_NULL(cipher, "");
 }
