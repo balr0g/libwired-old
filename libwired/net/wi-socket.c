@@ -1523,7 +1523,7 @@ wi_string_t * wi_socket_read_string(wi_socket_t *socket, wi_time_interval_t time
 	string = wi_autorelease(wi_string_init_with_capacity(wi_mutable_string_alloc(), WI_SOCKET_BUFFER_SIZE));
 	bytes = _wi_socket_read_buffer(socket, timeout, buffer, WI_SOCKET_BUFFER_SIZE);
 	
-	if(bytes <= 0)
+	if(bytes < 0)
 		return NULL;
 	
 	wi_mutable_string_append_bytes(string, buffer, bytes);
@@ -1630,7 +1630,7 @@ wi_integer_t wi_socket_read_buffer(wi_socket_t *socket, wi_time_interval_t timeo
 			bytes = _wi_socket_read_buffer(socket, timeout, buffer + offset, length - offset);
 			
 			if(bytes <= 0)
-				return -1;
+				return bytes;
 			
 			offset += bytes;
 		}
@@ -1670,8 +1670,6 @@ static wi_integer_t _wi_socket_read_buffer(wi_socket_t *socket, wi_time_interval
 			wi_error_set_openssl_ssl_error_with_result(socket->ssl, bytes);
 			
 			ERR_clear_error();
-			
-			return -1;
 		}
 		
 		return bytes;
@@ -1695,8 +1693,6 @@ static wi_integer_t _wi_socket_read_buffer(wi_socket_t *socket, wi_time_interval
 				wi_error_set_errno(errno);
 			else
 				wi_error_set_libwired_error(WI_ERROR_SOCKET_EOF);
-			
-			return -1;
 		}
 		
 		return bytes;
