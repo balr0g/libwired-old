@@ -67,6 +67,7 @@
 #include <wired/wi-set.h>
 #include <wired/wi-settings.h>
 #include <wired/wi-socket.h>
+#include <wired/wi-speed-calculator.h>
 #include <wired/wi-string.h>
 #include <wired/wi-system.h>
 #include <wired/wi-task.h>
