@@ -76,13 +76,7 @@ void wi_initialize(void) {
 	wi_lock_register();
 	wi_log_register();
 	wi_number_register();
-	wi_random_register();
-	wi_regexp_register();
 
-#ifdef HAVE_OPENSSL_SHA_H
-	wi_rsa_register();
-#endif
-	
 #ifdef WI_P7
 	wi_p7_message_register();
 	wi_p7_socket_register();
@@ -91,9 +85,17 @@ void wi_initialize(void) {
 	
 	wi_pool_register();
 	wi_process_register();
+	wi_random_register();
+	wi_regexp_register();
+	
+#ifdef HAVE_OPENSSL_SHA_H
+	wi_rsa_register();
+#endif
+	
 	wi_set_register();
 	wi_settings_register();
 	wi_socket_register();
+	wi_speed_calculator_register();
 	wi_string_register();
 	wi_task_register();
 	
@@ -159,6 +161,7 @@ void wi_initialize(void) {
 
 	wi_settings_initialize();
 	wi_socket_initialize();
+	wi_speed_calculator_initialize();
 	wi_task_initialize();
 	
 #ifdef WI_TERMCAP
