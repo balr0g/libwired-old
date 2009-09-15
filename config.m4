@@ -200,7 +200,7 @@ AC_DEFUN([WI_INCLUDE_CRYPTO_LIBRARY], [
 		WI_INCLUDE_EXTRA_SSL_PATHS
 
 		AC_CHECK_HEADERS([openssl/sha.h], [], [
-			if test "$$1" = "noerror"; then
+			if test "$1" != "noerror"; then
 				_WI_MSG_LIB_ERROR([OpenSSL])
 			fi
 		])
@@ -211,7 +211,7 @@ AC_DEFUN([WI_INCLUDE_CRYPTO_LIBRARY], [
 			WI_APPEND_FLAG([CPPFLAGS], [-DWI_CIPHERS])
 			WI_APPEND_FLAG([CPPFLAGS], [-DWI_RSA])
 		], [
-			if test "$$1" = "noerror"; then
+			if test "$1" != "noerror"; then
 				_WI_MSG_LIB_ERROR([OpenSSL])
 			fi
 		])
@@ -226,7 +226,7 @@ AC_DEFUN([WI_INCLUDE_SSL_LIBRARY], [
 		WI_INCLUDE_EXTRA_SSL_PATHS
 
 		AC_CHECK_HEADERS([openssl/ssl.h], [], [
-			if test "$$1" = "noerror"; then
+			if test "$1" != "noerror"; then
 				_WI_MSG_LIB_ERROR([OpenSSL])
 			fi
 		])
@@ -235,7 +235,7 @@ AC_DEFUN([WI_INCLUDE_SSL_LIBRARY], [
 			WI_APPEND_FLAG([LIBS], [-lssl])
 			WI_APPEND_FLAG([CPPFLAGS], [-DWI_SSL])
 		], [
-			if test "$$1" = "noerror"; then
+			if test "$1" != "noerror"; then
 				_WI_MSG_LIB_ERROR([OpenSSL])
 			fi
 		])
