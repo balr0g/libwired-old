@@ -54,6 +54,10 @@ AC_DEFUN([WI_INCLUDE_EXTRA_INCLUDE_PATHS], [
 		if test -d /usr/local/include; then
 			WI_APPEND_FLAG([CPPFLAGS], [-I/usr/local/include])
 		fi
+
+		if test -d /usr/pkg/include; then
+			WI_APPEND_FLAG([CPPFLAGS], [-I/usr/pkg/include])
+		fi
 		
 		wi_include_extra_include_paths_done="yes"
 	fi
@@ -64,6 +68,10 @@ AC_DEFUN([WI_INCLUDE_EXTRA_LIBRARY_PATHS], [
 	if test "$wi_include_extra_library_paths_done" != "yes"; then
 		if test -d /usr/local/lib; then
 			WI_APPEND_FLAG([LDFLAGS], [-L/usr/local/lib])
+		fi
+
+		if test -d /usr/pkg/lib; then
+			WI_APPEND_FLAG([LDFLAGS], [-L/usr/pkg/lib])
 		fi
 		
 		wi_include_extra_library_paths_done="yes"
@@ -491,6 +499,10 @@ AC_DEFUN([WI_INCLUDE_LIBXML2_LIBRARY], [
 
 		if test -d /usr/local/include/libxml2; then
 			WI_APPEND_FLAG([CPPFLAGS], [-I/usr/local/include/libxml2])
+		fi
+
+		if test -d /usr/pkg/include/libxml2; then
+			WI_APPEND_FLAG([CPPFLAGS], [-I/usr/pkg/include/libxml2])
 		fi
 
 		AC_CHECK_HEADERS([libxml/parser.h], [], [
