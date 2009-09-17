@@ -31,6 +31,7 @@
 #include <sys/param.h>
 #include <sys/types.h>
 #include <sys/utsname.h>
+#include <sys/sysctl.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
