@@ -128,7 +128,9 @@ static wi_process_t * _wi_process_init_with_argv(wi_process_t *process, int argc
 	wi_string_t			*string;
 	struct utsname		name;
 #ifdef HAVE_MACH_O_ARCH_H
-	const NXArchInfo	*arch_info;
+	const NXArchInfo	*archinfo;
+	cpu_type_t			cputype;
+	size_t				cputypesize;
 #endif
 	
 	array = wi_array_init_with_argv(wi_array_alloc(), argc, argv);
@@ -156,9 +158,14 @@ static wi_process_t * _wi_process_init_with_argv(wi_process_t *process, int argc
 	process->os_release = wi_string_init_with_cstring(wi_string_alloc(), name.release);
 
 #ifdef HAVE_MACH_O_ARCH_H
-	arch_info = NXGetArchInfoFromCpuType(NXGetLocalArchInfo()->cputype, CPU_SUBTYPE_MULTIPLE);
+	cputypesize = sizeof(cputype);
 	
-	process->arch = wi_string_init_with_cstring(wi_string_alloc(), arch_info->name);
+	if(sysctlbyname("sysctl.proc_cputype", &cputype, &cputypesize, NULL, 0) < 0)
+		cputype = NXGetLocalArchInfo()->cputype;
+	
+	archinfo = NXGetArchInfoFromCpuType(cputype, CPU_SUBTYPE_MULTIPLE);
+	
+	process->arch = wi_string_init_with_cstring(wi_string_alloc(), archinfo->name);
 #else
 	process->arch = wi_string_init_with_cstring(wi_string_alloc(), name.machine);
 #endif
