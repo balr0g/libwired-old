@@ -129,6 +129,12 @@ wi_data_t * wi_data_with_base64(wi_string_t *base64) {
 
 
 
+wi_data_t * wi_data_with_contents_of_file(wi_string_t *base64) {
+	return wi_autorelease(wi_data_init_with_contents_of_file(wi_data_alloc(), base64));
+}
+
+
+
 wi_mutable_data_t * wi_mutable_data(void) {
 	return wi_autorelease(wi_data_init(wi_mutable_data_alloc()));
 }

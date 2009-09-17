@@ -43,6 +43,7 @@ WI_EXPORT wi_data_t *					wi_data_with_bytes(const void *, wi_uinteger_t);
 WI_EXPORT wi_data_t *					wi_data_with_bytes_no_copy(void *, wi_uinteger_t, wi_boolean_t);
 WI_EXPORT wi_data_t *					wi_data_with_random_bytes(wi_uinteger_t);
 WI_EXPORT wi_data_t *					wi_data_with_base64(wi_string_t *);
+WI_EXPORT wi_data_t *					wi_data_with_contents_of_file(wi_string_t *);
 WI_EXPORT wi_mutable_data_t *			wi_mutable_data(void);
 
 WI_EXPORT wi_data_t *					wi_data_alloc(void);
