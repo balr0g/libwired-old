@@ -322,10 +322,9 @@ static wi_string_t * _wi_p7_socket_description(wi_runtime_instance_t *instance) 
 #ifdef WI_RSA
 
 void wi_p7_socket_set_private_key(wi_p7_socket_t *p7_socket, wi_rsa_t *rsa) {
-	wi_retain(rsa);
 	wi_release(p7_socket->private_key);
 	
-	p7_socket->private_key = rsa;
+	p7_socket->private_key = wi_copy(rsa);
 }
 
 
