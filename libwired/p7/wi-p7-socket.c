@@ -59,7 +59,7 @@ int wi_p7_socket_dummy = 0;
 
 #define _WI_P7_SOCKET_XML_MAGIC								0x3C3F786D
 #define _WI_P7_SOCKET_LENGTH_SIZE							4
-#define _WI_P7_SOCKET_MAX_BINARY_SIZE						262144
+#define _WI_P7_SOCKET_MAX_BINARY_SIZE						(10 * 1024 * 1024)
 
 #define _WI_P7_SOCKET_CHECKSUM_LENGTH						WI_SHA1_DIGEST_LENGTH
 
