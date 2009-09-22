@@ -139,7 +139,7 @@ static void _wi_timer_thread(wi_runtime_instance_t *argument) {
 		timer		= _wi_timer_first_timer();
 
 		if(!timer) {
-			wi_condition_lock_lock_when_condition(_wi_timer_lock, 1, 0.0);
+			locked = wi_condition_lock_lock_when_condition(_wi_timer_lock, 1, 0.0);
 
 			timer = _wi_timer_first_timer();
 			interval = wi_time_interval();
@@ -154,7 +154,9 @@ static void _wi_timer_thread(wi_runtime_instance_t *argument) {
 
 				locked = false;
 			} else {
-				if(!wi_condition_lock_lock_when_condition(_wi_timer_lock, 1, diff))
+				locked = wi_condition_lock_lock_when_condition(_wi_timer_lock, 1, diff);
+				
+				if(!locked)
 					fire_timer = _wi_timer_first_timer();
 			} 
 		}
