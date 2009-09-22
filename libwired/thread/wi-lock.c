@@ -516,8 +516,12 @@ wi_boolean_t wi_condition_lock_lock_when_condition(wi_condition_lock_t *lock, in
 					WI_ASSERT(0, "pthread_cond_timedwait: %s", strerror(err));
 			} while(lock->condition != condition && err != ETIMEDOUT);
 
-			if(err == ETIMEDOUT)
+			if(err == ETIMEDOUT) {
+				if((err = pthread_mutex_unlock(&lock->mutex)) != 0)
+					WI_ASSERT(0, "pthread_mutex_unlock: %s", strerror(err));
+				
 				return false;
+			}
 		} else {
 			do {
 				if((err = pthread_cond_wait(&lock->cond, &lock->mutex)) != 0)
