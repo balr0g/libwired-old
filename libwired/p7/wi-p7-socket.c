@@ -285,6 +285,11 @@ wi_p7_socket_t * wi_p7_socket_init_with_socket(wi_p7_socket_t *p7_socket, wi_soc
 static void _wi_p7_socket_dealloc(wi_runtime_instance_t *instance) {
 	wi_p7_socket_t		*p7_socket = instance;
 	
+	if(p7_socket->compression_enabled) {
+		deflateEnd(&p7_socket->deflate_stream);
+		inflateEnd(&p7_socket->deflate_stream);
+	}
+	
 	wi_free(p7_socket->compression_buffer);
 	wi_free(p7_socket->encryption_buffer);
 	wi_free(p7_socket->decryption_buffer);
