@@ -1034,13 +1034,16 @@ void wi_mutable_array_remove_data_at_index(wi_mutable_array_t *array, wi_uintege
 	
 	_wi_array_remove_item(array, array->items[index]);
 
+	array->items[index] = NULL;
+	
 	if(index != array->data_count - 1) {
 		memmove(array->items + index,
 				array->items + index + 1,
 				(array->data_count - index - 1) * sizeof(_wi_array_item_t *));
-	}
 
-	array->items[array->data_count] = NULL;
+		array->items[array->data_count - 1] = NULL;
+	}
+	
 	array->data_count--;
 
 	_WI_ARRAY_CHECK_OPTIMIZE(array);
