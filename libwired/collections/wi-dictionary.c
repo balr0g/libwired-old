@@ -144,6 +144,7 @@ static _wi_dictionary_bucket_t *		_wi_dictionary_bucket_create(wi_dictionary_t *
 static _wi_dictionary_bucket_t *		_wi_dictionary_bucket_for_key(wi_dictionary_t *, void *, wi_uinteger_t);
 static void								_wi_dictionary_bucket_remove(wi_dictionary_t *, _wi_dictionary_bucket_t *);
 static void								_wi_dictionary_set_data_for_key(wi_mutable_dictionary_t *, void *, void *);
+static void								_wi_dictionary_remove_data_for_key(wi_mutable_dictionary_t *, void *);
 static void								_wi_dictionary_remove_all_data(wi_mutable_dictionary_t *);
 
 #ifdef _WI_DICTIONARY_USE_QSORT_R
@@ -815,8 +816,8 @@ static _wi_dictionary_bucket_t * _wi_dictionary_bucket_for_key(wi_dictionary_t *
 
 
 static void _wi_dictionary_bucket_remove(wi_dictionary_t *dictionary, _wi_dictionary_bucket_t *bucket) {
-	_WI_DICTIONARY_KEY_RELEASE(dictionary, bucket->key);
 	_WI_DICTIONARY_VALUE_RELEASE(dictionary, bucket->data);
+	_WI_DICTIONARY_KEY_RELEASE(dictionary, bucket->key);
 	
 	bucket->link = dictionary->bucket_free_list;
 	dictionary->bucket_free_list = bucket;
@@ -828,26 +829,59 @@ static void _wi_dictionary_bucket_remove(wi_dictionary_t *dictionary, _wi_dictio
 
 static void _wi_dictionary_set_data_for_key(wi_mutable_dictionary_t *dictionary, void *data, void *key) {
 	_wi_dictionary_bucket_t		*bucket;
+	void						*new_key, *new_data;
 	wi_uinteger_t				index;
 	
-	index = _WI_DICTIONARY_KEY_HASH(dictionary, key) % dictionary->buckets_count;
-	bucket = _wi_dictionary_bucket_for_key(dictionary, key, index);
+	new_key				= _WI_DICTIONARY_KEY_RETAIN(dictionary, key);
+	new_data			= _WI_DICTIONARY_VALUE_RETAIN(dictionary, data);
+	index				= _WI_DICTIONARY_KEY_HASH(dictionary, key) % dictionary->buckets_count;
+	bucket				= _wi_dictionary_bucket_for_key(dictionary, key, index);
 
 	if(bucket) {
-		_WI_DICTIONARY_VALUE_RETAIN(dictionary, data);
+		_WI_DICTIONARY_KEY_RELEASE(dictionary, bucket->key);
 		_WI_DICTIONARY_VALUE_RELEASE(dictionary, bucket->data);
-			
-		bucket->data		= data;
 	} else {
-		bucket				= _wi_dictionary_bucket_create(dictionary);
-		bucket->next		= dictionary->buckets[index];
-		bucket->key			= _WI_DICTIONARY_KEY_RETAIN(dictionary, key);
-		bucket->data		= _WI_DICTIONARY_VALUE_RETAIN(dictionary, data);
+		bucket			= _wi_dictionary_bucket_create(dictionary);
+		bucket->next	= dictionary->buckets[index];
 
 		dictionary->key_count++;
 		dictionary->buckets[index] = bucket;
 	}
+	
+	bucket->key			= new_key;
+	bucket->data		= new_data;
 
+	_WI_DICTIONARY_CHECK_RESIZE(dictionary);
+}
+
+
+
+static void _wi_dictionary_remove_data_for_key(wi_mutable_dictionary_t *dictionary, void *key) {
+	_wi_dictionary_bucket_t		*bucket, *previous_bucket;
+	wi_uinteger_t				index;
+
+	index = _WI_DICTIONARY_KEY_HASH(dictionary, key) % dictionary->buckets_count;
+	bucket = dictionary->buckets[index];
+
+	if(bucket) {
+		previous_bucket = NULL;
+		
+		for(; bucket; bucket = bucket->next) {
+			if(_WI_DICTIONARY_KEY_IS_EQUAL(dictionary, bucket->key, key)) {
+				if(bucket == dictionary->buckets[index])
+					dictionary->buckets[index] = bucket->next;
+				
+				if(previous_bucket)
+					previous_bucket->next = bucket->next;
+				
+				_wi_dictionary_bucket_remove(dictionary, bucket);
+				break;
+			}
+			
+			previous_bucket = bucket;
+		}
+	}
+	
 	_WI_DICTIONARY_CHECK_RESIZE(dictionary);
 }
 
@@ -905,34 +939,9 @@ void wi_mutable_dictionary_set_dictionary(wi_mutable_dictionary_t *dictionary, w
 #pragma mark -
 
 void wi_mutable_dictionary_remove_data_for_key(wi_mutable_dictionary_t *dictionary, void *key) {
-	_wi_dictionary_bucket_t		*bucket, *previous_bucket;
-	wi_uinteger_t				index;
-
 	WI_RUNTIME_ASSERT_MUTABLE(dictionary);
-
-	index = _WI_DICTIONARY_KEY_HASH(dictionary, key) % dictionary->buckets_count;
-	bucket = dictionary->buckets[index];
-
-	if(bucket) {
-		previous_bucket = NULL;
-		
-		for(; bucket; bucket = bucket->next) {
-			if(_WI_DICTIONARY_KEY_IS_EQUAL(dictionary, bucket->key, key)) {
-				if(bucket == dictionary->buckets[index])
-					dictionary->buckets[index] = bucket->next;
-				
-				if(previous_bucket)
-					previous_bucket->next = bucket->next;
-				
-				_wi_dictionary_bucket_remove(dictionary, bucket);
-				break;
-			}
-			
-			previous_bucket = bucket;
-		}
-	}
 	
-	_WI_DICTIONARY_CHECK_RESIZE(dictionary);
+	_wi_dictionary_remove_data_for_key(dictionary, key);
 }
 
 
