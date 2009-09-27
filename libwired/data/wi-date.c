@@ -32,6 +32,7 @@
 #include <string.h>
 #include <time.h>
 
+#include <wired/wi-compat.h>
 #include <wired/wi-date.h>
 #include <wired/wi-macros.h>
 #include <wired/wi-pool.h>
