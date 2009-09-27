@@ -315,6 +315,8 @@ static wi_boolean_t _wi_cipher_set_type(wi_cipher_t *cipher, wi_cipher_type_t ty
 #ifdef WI_CIPHER_COMMONCRYPTO
 	switch(cipher->type) {
 		case WI_CIPHER_AES128:
+		case WI_CIPHER_AES192:
+		case WI_CIPHER_AES256:
 			cipher->algorithm = kCCAlgorithmAES128;
 			return true;
 		
@@ -389,9 +391,20 @@ wi_uinteger_t wi_cipher_bits(wi_cipher_t *cipher) {
 
 #ifdef WI_CIPHER_COMMONCRYPTO
 	switch(cipher->type) {
-		case WI_CIPHER_AES128:		return kCCKeySizeAES128 * 8;
-		case WI_CIPHER_3DES192:		return kCCKeySize3DES * 8;
-		default:					return 0;
+		case WI_CIPHER_AES128:
+			return kCCKeySizeAES128 * 8;
+			
+		case WI_CIPHER_AES192:
+			return kCCKeySizeAES192 * 8;
+			
+		case WI_CIPHER_AES256:
+			return kCCKeySizeAES256 * 8;
+	
+		case WI_CIPHER_3DES192:
+			return kCCKeySize3DES * 8;
+
+		default:
+			return 0;
 	}
 #endif
 }
@@ -405,9 +418,16 @@ wi_uinteger_t wi_cipher_block_size(wi_cipher_t *cipher) {
 	
 #ifdef WI_CIPHER_COMMONCRYPTO
 	switch(cipher->type) {
-		case WI_CIPHER_AES128:		return kCCBlockSizeAES128;
-		case WI_CIPHER_3DES192:		return kCCBlockSize3DES;
-		default:					return 0;
+		case WI_CIPHER_AES128:
+		case WI_CIPHER_AES192:
+		case WI_CIPHER_AES256:
+			return kCCBlockSizeAES128;
+		
+		case WI_CIPHER_3DES192:
+			return kCCBlockSize3DES;
+		
+		default:
+			return 0;
 	}
 #endif
 }
