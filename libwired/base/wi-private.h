@@ -71,18 +71,22 @@ typedef struct _wi_enumerator_context	wi_enumerator_context_t;
 
 struct _wi_md5_ctx {
 #ifdef HAVE_OPENSSL_SHA_H
-	MD5_CTX								ctx;
-#else
-	CC_MD5_CTX							ctx;
+	MD5_CTX								openssl_ctx;
+#endif
+	
+#ifdef HAVE_COMMONCRYPTO_COMMONDIGEST_H
+	CC_MD5_CTX							commondigest_ctx;
 #endif
 };
 
 
 struct _wi_sha1_ctx {
 #ifdef HAVE_OPENSSL_SHA_H
-	SHA_CTX								ctx;
-#else
-	CC_SHA1_CTX							ctx;
+	SHA_CTX								openssl_ctxctx;
+#endif
+	
+#ifdef HAVE_COMMONCRYPTO_COMMONDIGEST_H
+	CC_SHA1_CTX							commondigest_ctx;
 #endif
 };
 

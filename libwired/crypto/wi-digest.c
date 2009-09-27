@@ -36,10 +36,10 @@
 
 #if defined(HAVE_OPENSSL_SHA_H) || defined(HAVE_COMMONCRYPTO_COMMONDIGEST_H)
 
-#ifdef HAVE_OPENSSL_SHA_H
-#define WI_DIGEST_OPENSSL				1
-#else
+#ifdef HAVE_COMMONCRYPTO_COMMONDIGEST_H
 #define WI_DIGEST_COMMONCRYPTO			1
+#else
+#define WI_DIGEST_OPENSSL				1
 #endif
 
 #ifdef HAVE_OPENSSL_SHA_H
@@ -54,11 +54,11 @@
 
 void wi_md5_init(wi_md5_ctx_t *ctx) {
 #ifdef WI_DIGEST_OPENSSL
-	MD5_Init(&ctx->ctx);
+	MD5_Init(&ctx->openssl_ctx);
 #endif
 
 #ifdef WI_DIGEST_COMMONCRYPTO
-	CC_MD5_Init(&ctx->ctx);
+	CC_MD5_Init(&ctx->commondigest_ctx);
 #endif
 }
 
@@ -66,11 +66,11 @@ void wi_md5_init(wi_md5_ctx_t *ctx) {
 
 void wi_md5_update(wi_md5_ctx_t *ctx, const void *data, unsigned long length) {
 #ifdef WI_DIGEST_OPENSSL
-	MD5_Update(&ctx->ctx, data, length);
+	MD5_Update(&ctx->openssl_ctx, data, length);
 #endif
 
 #ifdef WI_DIGEST_COMMONCRYPTO
-	CC_MD5_Update(&ctx->ctx, data, length);
+	CC_MD5_Update(&ctx->commondigest_ctx, data, length);
 #endif
 }
 
@@ -78,11 +78,11 @@ void wi_md5_update(wi_md5_ctx_t *ctx, const void *data, unsigned long length) {
 
 void wi_md5_final(unsigned char *buffer, wi_md5_ctx_t *ctx) {
 #ifdef WI_DIGEST_OPENSSL
-	MD5_Final(buffer, &ctx->ctx);
+	MD5_Final(buffer, &ctx->openssl_ctx);
 #endif
 	
 #ifdef WI_DIGEST_COMMONCRYPTO
-	CC_MD5_Final(buffer, &ctx->ctx);
+	CC_MD5_Final(buffer, &ctx->commondigest_ctx);
 #endif
 }
 
@@ -115,11 +115,11 @@ wi_string_t * wi_md5_string(wi_data_t *data) {
 
 void wi_sha1_init(wi_sha1_ctx_t *ctx) {
 #ifdef WI_DIGEST_OPENSSL
-	SHA1_Init(&ctx->ctx);
+	SHA1_Init(&ctx->openssl_ctx);
 #endif
 
 #ifdef WI_DIGEST_COMMONCRYPTO
-	CC_SHA1_Init(&ctx->ctx);
+	CC_SHA1_Init(&ctx->commondigest_ctx);
 #endif
 }
 
@@ -127,11 +127,11 @@ void wi_sha1_init(wi_sha1_ctx_t *ctx) {
 
 void wi_sha1_update(wi_sha1_ctx_t *ctx, const void *data, unsigned long length) {
 #ifdef WI_DIGEST_OPENSSL
-	SHA1_Update(&ctx->ctx, data, length);
+	SHA1_Update(&ctx->openssl_ctx, data, length);
 #endif
 
 #ifdef WI_DIGEST_COMMONCRYPTO
-	CC_SHA1_Update(&ctx->ctx, data, length);
+	CC_SHA1_Update(&ctx->commondigest_ctx, data, length);
 #endif
 }
 
@@ -139,11 +139,11 @@ void wi_sha1_update(wi_sha1_ctx_t *ctx, const void *data, unsigned long length) 
 
 void wi_sha1_final(unsigned char *buffer, wi_sha1_ctx_t *ctx) {
 #ifdef WI_DIGEST_OPENSSL
-	SHA1_Final(buffer, &ctx->ctx);
+	SHA1_Final(buffer, &ctx->openssl_ctx);
 #endif
 
 #ifdef WI_DIGEST_COMMONCRYPTO
-	CC_SHA1_Final(buffer, &ctx->ctx);
+	CC_SHA1_Final(buffer, &ctx->commondigest_ctx);
 #endif
 }
 
