@@ -284,10 +284,10 @@ wi_p7_socket_t * wi_p7_socket_init_with_socket(wi_p7_socket_t *p7_socket, wi_soc
 
 static void _wi_p7_socket_dealloc(wi_runtime_instance_t *instance) {
 	wi_p7_socket_t		*p7_socket = instance;
-	
+
 	if(p7_socket->compression_enabled) {
 		deflateEnd(&p7_socket->deflate_stream);
-		inflateEnd(&p7_socket->deflate_stream);
+		inflateEnd(&p7_socket->inflate_stream);
 	}
 	
 	wi_free(p7_socket->compression_buffer);
@@ -1001,7 +1001,7 @@ static wi_boolean_t _wi_p7_socket_accept_key_exchange(wi_p7_socket_t *p7_socket,
 static wi_boolean_t _wi_p7_socket_send_compatibility_check(wi_p7_socket_t *p7_socket, wi_time_interval_t timeout) {
 	wi_p7_message_t		*p7_message;
 	wi_p7_boolean_t		status;
-	
+
 	p7_message = wi_p7_message_with_name(WI_STR("p7.compatibility_check.specification"), wi_p7_socket_spec(p7_socket));
 	
 	if(!p7_message)
@@ -1075,8 +1075,8 @@ static wi_boolean_t _wi_p7_socket_receive_compatibility_check(wi_p7_socket_t *p7
 		return false;
 	}
 	
-	p7_spec = wi_p7_spec_init_with_string(wi_p7_spec_alloc(), string,
-		wi_p7_spec_opposite_originator(wi_p7_spec_originator(p7_socket->spec)));
+	p7_spec = wi_autorelease(wi_p7_spec_init_with_string(wi_p7_spec_alloc(), string,
+		wi_p7_spec_opposite_originator(wi_p7_spec_originator(p7_socket->spec))));
 	
 	if(!p7_spec)
 		return false;
@@ -1093,9 +1093,9 @@ static wi_boolean_t _wi_p7_socket_receive_compatibility_check(wi_p7_socket_t *p7
 	}
 	
 	p7_socket->merged_spec = wi_copy(p7_socket->spec);
-	
+
 	wi_p7_spec_merge_with_spec(p7_socket->merged_spec, p7_spec);
-	
+
 	p7_message = wi_p7_message_with_name(WI_STR("p7.compatibility_check.status"), wi_p7_socket_spec(p7_socket));
 	
 	if(!p7_message)
