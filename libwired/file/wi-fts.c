@@ -570,7 +570,7 @@ WI_FTSENT * wi_fts_children(WI_FTS *sp, int instr) {
  */
 
 static WI_FTSENT * wi_fts_build(WI_FTS *sp, int type) {
-	struct dirent de, *dp;
+	struct dirent *de, *dp;
 	WI_FTSENT *p, *head;
 	WI_FTSENT *cur, *tail;
 	DIR *dirp;
@@ -661,10 +661,12 @@ static WI_FTSENT * wi_fts_build(WI_FTS *sp, int type) {
 	maxlen = sp->fts_pathlen - len;
 	
 	level = cur->fts_level + 1;
+
+	de = malloc(sizeof(struct dirent) + MAXPATHLEN);
 	
 	/* Read the directory, attaching each entry to the `link' pointer. */
 	doadjust = 0;
-	for (head = tail = NULL, nitems = 0; dirp && (readdir_r(dirp, &de, &dp) == 0 && dp);) {
+	for (head = tail = NULL, nitems = 0; dirp && (readdir_r(dirp, de, &dp) == 0 && dp);) {
 		if (!ISSET(WI_FTS_SEEDOT) && ISDOT(dp->d_name))
 			continue;
 		
@@ -681,6 +683,7 @@ static WI_FTSENT * wi_fts_build(WI_FTS *sp, int type) {
 mem1:                           saved_errno = errno;
 				if (p)
 					free(p);
+				free(de);
 				wi_fts_lfree(head);
 				(void)closedir(dirp);
 				cur->fts_info = WI_FTS_ERR;
@@ -707,6 +710,7 @@ mem1:                           saved_errno = errno;
 			 * out with ENAMETOOLONG.
 			 */
 			free(p);
+			free(de);
 			wi_fts_lfree(head);
 			(void)closedir(dirp);
 			cur->fts_info = WI_FTS_ERR;
@@ -757,6 +761,8 @@ mem1:                           saved_errno = errno;
 		}
 		++nitems;
 	}
+
+	free(de);
 
 	if (dirp)
 		(void)closedir(dirp);
