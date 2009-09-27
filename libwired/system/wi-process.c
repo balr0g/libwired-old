@@ -235,7 +235,7 @@ wi_array_t * wi_process_arguments(wi_process_t *process) {
 
 
 wi_boolean_t wi_process_set_hostname(wi_process_t *process, wi_string_t *hostname) {
-	if(sethostname(wi_string_cstring(hostname), wi_string_length(hostname))) {
+	if(sethostname((char *) wi_string_cstring(hostname), wi_string_length(hostname))) {
 		wi_error_set_errno(errno);
 		
 		return false;
