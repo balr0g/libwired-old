@@ -74,6 +74,10 @@ AC_DEFUN([WI_INCLUDE_EXTRA_LIBRARY_PATHS], [
 			WI_APPEND_FLAG([LDFLAGS], [-L/usr/pkg/lib])
 		fi
 		
+		if test -d lib; then
+			WI_APPEND_FLAG([LDFLAGS], [-L/lib])
+		fi
+		
 		wi_include_extra_library_paths_done="yes"
 	fi
 ])
