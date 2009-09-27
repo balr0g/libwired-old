@@ -196,8 +196,8 @@ AC_DEFUN([WI_INCLUDE_NSL_LIBRARY], [
 
 AC_DEFUN([WI_INCLUDE_RESOLV_LIBRARY], [
 	if test "$wi_include_resolv_library_done" != "yes"; then
-		AC_CHECK_FUNC([inet_aton], [], [
-			AC_CHECK_LIB([resolv], [inet_aton], [
+		AC_CHECK_FUNC([herror], [], [
+			AC_CHECK_LIB([resolv], [herror], [
 				WI_APPEND_FLAG([LIBS], [-lresolv])
 			])
 		])
