@@ -36,6 +36,10 @@
 #include <sys/sysctl.h>
 #endif
 
+#ifdef HAVE_SYS_SYSTEMINFO_H
+#include <sys/systeminfo.h>
+#endif
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -132,11 +136,14 @@ static wi_process_t * _wi_process_init_with_argv(wi_process_t *process, int argc
 	wi_array_t			*array;
 	wi_string_t			*string;
 	struct utsname		name;
-#ifdef HAVE_MACH_O_ARCH_H
+#if defined(HAVE_NXGETLOCALARCHINFO)
 	const NXArchInfo	*archinfo;
 	cpu_type_t			cputype;
 	size_t				cputypesize;
+#elif defined(HAVE_SYSINFO)
+	char				buffer[SYS_NMLN];
 #endif
+
 	
 	array = wi_array_init_with_argv(wi_array_alloc(), argc, argv);
 	
@@ -162,7 +169,7 @@ static wi_process_t * _wi_process_init_with_argv(wi_process_t *process, int argc
 	process->os_name = wi_string_init_with_cstring(wi_string_alloc(), name.sysname);
 	process->os_release = wi_string_init_with_cstring(wi_string_alloc(), name.release);
 
-#ifdef HAVE_MACH_O_ARCH_H
+#if defined(HAVE_NXGETLOCALARCHINFO)
 	cputypesize = sizeof(cputype);
 	
 	if(sysctlbyname("sysctl.proc_cputype", &cputype, &cputypesize, NULL, 0) < 0)
@@ -170,10 +177,15 @@ static wi_process_t * _wi_process_init_with_argv(wi_process_t *process, int argc
 	
 	archinfo = NXGetArchInfoFromCpuType(cputype, CPU_SUBTYPE_MULTIPLE);
 	
-	process->arch = wi_string_init_with_cstring(wi_string_alloc(), archinfo->name);
-#else
-	process->arch = wi_string_init_with_cstring(wi_string_alloc(), name.machine);
+	if(archinfo)
+		process->arch = wi_string_init_with_cstring(wi_string_alloc(), archinfo->name);
+#elif defined(HAVE_SYSINFO)
+	if(sysinfo(SI_ARCHITECTURE, buffer, sizeof(buffer)) >= 0)
+		process->arch = wi_string_init_with_cstring(wi_string_alloc(), buffer);
 #endif
+
+	if(!process->arch)
+		process->arch = wi_string_init_with_cstring(wi_string_alloc(), name.machine);
 
 	return process;
 }

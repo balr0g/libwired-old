@@ -205,6 +205,7 @@ AC_CHECK_HEADERS([ \
 	sys/statfs.h \
 	sys/statvfs.h \
 	sys/sysctl.h \
+	sys/systeminfo.h \
 	netinet/in_systm.h \
 	netinet/ip.h \
 	inotifytools/inotify.h \
@@ -234,6 +235,7 @@ AC_DEFINE([_DARWIN_USE_64_BIT_INODE], [1], [64-bit ino_t on Darwin])
 AC_FUNC_FSEEKO
 AC_CHECK_FUNCS([ \
 	MDItemCreate \
+	NXGetLocalArchInfo \
 	backtrace \
 	dirfd \
 	getifaddrs \
@@ -250,6 +252,7 @@ AC_CHECK_FUNCS([ \
 	strlcat \
 	strlcpy \
 	strsep \
+	sysinfo \
 	timegm \
 	vasprintf \
 	vfprintf \
