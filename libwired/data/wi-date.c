@@ -273,7 +273,7 @@ wi_date_t * wi_date_init_with_string(wi_date_t *date, wi_string_t *string, wi_st
 		}
 	}
 
-	clock = timegm(&tm) - offset;
+	clock = wi_timegm(&tm) - offset;
 
 	return wi_date_init_with_time(date, clock);
 }

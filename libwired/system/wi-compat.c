@@ -456,3 +456,33 @@ int wi_dirfd(DIR *dir) {
 #endif
 
 }
+
+
+
+#pragma mark -
+
+time_t wi_timegm(struct tm *tm) {
+#ifdef HAVE_TIMEGM
+	return timegm(tm);
+#else
+	time_t		clock;
+	char		*tz;
+	
+	tz = getenv("TZ");
+	
+	setenv("TZ", "UTC", 1);
+	
+	tzset();
+	
+	clock = mktime(tm);
+	
+	if(tz)
+		setenv("TZ", tz, 1);
+	else
+		unsetenv("TZ");
+	
+	tzset();
+	
+	return clock;
+#endif
+}

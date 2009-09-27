@@ -31,7 +31,11 @@
 #include <sys/param.h>
 #include <sys/types.h>
 #include <sys/utsname.h>
+
+#ifdef HAVE_SYS_SYSCTL_H
 #include <sys/sysctl.h>
+#endif
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>

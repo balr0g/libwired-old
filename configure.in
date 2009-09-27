@@ -204,6 +204,7 @@ AC_CHECK_HEADERS([ \
 	sys/sockio.h \
 	sys/statfs.h \
 	sys/statvfs.h \
+	sys/sysctl.h \
 	netinet/in_systm.h \
 	netinet/ip.h \
 	inotifytools/inotify.h \
@@ -249,6 +250,7 @@ AC_CHECK_FUNCS([ \
 	strlcat \
 	strlcpy \
 	strsep \
+	timegm \
 	vasprintf \
 	vfprintf \
 ])

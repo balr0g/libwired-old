@@ -50,4 +50,6 @@ WI_EXPORT FILE *					wi_tmpfile(void);
 
 WI_EXPORT int						wi_dirfd(DIR *);
 
+WI_EXPORT time_t					wi_timegm(struct tm *);
+
 #endif /* WI_COMPAT_H */
