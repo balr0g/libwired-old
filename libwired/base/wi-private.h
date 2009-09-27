@@ -32,15 +32,6 @@
 #include <sys/types.h>
 #include <regex.h>
 
-#ifdef HAVE_COMMONCRYPTO_COMMONDIGEST_H
-#include <CommonCrypto/CommonDigest.h>
-#endif
-
-#ifdef HAVE_OPENSSL_SHA_H
-#include <openssl/sha.h>
-#include <openssl/md5.h>
-#endif
-
 #include <wired/wi-array.h>
 #include <wired/wi-assert.h>
 #include <wired/wi-base.h>
@@ -67,32 +58,6 @@ struct _wi_enumerator_context {
 typedef struct _wi_enumerator_context	wi_enumerator_context_t;
 
 
-#ifdef WI_DIGESTS
-
-struct _wi_md5_ctx {
-#ifdef HAVE_OPENSSL_SHA_H
-	MD5_CTX								openssl_ctx;
-#endif
-	
-#ifdef HAVE_COMMONCRYPTO_COMMONDIGEST_H
-	CC_MD5_CTX							commondigest_ctx;
-#endif
-};
-
-
-struct _wi_sha1_ctx {
-#ifdef HAVE_OPENSSL_SHA_H
-	SHA_CTX								openssl_ctxctx;
-#endif
-	
-#ifdef HAVE_COMMONCRYPTO_COMMONDIGEST_H
-	CC_SHA1_CTX							commondigest_ctx;
-#endif
-};
-
-#endif
-
-
 typedef void *							wi_enumerator_func_t(wi_runtime_instance_t *, wi_enumerator_context_t *);
 
 
@@ -103,6 +68,7 @@ WI_EXPORT void							wi_config_register(void);
 WI_EXPORT void							wi_data_register(void);
 WI_EXPORT void							wi_date_register(void);
 WI_EXPORT void							wi_dictionary_register(void);
+WI_EXPORT void							wi_digest_register(void);
 WI_EXPORT void							wi_enumerator_register(void);
 WI_EXPORT void							wi_error_register(void);
 WI_EXPORT void							wi_file_register(void);
@@ -143,6 +109,7 @@ WI_EXPORT void							wi_config_initialize(void);
 WI_EXPORT void							wi_data_initialize(void);
 WI_EXPORT void							wi_date_initialize(void);
 WI_EXPORT void							wi_dictionary_initialize(void);
+WI_EXPORT void							wi_digest_initialize(void);
 WI_EXPORT void							wi_enumerator_initialize(void);
 WI_EXPORT void							wi_error_initialize(void);
 WI_EXPORT void							wi_file_initialize(void);

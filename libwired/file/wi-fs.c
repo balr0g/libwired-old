@@ -613,15 +613,11 @@ wi_fsenumerator_t * wi_fs_enumerator_at_path(wi_string_t *path) {
 #ifdef WI_DIGESTS
 
 wi_string_t * wi_fs_sha1_for_path(wi_string_t *path, wi_file_offset_t offset) {
-	static unsigned char	hex[] = "0123456789abcdef";
-	FILE					*fp;
-	wi_sha1_ctx_t			c;
-	char					buffer[WI_FILE_BUFFER_SIZE];
-	unsigned char			sha1[WI_SHA1_DIGEST_LENGTH];
-	char					sha1_hex[sizeof(sha1) * 2 + 1];
-	size_t					bytes;
-	wi_uinteger_t			i;
-	wi_boolean_t			all;
+	FILE				*fp;
+	wi_sha1_t			*sha1;
+	char				buffer[WI_FILE_BUFFER_SIZE];
+	size_t				bytes;
+	wi_boolean_t		all;
 	
 	fp = fopen(wi_string_cstring(path), "r");
 	
@@ -633,13 +629,13 @@ wi_string_t * wi_fs_sha1_for_path(wi_string_t *path, wi_file_offset_t offset) {
 	
 	all = (offset == 0);
 	
-	wi_sha1_init(&c);
+	sha1 = wi_sha1();
 	
 	while((bytes = fread(buffer, 1, sizeof(buffer), fp)) > 0) {
 		if(!all)
 			bytes = bytes > offset ? offset : bytes;
 		
-		wi_sha1_update(&c, buffer, bytes);
+		wi_sha1_update(sha1, buffer, bytes);
 		
 		if(!all) {
 			offset -= bytes;
@@ -651,16 +647,9 @@ wi_string_t * wi_fs_sha1_for_path(wi_string_t *path, wi_file_offset_t offset) {
 	
 	fclose(fp);
 	
-	wi_sha1_final(sha1, &c);
+	wi_sha1_close(sha1);
 	
-	for(i = 0; i < WI_SHA1_DIGEST_LENGTH; i++) {
-		sha1_hex[i + i]		= hex[sha1[i] >> 4];
-		sha1_hex[i + i + 1]	= hex[sha1[i] & 0x0F];
-	}
-	
-	sha1_hex[i + i] = '\0';
-	
-	return wi_string_with_cstring(sha1_hex);
+	return wi_sha1_string(sha1);
 }
 
 #endif

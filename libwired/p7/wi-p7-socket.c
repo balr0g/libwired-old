@@ -1451,13 +1451,8 @@ static void _wi_p7_socket_checksum_binary_message(wi_p7_socket_t *p7_socket, wi_
 
 
 static void _wi_p7_socket_checksum_buffer(wi_p7_socket_t *p7_socket, const void *buffer, uint32_t size, void *out_buffer) {
-	wi_sha1_ctx_t		c;
-
-	if(p7_socket->options & WI_P7_CHECKSUM_SHA1) {
-		wi_sha1_init(&c);
-		wi_sha1_update(&c, buffer, size);
-		wi_sha1_final(out_buffer, &c);
-	}
+	if(p7_socket->options & WI_P7_CHECKSUM_SHA1)
+		wi_sha1_digest(buffer, size, out_buffer);
 }
 
 

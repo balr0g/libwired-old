@@ -68,7 +68,6 @@ void wi_test_string_compare(void) {
 void wi_test_string_digest(void) {
 #ifdef WI_DIGESTS
 	WI_TEST_ASSERT_EQUAL_INSTANCES(wi_string_md5(WI_STR("hello world")), WI_STR("5eb63bbbe01eeed093cb22bb8f5acdc3"), "");
-	WI_TEST_ASSERT_EQUAL_INSTANCES(wi_string_sha1(WI_STR("hello world 2")), WI_STR("42ad4ff8bdd0125e98eeaa23146d7899ee77577e"), "");
 	WI_TEST_ASSERT_EQUAL_INSTANCES(wi_string_sha1(WI_STR("hello world")), WI_STR("2aae6c35c94fcfb415dbe95f408b9ce91ee846ed"), "");
 #endif
 	

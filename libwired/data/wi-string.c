@@ -1514,13 +1514,13 @@ wi_data_t * wi_string_data(wi_string_t *string) {
 #ifdef WI_DIGESTS
 
 wi_string_t * wi_string_md5(wi_string_t *string) {
-	return wi_md5_string(wi_string_data(string));
+	return wi_md5_digest_string(wi_string_data(string));
 }
 
 
 
 wi_string_t * wi_string_sha1(wi_string_t *string) {
-	return wi_sha1_string(wi_string_data(string));
+	return wi_sha1_digest_string(wi_string_data(string));
 }
 
 #endif

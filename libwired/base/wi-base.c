@@ -67,6 +67,7 @@ void wi_initialize(void) {
 	wi_data_register();
 	wi_date_register();
 	wi_dictionary_register();
+	wi_digest_register();
 	wi_enumerator_register();
 	wi_error_register();
 	wi_file_register();
@@ -136,6 +137,7 @@ void wi_initialize(void) {
 	
 	wi_data_initialize();
 	wi_date_initialize();
+	wi_digest_initialize();
 	wi_enumerator_initialize();
 	wi_error_initialize();
 	wi_file_initialize();
