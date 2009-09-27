@@ -374,13 +374,13 @@ wi_data_t * wi_data_by_appending_bytes(wi_data_t *data, const void *bytes, wi_ui
 #ifdef WI_DIGESTS
 
 wi_string_t * wi_data_md5(wi_data_t *data) {
-	return wi_md5_string(data);
+	return wi_md5_digest_string(data);
 }
 
 
 
 wi_string_t * wi_data_sha1(wi_data_t *data) {
-	return wi_sha1_string(data);
+	return wi_sha1_digest_string(data);
 }
 
 #endif
