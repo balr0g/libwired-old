@@ -10712,6 +10712,7 @@ fi
 
 
 
+
 for ac_header in  \
 	mach-o/arch.h \
 	machine/param.h \
@@ -10722,6 +10723,7 @@ for ac_header in  \
 	sys/statfs.h \
 	sys/statvfs.h \
 	sys/sysctl.h \
+	sys/systeminfo.h \
 	netinet/in_systm.h \
 	netinet/ip.h \
 	inotifytools/inotify.h \
@@ -11486,8 +11488,11 @@ fi
 
 
 
+
+
 for ac_func in  \
 	MDItemCreate \
+	NXGetLocalArchInfo \
 	backtrace \
 	dirfd \
 	getifaddrs \
@@ -11504,6 +11509,7 @@ for ac_func in  \
 	strlcat \
 	strlcpy \
 	strsep \
+	sysinfo \
 	timegm \
 	vasprintf \
 	vfprintf \
