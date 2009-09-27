@@ -4017,7 +4017,7 @@ fi
 
 		fi
 
-		if test -d lib; then
+		if test -d /lib; then
 
 	if test -z "$LDFLAGS"; then
 		LDFLAGS="-L/lib"
