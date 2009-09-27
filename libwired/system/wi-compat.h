@@ -33,6 +33,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <dirent.h>
+#include <time.h>
 #include <wired/wi-base.h>
 
 WI_EXPORT char *					wi_strsep(char **, const char *);

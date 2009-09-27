@@ -37,6 +37,7 @@
 #include <dirent.h>
 #include <ctype.h>
 #include <float.h>
+#include <time.h>
 
 #include <wired/wi-compat.h>
 #include <wired/wi-file.h>

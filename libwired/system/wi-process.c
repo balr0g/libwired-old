@@ -140,7 +140,7 @@ static wi_process_t * _wi_process_init_with_argv(wi_process_t *process, int argc
 	const NXArchInfo	*archinfo;
 	cpu_type_t			cputype;
 	size_t				cputypesize;
-#elif defined(HAVE_SYSINFO)
+#elif defined(HAVE_SYSINFO) && defined(SI_ARCHITECTURE)
 	char				buffer[SYS_NMLN];
 #endif
 
@@ -179,7 +179,7 @@ static wi_process_t * _wi_process_init_with_argv(wi_process_t *process, int argc
 	
 	if(archinfo)
 		process->arch = wi_string_init_with_cstring(wi_string_alloc(), archinfo->name);
-#elif defined(HAVE_SYSINFO)
+#elif defined(HAVE_SYSINFO) && defined(SI_ARCHITECTURE)
 	if(sysinfo(SI_ARCHITECTURE, buffer, sizeof(buffer)) >= 0)
 		process->arch = wi_string_init_with_cstring(wi_string_alloc(), buffer);
 #endif
