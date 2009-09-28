@@ -68,6 +68,7 @@
 #include <wired/wi-private.h>
 #include <wired/wi-runtime.h>
 #include <wired/wi-string.h>
+#include <wired/wi-system.h>
 
 #ifdef HAVE_CARBON_CARBON_H
 
@@ -90,8 +91,8 @@ static int32_t							_wi_fs_finder_flags_for_cpath(const char *);
 static wi_boolean_t						_wi_fs_delete_file(wi_string_t *, wi_fs_delete_path_callback_t *);
 static wi_boolean_t						_wi_fs_delete_directory(wi_string_t *, wi_fs_delete_path_callback_t *);
 
-static wi_boolean_t						_wi_fs_copy_file(wi_string_t *, wi_string_t *);
-static wi_boolean_t						_wi_fs_copy_directory(wi_string_t *, wi_string_t *);
+static wi_boolean_t						_wi_fs_copy_file(wi_string_t *, wi_string_t *, wi_fs_copy_path_callback_t);
+static wi_boolean_t						_wi_fs_copy_directory(wi_string_t *, wi_string_t *, wi_fs_copy_path_callback_t);
 
 static wi_boolean_t						_wi_fs_stat_path(wi_string_t *, wi_fs_stat_t *, wi_boolean_t);
 
@@ -278,6 +279,12 @@ wi_boolean_t wi_fs_symlink_path(wi_string_t *frompath, wi_string_t *topath) {
 
 
 wi_boolean_t wi_fs_copy_path(wi_string_t *frompath, wi_string_t *topath) {
+	return wi_fs_copy_path_with_callback(frompath, topath, NULL);
+}
+
+
+
+wi_boolean_t wi_fs_copy_path_with_callback(wi_string_t *frompath, wi_string_t *topath, wi_fs_copy_path_callback_t callback) {
 	wi_fs_stat_t	sb;
 	int				err;
 	wi_boolean_t	result;
@@ -292,9 +299,9 @@ wi_boolean_t wi_fs_copy_path(wi_string_t *frompath, wi_string_t *topath) {
 	}
 	
 	if(S_ISDIR(sb.mode))
-		result = _wi_fs_copy_directory(frompath, topath);
+		result = _wi_fs_copy_directory(frompath, topath, callback);
 	else
-		result = _wi_fs_copy_file(frompath, topath);
+		result = _wi_fs_copy_file(frompath, topath, callback);
 	
 	if(!result) {
 		err = errno;
@@ -309,7 +316,7 @@ wi_boolean_t wi_fs_copy_path(wi_string_t *frompath, wi_string_t *topath) {
 
 
 
-static wi_boolean_t _wi_fs_copy_file(wi_string_t *frompath, wi_string_t *topath) {
+static wi_boolean_t _wi_fs_copy_file(wi_string_t *frompath, wi_string_t *topath, wi_fs_copy_path_callback_t callback) {
 	char			buffer[8192];
 	int				fromfd = -1, tofd = -1;
 	int				rbytes, wbytes;
@@ -332,6 +339,9 @@ static wi_boolean_t _wi_fs_copy_file(wi_string_t *frompath, wi_string_t *topath)
 			goto end;
 	}
 	
+	if(callback)
+		(*callback)(frompath, topath);
+	
 	result = true;
 	
 end:
@@ -346,7 +356,7 @@ end:
 
 
 
-static wi_boolean_t _wi_fs_copy_directory(wi_string_t *frompath, wi_string_t *topath) {
+static wi_boolean_t _wi_fs_copy_directory(wi_string_t *frompath, wi_string_t *topath, wi_fs_copy_path_callback_t callback) {
 	WI_FTS					*fts;
 	WI_FTSENT				*p;
 	wi_mutable_string_t		*newpath;
@@ -384,12 +394,16 @@ static wi_boolean_t _wi_fs_copy_directory(wi_string_t *frompath, wi_string_t *to
 				break;
 				
 			case WI_FTS_D:
-				if(!wi_fs_create_directory(newpath, 0777))
+				if(!wi_fs_create_directory(newpath, 0777)) {
 					result = false;
+				} else {
+					if(callback)
+						(*callback)(path, newpath);
+				}
 				break;
 			
 			default:
-				if(!_wi_fs_copy_file(path, newpath))
+				if(!_wi_fs_copy_file(path, newpath, callback))
 					result = false;
 				break;
 		}
@@ -567,13 +581,27 @@ wi_boolean_t wi_fs_path_exists(wi_string_t *path, wi_boolean_t *is_directory) {
 
 
 
+wi_string_t * wi_fs_real_path_for_path(wi_string_t *path) {
+	char	buffer[WI_PATH_SIZE];
+	
+	if(!realpath(wi_string_cstring(path), buffer)) {
+		wi_error_set_errno(errno);
+		
+		return NULL;
+	}
+	
+	return wi_string_with_cstring(buffer);
+}
+
+
+
 #pragma mark -
 
 wi_array_t * wi_fs_directory_contents_at_path(wi_string_t *path) {
 	wi_mutable_array_t		*contents;
 	wi_string_t				*name;
 	DIR						*dir;
-	struct dirent			de, *dep;
+	struct dirent			*de, *dep;
 	
 	dir = opendir(wi_string_cstring(path));
 	
@@ -585,13 +613,17 @@ wi_array_t * wi_fs_directory_contents_at_path(wi_string_t *path) {
 	
 	contents = wi_array_init_with_capacity(wi_mutable_array_alloc(), 100);
 	
-	while(readdir_r(dir, &de, &dep) == 0 && dep) {
+	de = wi_malloc(sizeof(struct dirent) + WI_PATH_SIZE);
+	
+	while(readdir_r(dir, de, &dep) == 0 && dep) {
 		if(strcmp(dep->d_name, ".") != 0 && strcmp(dep->d_name, "..") != 0) {
 			name = wi_string_init_with_cstring(wi_string_alloc(), dep->d_name);
 			wi_mutable_array_add_data(contents, name);
 			wi_release(name);
 		}
 	}
+	
+	wi_free(de);
 	
 	closedir(dir);
 	

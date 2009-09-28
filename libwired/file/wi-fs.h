@@ -84,6 +84,7 @@ struct _wi_fs_statfs {
 typedef struct _wi_fs_statfs			wi_fs_statfs_t;
 
 typedef void							wi_fs_delete_path_callback_t(wi_string_t *);
+typedef void							wi_fs_copy_path_callback_t(wi_string_t *, wi_string_t *);
 
 
 WI_EXPORT wi_string_t *					wi_fs_temporary_path_with_template(wi_string_t *);
@@ -97,12 +98,14 @@ WI_EXPORT wi_boolean_t					wi_fs_clear_path(wi_string_t *);
 WI_EXPORT wi_boolean_t					wi_fs_rename_path(wi_string_t *, wi_string_t *);
 WI_EXPORT wi_boolean_t					wi_fs_symlink_path(wi_string_t *, wi_string_t *);
 WI_EXPORT wi_boolean_t					wi_fs_copy_path(wi_string_t *, wi_string_t *);
+WI_EXPORT wi_boolean_t					wi_fs_copy_path_with_callback(wi_string_t *, wi_string_t *, wi_fs_copy_path_callback_t);
 WI_EXPORT wi_boolean_t					wi_fs_set_mode_for_path(wi_string_t *, uint32_t);
 
 WI_EXPORT wi_boolean_t					wi_fs_stat_path(wi_string_t *, wi_fs_stat_t *);
 WI_EXPORT wi_boolean_t					wi_fs_lstat_path(wi_string_t *, wi_fs_stat_t *);
 WI_EXPORT wi_boolean_t					wi_fs_statfs_path(wi_string_t *, wi_fs_statfs_t *);
 WI_EXPORT wi_boolean_t					wi_fs_path_exists(wi_string_t *, wi_boolean_t *);
+WI_EXPORT wi_string_t *					wi_fs_real_path_for_path(wi_string_t *);
 
 WI_EXPORT wi_array_t *					wi_fs_directory_contents_at_path(wi_string_t *);
 WI_EXPORT wi_fsenumerator_t *			wi_fs_enumerator_at_path(wi_string_t *);
