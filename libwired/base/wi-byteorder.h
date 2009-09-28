@@ -34,16 +34,18 @@
 #include <sys/param.h>
 #include <inttypes.h>
 
-#if defined(__BIG_ENDIAN__) || defined(_BIG_ENDIAN)
-#define WI_BIG_ENDIAN                       1
-#elif defined(__LITTLE_ENDIAN__) || defined(_LITTLE_ENDIAN)
-#define WI_LITTLE_ENDIAN                    1
-#elif defined(BYTE_ORDER) && defined(BIG_ENDIAN) && defined(LITTLE_ENDIAN)
+#if defined(BYTE_ORDER) && defined(BIG_ENDIAN) && defined(LITTLE_ENDIAN)
 #if BYTE_ORDER == BIG_ENDIAN
 #define WI_BIG_ENDIAN                       1
 #elif BYTE_ORDER == LITTLE_ENDIAN
 #define WI_LITTLE_ENDIAN                    1
+#else
+#error Unknown byte order
 #endif
+#elif defined(__BIG_ENDIAN__) || defined(_BIG_ENDIAN)
+#define WI_BIG_ENDIAN                       1
+#elif defined(__LITTLE_ENDIAN__) || defined(_LITTLE_ENDIAN)
+#define WI_LITTLE_ENDIAN                    1
 #else
 #error Unknown byte order
 #endif
