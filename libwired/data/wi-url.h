@@ -42,6 +42,7 @@ WI_EXPORT wi_url_t *			wi_url_with_string(wi_string_t *);
 
 WI_EXPORT wi_url_t *			wi_url_alloc(void);
 WI_EXPORT wi_mutable_url_t *	wi_mutable_url_alloc(void);
+WI_EXPORT wi_url_t *			wi_url_init(wi_url_t *);
 WI_EXPORT wi_url_t *			wi_url_init_with_string(wi_url_t *, wi_string_t *);
 
 WI_EXPORT wi_string_t *			wi_url_scheme(wi_url_t *);
