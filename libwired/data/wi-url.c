@@ -118,6 +118,12 @@ wi_mutable_url_t * wi_mutable_url_alloc(void) {
 
 
 
+wi_url_t * wi_url_init(wi_url_t *url) {
+	return url;
+}
+
+
+
 wi_url_t * wi_url_init_with_string(wi_url_t *url, wi_string_t *string) {
 	wi_string_t		*userpassword;
 	wi_range_t		range;
@@ -190,9 +196,30 @@ static void _wi_url_dealloc(wi_runtime_instance_t *instance) {
 
 
 static wi_runtime_instance_t * _wi_url_copy(wi_runtime_instance_t *instance) {
-	wi_url_t		*url = instance;
+	wi_mutable_url_t		*url_copy;
+	wi_url_t				*url = instance;
 	
-	return wi_url_init_with_string(wi_url_alloc(), url->string);
+	url_copy = wi_url_init(wi_mutable_url_alloc());
+	
+	if(url->scheme)
+		wi_mutable_url_set_scheme(url_copy, url->scheme);
+	
+	if(url->host)
+		wi_mutable_url_set_host(url_copy, url->host);
+
+	if(url->port > 0)
+		wi_mutable_url_set_port(url_copy, url->port);
+	
+	if(url->path)
+		wi_mutable_url_set_path(url_copy, url->path);
+	
+	if(url->user)
+		wi_mutable_url_set_user(url_copy, url->user);
+	
+	if(url->password)
+		wi_mutable_url_set_password(url_copy, url->password);
+	
+	return url_copy;
 }
 
 
@@ -334,6 +361,8 @@ void wi_mutable_url_set_port(wi_mutable_url_t *url, wi_uinteger_t port) {
 	WI_RUNTIME_ASSERT_MUTABLE(url);
 	
 	url->port = port;
+	
+	_wi_url_regenerate_string(url);
 }
 
 
