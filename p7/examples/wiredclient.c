@@ -57,9 +57,7 @@ int main(int argc, const char **argv) {
 	user 			= WI_STR("guest");
 	password		= WI_STR("");
 	
-	wc_spec			= wi_p7_spec_init_with_file(wi_p7_spec_alloc(), WI_STR("wired.xml"), WI_P7_CLIENT);
-	
-	while((ch = getopt(argc, (char * const *) argv, "D:U:c:p:u:")) != -1) {
+	while((ch = getopt(argc, (char * const *) argv, "p:u:")) != -1) {
 		switch(ch) {
 			case 'p':
 				password = wi_string_with_cstring(optarg);
@@ -82,6 +80,11 @@ int main(int argc, const char **argv) {
 	
 	if(argc != 1)
 		wc_usage();
+	
+	wc_spec = wi_p7_spec_init_with_file(wi_p7_spec_alloc(), WI_STR("wired.xml"), WI_P7_CLIENT);
+	
+	if(!wc_spec)
+		wi_log_fatal(WI_STR("Could not open wired.xml: %m"));
 	
 	url = wi_url_init_with_string(wi_mutable_url_alloc(), wi_string_with_cstring(argv[0]));
 	wi_mutable_url_set_scheme(url, WI_STR("wired"));
@@ -136,7 +139,7 @@ static void wc_client(wi_url_t *url) {
 		return;
 	
 	if(!wc_login(socket, url)) {
-		wi_log_warn(WI_STR("Could not login to %@: %m"), wi_url_host(url));
+		wi_log_err(WI_STR("Could not login to %@: %m"), wi_url_host(url));
 		
 		return;
 	}
@@ -146,8 +149,11 @@ static void wc_client(wi_url_t *url) {
 	message = wi_p7_message_with_name(WI_STR("wired.file.list_directory"), wc_spec);
 	wi_p7_message_set_string_for_name(message, WI_STR("/"), WI_STR("wired.file.path"));
 	
-	if(!wi_p7_socket_write_message(socket, 0.0, message))
-		wi_log_warn(WI_STR("Could not send message to %@: %m"), wi_url_host(url));
+	if(!wi_p7_socket_write_message(socket, 0.0, message)) {
+		wi_log_err(WI_STR("Could not send message to %@: %m"), wi_url_host(url));
+		
+		return;
+	}
 	
 	while((message = wi_p7_socket_read_message(socket, 0.0))) {
 		if(wi_is_equal(wi_p7_message_name(message), WI_STR("wired.file.file_list")))
@@ -156,8 +162,11 @@ static void wc_client(wi_url_t *url) {
 			break;
 	}
 	
-	if(!message)
-		wi_log_warn(WI_STR("Could not read message from %@: %m"), wi_url_host(url));
+	if(!message) {
+		wi_log_err(WI_STR("Could not read message from %@: %m"), wi_url_host(url));
+		
+		return;
+	}
 
 	wi_log_info(WI_STR("Exiting"));
 }
@@ -202,8 +211,13 @@ static wi_p7_socket_t * wc_connect(wi_url_t *url) {
 
 		p7_socket = wi_autorelease(wi_p7_socket_init_with_socket(wi_p7_socket_alloc(), socket, wc_spec));
 		
-		if(!wi_p7_socket_connect(p7_socket, 10.0, 0, WI_P7_BINARY, wi_url_user(url), wi_url_password(url))) {
-			wi_log_warn(WI_STR("Could not connect to %@: %m"), wi_address_string(address));
+		if(!wi_p7_socket_connect(p7_socket,
+								 10.0,
+								 WI_P7_COMPRESSION_DEFLATE | WI_P7_ENCRYPTION_RSA_AES256_SHA1 | WI_P7_CHECKSUM_SHA1,
+								 WI_P7_BINARY,
+								 wi_url_user(url),
+								 wi_string_sha1(wi_url_password(url)))) {
+			wi_log_err(WI_STR("Could not connect to %@: %m"), wi_address_string(address));
 			
 			wi_socket_close(socket);
 			
@@ -230,10 +244,11 @@ static wi_boolean_t wc_login(wi_p7_socket_t *socket, wi_url_t *url) {
 	message = wi_p7_message_with_name(WI_STR("wired.client_info"), wc_spec);
 	wi_p7_message_set_string_for_name(message, WI_STR("wiredclient"), WI_STR("wired.info.application.name"));
 	wi_p7_message_set_string_for_name(message, WI_STR("1.0"), WI_STR("wired.info.application.version"));
-	wi_p7_message_set_string_for_name(message, WI_STR("1"), WI_STR("wired.info.application.build"));
+	wi_p7_message_set_uint32_for_name(message, 1, WI_STR("wired.info.application.build"));
 	wi_p7_message_set_string_for_name(message, wi_process_os_name(wi_process()), WI_STR("wired.info.os.name"));
 	wi_p7_message_set_string_for_name(message, wi_process_os_release(wi_process()), WI_STR("wired.info.os.version"));
 	wi_p7_message_set_string_for_name(message, wi_process_os_arch(wi_process()), WI_STR("wired.info.arch"));
+	wi_p7_message_set_bool_for_name(message, false, WI_STR("wired.info.supports_rsrc"));
 
 	if(!wi_p7_socket_write_message(socket, 0.0, message))
 		return false;
@@ -244,7 +259,7 @@ static wi_boolean_t wc_login(wi_p7_socket_t *socket, wi_url_t *url) {
 		return false;
 									  
 	wi_log_info(WI_STR("Connected to \"%@\""), wi_p7_message_string_for_name(message, WI_STR("wired.info.name")));
-	wi_log_info(WI_STR("Logging in as \%@\"..."), wi_url_user(url));
+	wi_log_info(WI_STR("Logging in as \"%@\"..."), wi_url_user(url));
 	
 	message = wi_p7_message_with_name(WI_STR("wired.send_login"), wc_spec);
 	wi_p7_message_set_string_for_name(message, wi_url_user(url), WI_STR("wired.user.login"));
