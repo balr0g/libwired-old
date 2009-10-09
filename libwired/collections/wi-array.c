@@ -425,11 +425,16 @@ wi_array_t * wi_array_init_with_plist_file(wi_array_t *array, wi_string_t *path)
 
 
 static void _wi_array_dealloc(wi_runtime_instance_t *instance) {
-	wi_array_t		*array = instance;
-	wi_uinteger_t	i;
+	wi_array_t			*array = instance;
+	_wi_array_item_t	*item;
+	wi_uinteger_t		i;
 	
-	_wi_array_remove_all_data(array);
+	for(i = 0; i < array->data_count; i++) {
+		item = array->items[i];
 
+		_WI_ARRAY_RELEASE(array, item->data);
+	}
+	
 	if(array->item_chunks) {
 		for(i = 0; i < array->item_chunks_count; i++)
 			wi_free(array->item_chunks[i]);

@@ -272,10 +272,14 @@ wi_set_t * wi_set_init_with_array(wi_set_t *set, wi_array_t *array) {
 
 
 static void _wi_set_dealloc(wi_runtime_instance_t *instance) {
-	wi_set_t		*set = instance;
-	wi_uinteger_t	i;
+	wi_set_t			*set = instance;
+	_wi_set_bucket_t	*bucket;
+	wi_uinteger_t		i;
 
-	_wi_set_remove_all_data(set);
+	for(i = 0; i < set->buckets_count; i++) {
+		for(bucket = set->buckets[i]; bucket; bucket = bucket->next)
+			_WI_SET_RELEASE(set, bucket->data);
+	}
 
 	if(set->bucket_chunks) {
 		for(i = 0; i < set->bucket_chunks_count; i++)
