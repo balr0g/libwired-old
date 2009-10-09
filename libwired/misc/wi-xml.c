@@ -80,18 +80,13 @@ void * wi_xml_node_child_with_name(void *node, wi_string_t *name) {
 
 wi_string_t * wi_xml_node_attribute_with_name(void *node, wi_string_t *attribute) {
 	xmlChar			*prop;
-	wi_string_t		*string;
 	
 	prop = xmlGetProp(node, (xmlChar *) wi_string_cstring(attribute));
 	
 	if(!prop)
 		return NULL;
 	
-	string = wi_string_with_cstring((const char *) prop);
-	
-	xmlFree(prop);
-	
-	return string;
+	return wi_string_with_cstring_no_copy((char *) prop, true);
 }
 
 
@@ -117,18 +112,13 @@ void wi_xml_node_set_content(void *node, wi_string_t *string) {
 
 wi_string_t * wi_xml_node_content(void *node) {
 	xmlChar			*content;
-	wi_string_t		*string;
 	
 	content = xmlNodeGetContent(node);
 	
 	if(!content)
 		return NULL;
 	
-	string = wi_string_with_cstring((const char *) content);
-	
-	xmlFree(content);
-	
-	return string;
+	return wi_string_with_cstring_no_copy((char *) content, true);
 }
 
 
