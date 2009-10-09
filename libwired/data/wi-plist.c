@@ -34,6 +34,8 @@ int wi_plist_dummy = 0;
 
 #else
 
+#include <string.h>
+
 #include <wired/wi-data.h>
 #include <wired/wi-date.h>
 #include <wired/wi-dictionary.h>
@@ -223,7 +225,7 @@ static wi_runtime_instance_t * _wi_plist_instance_for_node(xmlNodePtr node) {
 
 static wi_boolean_t _wi_plist_read_node_to_instance(xmlNodePtr content_node, wi_runtime_instance_t *collection) {
 	xmlNodePtr				node;
-	wi_string_t				*name, *key = NULL;
+	wi_string_t				*key = NULL;
 	wi_runtime_instance_t	*instance = NULL;
 	wi_boolean_t			dictionary;
 	
@@ -231,31 +233,29 @@ static wi_boolean_t _wi_plist_read_node_to_instance(xmlNodePtr content_node, wi_
 	
 	for(node = content_node->children; node != NULL; node = node->next) {
 		if(node->type == XML_ELEMENT_NODE) {
-			name = wi_xml_node_name(node);
-			
-			if(wi_is_equal(name, WI_STR("key")))
+			if(strcmp((const char *) node->name, "key") == 0)
 				key = wi_xml_node_content(node);
-			else if(wi_is_equal(name, WI_STR("string")))
+			else if(strcmp((const char *) node->name, "string") == 0)
 				instance = wi_xml_node_content(node);
-			else if(wi_is_equal(name, WI_STR("integer")))
+			else if(strcmp((const char *) node->name, "integer") == 0)
 				instance = wi_number_with_integer(wi_string_integer(wi_xml_node_content(node)));
-			else if(wi_is_equal(name, WI_STR("real")))
+			else if(strcmp((const char *) node->name, "real") == 0)
 				instance = wi_number_with_double(wi_string_double(wi_xml_node_content(node)));
-			else if(wi_is_equal(name, WI_STR("true")))
+			else if(strcmp((const char *) node->name, "true") == 0)
 				instance = wi_number_with_bool(true);
-			else if(wi_is_equal(name, WI_STR("false")))
+			else if(strcmp((const char *) node->name, "false") == 0)
 				instance = wi_number_with_bool(false);
-			else if(wi_is_equal(name, WI_STR("date")))
+			else if(strcmp((const char *) node->name, "date") == 0)
 				instance = wi_date_with_rfc3339_string(wi_xml_node_content(node));
-			else if(wi_is_equal(name, WI_STR("data")))
+			else if(strcmp((const char *) node->name, "data") == 0)
 				instance = wi_data_with_base64(wi_xml_node_content(node));
-			else if(wi_is_equal(name, WI_STR("dict"))) {
+			else if(strcmp((const char *) node->name, "dict") == 0) {
 				instance = wi_mutable_dictionary();
 				
 				if(!_wi_plist_read_node_to_instance(node, instance))
 					return false;
 			}
-			else if(wi_is_equal(name, WI_STR("array"))) {
+			else if(strcmp((const char *) node->name, "array") == 0) {
 				instance = wi_mutable_array();
 				
 				if(!_wi_plist_read_node_to_instance(node, instance))
@@ -263,7 +263,7 @@ static wi_boolean_t _wi_plist_read_node_to_instance(xmlNodePtr content_node, wi_
 			}
 			else {
 				wi_error_set_libwired_error_with_format(WI_ERROR_PLIST_READFAILED,
-					WI_STR("Unhandled node \"%@\""), name);
+					WI_STR("Unhandled node \"%s\""), node->name);
 				
 				return false;
 			}
@@ -293,6 +293,7 @@ static wi_boolean_t _wi_plist_write_instance_to_node(wi_runtime_instance_t *inst
 	void					*key;
 	wi_runtime_id_t			id;
 	wi_number_type_t		type;
+	wi_uinteger_t			i, count;
 	
 	id = wi_runtime_id(instance);
 	
@@ -323,14 +324,18 @@ static wi_boolean_t _wi_plist_write_instance_to_node(wi_runtime_instance_t *inst
 	else if(id == wi_dictionary_runtime_id()) {
 		child_node = wi_xml_node_new_child(node, WI_STR("dict"), NULL);
 		
-		keys = wi_autorelease(wi_mutable_copy(wi_dictionary_all_keys(instance)));
-
-		wi_mutable_array_sort(keys, wi_string_compare);
+		keys = wi_mutable_array();
 		
-		enumerator = wi_array_data_enumerator(keys);
+		enumerator = wi_dictionary_key_enumerator(instance);
 		
-		while((key = wi_enumerator_next_data(enumerator))) {
-			value = wi_dictionary_data_for_key(instance, key);
+		while((key = wi_enumerator_next_data(enumerator)))
+			wi_mutable_array_add_data_sorted(keys, key, wi_string_compare);
+		
+		count = wi_array_count(keys);
+		
+		for(i = 0; i < count; i++) {
+			key		= WI_ARRAY(keys, i);
+			value	= wi_dictionary_data_for_key(instance, key);
 			
 			wi_xml_node_new_child(child_node, WI_STR("key"), key);
 			
