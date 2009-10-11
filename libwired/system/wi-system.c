@@ -64,7 +64,7 @@ void wi_switch_user(uid_t uid, gid_t gid) {
 	
 	if(wi_log_path) {
 		if(chown(wi_string_cstring(wi_log_path), uid, gid) < 0) {
-			wi_log_warn(WI_STR("Could not change owner of %@: %s"),
+			wi_log_error(WI_STR("Could not change owner of %@: %s"),
 				wi_log_path, strerror(errno));
 		}
 	}
@@ -74,20 +74,20 @@ void wi_switch_user(uid_t uid, gid_t gid) {
 		
 		if(user) {
 			if(initgroups(user->pw_name, gid) < 0) {
-				wi_log_warn(WI_STR("Could not set group privileges: %s"),
+				wi_log_error(WI_STR("Could not set group privileges: %s"),
 					strerror(errno));
 			}
 		}
 			
 		if(setgid(gid) < 0) {
-			wi_log_warn(WI_STR("Could not drop group privileges: %s"),
+			wi_log_error(WI_STR("Could not drop group privileges: %s"),
 				strerror(errno));
 		}
 	}
 
 	if(uid != geteuid()) {
 		if(setuid(uid) < 0) {
-			wi_log_warn(WI_STR("Could not drop user privileges: %s"),
+			wi_log_error(WI_STR("Could not drop user privileges: %s"),
 				strerror(errno));
 		}
 	}

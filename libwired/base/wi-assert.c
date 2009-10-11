@@ -46,7 +46,7 @@ static void wi_assert_default_handler(const char *file, unsigned int line, wi_st
 	string = wi_string_init_with_format_and_arguments(wi_string_alloc(), fmt, ap);
 	va_end(ap);
 	
-	wi_log_err(WI_STR("Assertion failed at %s:%u: %@"), file, line, string);
+	wi_log_error(WI_STR("Assertion failed at %s:%u: %@"), file, line, string);
 	
 	wi_release(string);
 	

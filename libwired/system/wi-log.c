@@ -175,7 +175,7 @@ static void _wi_log_vlog(wi_log_level_t level, wi_string_t *fmt, va_list ap) {
 			prefix = "Warning";
 			break;
 			
-		case WI_LOG_ERR:
+		case WI_LOG_ERROR:
 			priority = LOG_ERR;
 			prefix = "Error";
 			break;
@@ -373,12 +373,12 @@ void wi_log_warn(wi_string_t *fmt, ...) {
 
 
 
-void wi_log_err(wi_string_t *fmt, ...) {
+void wi_log_error(wi_string_t *fmt, ...) {
 	va_list     ap;
 
-	if(wi_log_level >= WI_LOG_ERR) {
+	if(wi_log_level >= WI_LOG_ERROR) {
 		va_start(ap, fmt);
-		_wi_log_vlog(WI_LOG_ERR, fmt, ap);
+		_wi_log_vlog(WI_LOG_ERROR, fmt, ap);
 		va_end(ap);
 	}
 }

@@ -37,7 +37,7 @@
 
 enum _wi_log_level {
 	WI_LOG_FATAL					= 0,
-	WI_LOG_ERR,
+	WI_LOG_ERROR,
 	WI_LOG_WARN,
 	WI_LOG_INFO,
 	WI_LOG_DEBUG
@@ -56,7 +56,7 @@ WI_EXPORT int						wi_log_syslog_facility_with_name(wi_string_t *);
 WI_EXPORT void						wi_log_debug(wi_string_t *, ...);
 WI_EXPORT void						wi_log_info(wi_string_t *, ...);
 WI_EXPORT void						wi_log_warn(wi_string_t *, ...);
-WI_EXPORT void						wi_log_err(wi_string_t *, ...);
+WI_EXPORT void						wi_log_error(wi_string_t *, ...);
 WI_EXPORT void						wi_log_fatal(wi_string_t *, ...);
 
 

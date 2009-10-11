@@ -141,7 +141,7 @@ wi_boolean_t wi_config_read_file(wi_config_t *config) {
 	file = wi_file_for_reading(config->path);
 	
 	if(!file) {
-		wi_log_err(WI_STR("Could not open %@: %m"),
+		wi_log_error(WI_STR("Could not open %@: %m"),
 			config->path);
 		
 		return false;
@@ -161,12 +161,12 @@ wi_boolean_t wi_config_read_file(wi_config_t *config) {
 		enumerator = wi_dictionary_key_enumerator(config->defaults);
 		
 		while((name = wi_enumerator_next_data(enumerator))) {
-//			instance = wi_mutable_copy(wi_dictionary_data_for_key(config->defaults, name));
 			instance = wi_dictionary_data_for_key(config->defaults, name);
+			
 			if(wi_runtime_id(instance) == wi_array_runtime_id())
 				instance = wi_autorelease(wi_mutable_copy(instance));
+			
 			wi_mutable_dictionary_set_data_for_key(config->values, instance, name);
-//			wi_release(instance);
 		}
 	}
 	
@@ -232,7 +232,7 @@ wi_boolean_t wi_config_write_file(wi_config_t *config) {
 	file = wi_file_for_updating(config->path);
 	
 	if(!file) {
-		wi_log_err(WI_STR("Could not open %@: %m"),
+		wi_log_error(WI_STR("Could not open %@: %m"),
 			config->path);
 		
 		return false;

@@ -517,7 +517,7 @@ wi_p7_spec_t * wi_p7_spec_builtin_spec(void) {
 		_wi_p7_spec_builtin_spec = _wi_p7_spec_init_builtin_spec(wi_p7_spec_alloc());
 		
 		if(!_wi_p7_spec_builtin_spec)
-			wi_log_info(WI_STR("Could not load builtin P7 spec: %m"));
+			wi_log_fatal(WI_STR("Could not load builtin P7 spec: %m"));
 	}
 	
 	return _wi_p7_spec_builtin_spec;

@@ -248,13 +248,13 @@ static void _wi_pool_remove_pool(wi_pool_t *pool) {
 	stack	= wi_thread_poolstack(thread);
 	
 	if(!stack) {
-		wi_log_warn(WI_STR("Orphaned pool in thread %@"), thread);
+		WI_ASSERT(0, "Orphaned pool in thread %@", thread);
 		
 		return;
 	}
 	
 	if(pool != stack->pools[stack->length - 1]) {
-		wi_log_warn(WI_STR("Removing pool that is not on top of stack in thread %@"), thread);
+		WI_ASSERT(0, "Removing pool that is not on top of stack in thread %@", thread);
 		
 		return;
 	}
@@ -332,7 +332,7 @@ wi_runtime_instance_t * _wi_autorelease(wi_runtime_instance_t *instance, const c
 
 	if(!pool) {
 		pool = wi_pool_init(wi_pool_alloc());
-		wi_log_warn(WI_STR("Instance %p %@ autoreleased with no pool in place - just leaking"), instance, instance);
+		WI_ASSERT(0, "Instance %p %@ autoreleased with no pool in place - just leaking", instance, instance);
 		wi_release(pool);
 
 		return instance;

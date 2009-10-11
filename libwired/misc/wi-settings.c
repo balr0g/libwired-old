@@ -147,7 +147,7 @@ wi_boolean_t wi_settings_read_file(wi_settings_t *settings) {
 	file = wi_file_for_reading(wi_settings_config_path);
 	
 	if(!file) {
-		wi_log_err(WI_STR("Could not open %@: %s"),
+		wi_log_error(WI_STR("Could not open %@: %s"),
 			wi_settings_config_path, strerror(errno));
 		
 		return false;

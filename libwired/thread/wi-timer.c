@@ -119,7 +119,7 @@ wi_runtime_id_t wi_timer_runtime_id(void) {
 
 static void _wi_timer_create_thread(void) {
 	if(!wi_thread_create_thread(_wi_timer_thread, NULL))
-		wi_log_err(WI_STR("Could not create a timer thread: %m"));
+		wi_log_fatal(WI_STR("Could not create a timer thread: %m"));
 }
 
 
