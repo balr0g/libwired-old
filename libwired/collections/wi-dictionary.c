@@ -240,7 +240,7 @@ wi_dictionary_t * wi_dictionary_with_data_and_keys(void *data0, void *key0, ...)
 	void				*data, *key;
 	va_list				ap;
 
-	dictionary = wi_dictionary_init_with_capacity(wi_dictionary_alloc(), 0);
+	dictionary = wi_dictionary_init(wi_dictionary_alloc());
 	
 	_wi_dictionary_set_data_for_key(dictionary, data0, key0);
 
@@ -269,6 +269,28 @@ wi_dictionary_t * wi_dictionary_with_plist_file(wi_string_t *path) {
 
 wi_mutable_dictionary_t * wi_mutable_dictionary(void) {
 	return wi_autorelease(wi_dictionary_init(wi_mutable_dictionary_alloc()));
+}
+
+
+
+wi_mutable_dictionary_t * wi_mutable_dictionary_with_data_and_keys(void *data0, void *key0, ...) {
+	wi_dictionary_t		*dictionary;
+	void				*data, *key;
+	va_list				ap;
+
+	dictionary = wi_dictionary_init(wi_mutable_dictionary_alloc());
+	
+	_wi_dictionary_set_data_for_key(dictionary, data0, key0);
+
+	va_start(ap, key0);
+	while((data = va_arg(ap, void *))) {
+		key = va_arg(ap, void *);
+		
+		_wi_dictionary_set_data_for_key(dictionary, data, key);   
+	}
+	va_end(ap);
+	
+	return wi_autorelease(dictionary);
 }
 
 

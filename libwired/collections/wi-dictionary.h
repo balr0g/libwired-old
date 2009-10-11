@@ -60,6 +60,7 @@ WI_EXPORT wi_dictionary_t *							wi_dictionary(void);
 WI_EXPORT wi_dictionary_t *							wi_dictionary_with_data_and_keys(void *, void *, ...) WI_SENTINEL;
 WI_EXPORT wi_dictionary_t *							wi_dictionary_with_plist_file(wi_string_t *);
 WI_EXPORT wi_mutable_dictionary_t *					wi_mutable_dictionary(void);
+WI_EXPORT wi_mutable_dictionary_t *					wi_mutable_dictionary_with_data_and_keys(void *, void *, ...) WI_SENTINEL;
 
 WI_EXPORT wi_dictionary_t *							wi_dictionary_alloc(void);
 WI_EXPORT wi_mutable_dictionary_t *					wi_mutable_dictionary_alloc(void);
