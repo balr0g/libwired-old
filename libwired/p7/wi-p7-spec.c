@@ -1311,11 +1311,9 @@ static wi_boolean_t _wi_p7_spec_replies_are_compatible(wi_p7_spec_t *p7_spec, _w
 	if(andor->type != other_andor->type)
 		return false;
 	
-	// TODO: order shouldn't matter
-	
-	enumerator = wi_array_data_enumerator(andor->replies_array);
-	count = wi_array_count(other_andor->replies_array);
-	index = 0;
+	enumerator		= wi_array_data_enumerator(andor->replies_array);
+	count			= wi_array_count(other_andor->replies_array);
+	index			= 0;
 	
 	while((reply = wi_enumerator_next_data(enumerator))) {
 		if(reply->required) {
@@ -1462,16 +1460,6 @@ static wi_boolean_t _wi_p7_spec_message_is_compatible(wi_p7_spec_t *p7_spec, wi_
 
 				return false;
 			}
-			
-			if(field->type->id == WI_P7_ENUM) {
-				if(!wi_is_equal(field->enums_name, other_field->enums_name)) {
-					wi_error_set_libwired_error_with_format(WI_ERROR_P7_INCOMPATIBLESPEC,
-						WI_STR("Parameter \"%@\" in message \"%@\" have enumerations that differ with those of peer"),
-						parameter->field->name, message->name);
-					
-					return false;
-				}
-			}
 		}
 	}
 	
@@ -1483,7 +1471,7 @@ static wi_boolean_t _wi_p7_spec_message_is_compatible(wi_p7_spec_t *p7_spec, wi_
 void wi_p7_spec_merge_with_spec(wi_p7_spec_t *p7_spec, wi_p7_spec_t *other_p7_spec) {
 	wi_enumerator_t			*enumerator;
 	wi_p7_spec_message_t	*message;
-	wi_p7_spec_field_t		*field;
+	wi_p7_spec_field_t		*field, *other_field;
 	wi_uinteger_t			id;
 	wi_boolean_t			modified;
 	
@@ -1510,11 +1498,21 @@ void wi_p7_spec_merge_with_spec(wi_p7_spec_t *p7_spec, wi_p7_spec_t *other_p7_sp
 	enumerator	= wi_dictionary_key_enumerator(other_p7_spec->fields_id);
 	
 	while((id = (wi_uinteger_t) wi_enumerator_next_data(enumerator))) {
-		if(!wi_dictionary_data_for_key(p7_spec->fields_id, (void *) id)) {
-			field = wi_dictionary_data_for_key(other_p7_spec->fields_id, (void *) id);
-			
-			wi_mutable_dictionary_set_data_for_key(p7_spec->fields_id, field, (void *) field->id);
-			wi_mutable_dictionary_set_data_for_key(p7_spec->fields_name, field, field->name);
+		field			= wi_dictionary_data_for_key(p7_spec->fields_id, (void *) id);
+		other_field		= wi_dictionary_data_for_key(other_p7_spec->fields_id, (void *) id);
+		
+		if(field) {
+			if(field->type->id == WI_P7_ENUM) {
+				if(!wi_is_equal(field->enums_name, other_field->enums_name)) {
+					wi_mutable_dictionary_set_dictionary(field->enums_name, other_field->enums_name);
+					wi_mutable_dictionary_set_dictionary(field->enums_value, other_field->enums_value);
+					
+					modified = true;
+				}
+			}
+		} else {
+			wi_mutable_dictionary_set_data_for_key(p7_spec->fields_id, other_field, (void *) other_field->id);
+			wi_mutable_dictionary_set_data_for_key(p7_spec->fields_name, other_field, other_field->name);
 			
 			modified = true;
 		}
