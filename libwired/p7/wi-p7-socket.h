@@ -94,6 +94,7 @@ WI_EXPORT wi_uinteger_t								wi_p7_socket_options(wi_p7_socket_t *);
 WI_EXPORT wi_p7_serialization_t						wi_p7_socket_serialization(wi_p7_socket_t *);
 WI_EXPORT wi_string_t *								wi_p7_socket_remote_protocol_name(wi_p7_socket_t *);
 WI_EXPORT wi_string_t *								wi_p7_socket_remote_protocol_version(wi_p7_socket_t *);
+WI_EXPORT wi_string_t *								wi_p7_socket_user_name(wi_p7_socket_t *);
 WI_EXPORT double									wi_p7_socket_compression_ratio(wi_p7_socket_t *);
 
 WI_EXPORT wi_boolean_t								wi_p7_socket_verify_message(wi_p7_socket_t *, wi_p7_message_t *);

@@ -136,6 +136,8 @@ struct _wi_p7_socket {
 	wi_string_t								*remote_name;
 	wi_string_t								*remote_version;
 	
+	wi_string_t								*user_name;
+	
 	wi_p7_serialization_t					serialization;
 	wi_uinteger_t							options;
 	
@@ -300,6 +302,7 @@ static void _wi_p7_socket_dealloc(wi_runtime_instance_t *instance) {
 	wi_release(p7_socket->merged_spec);
 	wi_release(p7_socket->remote_name);
 	wi_release(p7_socket->remote_version);
+	wi_release(p7_socket->user_name);
 	
 #ifdef WI_RSA
 	wi_release(p7_socket->private_key);
@@ -406,6 +409,12 @@ wi_string_t * wi_p7_socket_remote_protocol_name(wi_p7_socket_t *p7_socket) {
 
 wi_string_t * wi_p7_socket_remote_protocol_version(wi_p7_socket_t *p7_socket) {
 	return p7_socket->remote_version;
+}
+
+
+
+wi_string_t * wi_p7_socket_user_name(wi_p7_socket_t *p7_socket) {
+	return p7_socket->user_name;
 }
 
 
@@ -769,10 +778,9 @@ static wi_boolean_t _wi_p7_socket_connect_key_exchange(wi_p7_socket_t *p7_socket
 			return false;
 	}
 	
-	if(!username)
-		username = WI_STR("");
+	p7_socket->user_name = username ? wi_retain(username) : wi_retain(WI_STR(""));
 	
-	data = wi_rsa_encrypt(p7_socket->public_key, wi_string_data(username));
+	data = wi_rsa_encrypt(p7_socket->public_key, wi_string_data(p7_socket->user_name));
 	
 	if(!data)
 		return false;
@@ -849,7 +857,7 @@ static wi_boolean_t _wi_p7_socket_connect_key_exchange(wi_p7_socket_t *p7_socket
 static wi_boolean_t _wi_p7_socket_accept_key_exchange(wi_p7_socket_t *p7_socket, wi_time_interval_t timeout) {
 	wi_p7_message_t		*p7_message;
 	wi_data_t			*data, *rsa, *key, *iv;
-	wi_string_t			*string, *username, *client_password, *server_password1, *server_password2;
+	wi_string_t			*string, *client_password, *server_password1, *server_password2;
 	
 	p7_message = wi_p7_message_with_name(WI_STR("p7.encryption.server_key"), wi_p7_socket_spec(p7_socket));
 
@@ -924,7 +932,7 @@ static wi_boolean_t _wi_p7_socket_accept_key_exchange(wi_p7_socket_t *p7_socket,
 	if(!data)
 		return false;
 	
-	username = wi_string_with_data(data);
+	p7_socket->user_name = wi_string_init_with_data(wi_string_alloc(), data);
 	
 	data = wi_p7_message_data_for_name(p7_message, WI_STR("p7.encryption.client_password"));
 
@@ -943,12 +951,12 @@ static wi_boolean_t _wi_p7_socket_accept_key_exchange(wi_p7_socket_t *p7_socket,
 	client_password = wi_string_with_data(data);
 	
 	if(wi_p7_socket_password_provider) {
-		string = (*wi_p7_socket_password_provider)(username);
+		string = (*wi_p7_socket_password_provider)(p7_socket->user_name);
 		
 		if(!string) {
-			wi_error_set_libwired_error_with_format(WI_ERROR_P7_HANDSHAKEFAILED,
+			wi_error_set_libwired_error_with_format(WI_ERROR_P7_AUTHENTICATIONFAILED,
 				WI_STR("Unknown user \"%@\" during key exchange"),
-				username);
+				p7_socket->user_name);
 			
 			p7_message = wi_p7_message_with_name(WI_STR("p7.encryption.authentication_error"), wi_p7_socket_spec(p7_socket));
 			wi_p7_socket_write_message(p7_socket, timeout, p7_message);
@@ -963,9 +971,9 @@ static wi_boolean_t _wi_p7_socket_accept_key_exchange(wi_p7_socket_t *p7_socket,
 	server_password2 = wi_data_sha1(wi_data_by_appending_data(rsa, wi_string_data(string)));
 	
 	if(!wi_is_equal(client_password, server_password1)) {
-		wi_error_set_libwired_error_with_format(WI_ERROR_P7_HANDSHAKEFAILED,
+		wi_error_set_libwired_error_with_format(WI_ERROR_P7_AUTHENTICATIONFAILED,
 			WI_STR("Password mismatch for \"%@\" during key exchange"),
-			username);
+			p7_socket->user_name);
 		
 		p7_message = wi_p7_message_with_name(WI_STR("p7.encryption.authentication_error"), wi_p7_socket_spec(p7_socket));
 		wi_p7_socket_write_message(p7_socket, timeout, p7_message);
