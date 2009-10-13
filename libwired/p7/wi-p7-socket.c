@@ -1726,7 +1726,7 @@ wi_integer_t wi_p7_socket_read_oobdata(wi_p7_socket_t *p7_socket, wi_time_interv
 #ifdef WI_RSA
 	wi_integer_t		decrypted_size;
 #endif
-	uint32_t			receive_size, received_size;
+	uint32_t			receive_size;
 	
 	result = wi_socket_read_buffer(p7_socket->socket, timeout, length_buffer, sizeof(length_buffer));
 	
@@ -1752,16 +1752,11 @@ wi_integer_t wi_p7_socket_read_oobdata(wi_p7_socket_t *p7_socket, wi_time_interv
 	}
 	
 	receive_buffer = p7_socket->oobdata_read_buffer;
-	received_size = 0;
 	
-	while(received_size < receive_size) {
-		result = wi_socket_read_buffer(p7_socket->socket, timeout, receive_buffer + received_size, receive_size - received_size);
+	result = wi_socket_read_buffer(p7_socket->socket, timeout, receive_buffer, receive_size);
 	
-		if(result <= 0)
-			return result;
-		
-		received_size += result;
-	}
+	if(result <= 0)
+		return false;
 	
 #ifdef WI_RSA
 	if(p7_socket->encryption_enabled) {
