@@ -40,11 +40,17 @@ int wi_cipher_dummy = 1;
 #include <wired/wi-string.h>
 #include <wired/wi-system.h>
 
-#ifdef HAVE_COMMONCRYPTO_COMMONCRYPTOR_H
+#ifdef HAVE_OPENSSL_SHA_H
+#define WI_CIPHER_OPENSSL				1
+#else
+#define WI_CIPHER_COMMONCRYPTO			1
+#endif
+
+/*#ifdef HAVE_COMMONCRYPTO_COMMONCRYPTOR_H
 #define WI_CIPHER_COMMONCRYPTO			1
 #else
 #define WI_CIPHER_OPENSSL				1
-#endif
+#endif*/
 
 #ifdef HAVE_OPENSSL_SHA_H
 #include <openssl/evp.h>
