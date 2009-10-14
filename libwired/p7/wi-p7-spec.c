@@ -1929,6 +1929,22 @@ static wi_p7_spec_field_t * _wi_p7_spec_field_with_node(wi_p7_spec_t *p7_spec, x
 			
 			value = wi_xml_node_integer_attribute_with_name(enum_node, WI_STR("value"));
 			
+			if(wi_dictionary_data_for_key(field->enums_name, name)) {
+				wi_error_set_libwired_error_with_format(WI_ERROR_P7_INVALIDSPEC,
+					WI_STR("Field \"%@\" has duplicate enum name \"%@\""),
+					field->name, name);
+				
+				return NULL;
+			}
+			
+			if(wi_dictionary_data_for_key(field->enums_value, (void *) value)) {
+				wi_error_set_libwired_error_with_format(WI_ERROR_P7_INVALIDSPEC,
+					WI_STR("Field \"%@\" has duplicate enum value %u (\"%@\")"),
+					field->name, value, name);
+				
+				return NULL;
+			}
+			
 			wi_mutable_dictionary_set_data_for_key(field->enums_name, (void *) value, name);
 			wi_mutable_dictionary_set_data_for_key(field->enums_value, name, (void *) value);
 		}
