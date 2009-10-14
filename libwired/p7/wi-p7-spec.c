@@ -1398,10 +1398,11 @@ static wi_boolean_t _wi_p7_spec_reply_is_compatible(wi_p7_spec_t *p7_spec, _wi_p
 	
 	
 static wi_boolean_t _wi_p7_spec_message_is_compatible(wi_p7_spec_t *p7_spec, wi_p7_spec_message_t *message, wi_p7_spec_message_t *other_message) {
-	wi_enumerator_t			*enumerator;
-	wi_string_t				*key;
+	wi_enumerator_t			*enumerator, *enum_enumerator;
+	wi_string_t				*key, *name;
 	wi_p7_spec_parameter_t	*parameter, *other_parameter;
 	wi_p7_spec_field_t		*field, *other_field;
+	wi_uinteger_t			value, other_value;
 	
 	if(!wi_is_equal(message->name, other_message->name)) {
 		wi_error_set_libwired_error_with_format(WI_ERROR_P7_INCOMPATIBLESPEC,
@@ -1442,8 +1443,8 @@ static wi_boolean_t _wi_p7_spec_message_is_compatible(wi_p7_spec_t *p7_spec, wi_
 		}
 			
 		if(other_parameter) {
-			field = parameter->field;
-			other_field = other_parameter->field;
+			field			= parameter->field;
+			other_field		= other_parameter->field;
 			
 			if(field->id != other_field->id) {
 				wi_error_set_libwired_error_with_format(WI_ERROR_P7_INCOMPATIBLESPEC,
@@ -1459,6 +1460,23 @@ static wi_boolean_t _wi_p7_spec_message_is_compatible(wi_p7_spec_t *p7_spec, wi_
 					parameter->field->name, message->name, field->type->name, other_field->type->name);
 
 				return false;
+			}
+			
+			if(field->type->id == WI_P7_ENUM) {
+				enum_enumerator = wi_dictionary_key_enumerator(field->enums_name);
+				
+				while((name = wi_enumerator_next_data(enum_enumerator))) {
+					value			= (wi_uinteger_t) wi_dictionary_data_for_key(field->enums_name, name);
+					other_value		= (wi_uinteger_t) wi_dictionary_data_for_key(other_field->enums_name, name);
+					
+					if(value != other_value) {
+						wi_error_set_libwired_error_with_format(WI_ERROR_P7_INCOMPATIBLESPEC,
+							WI_STR("Enumeration \"%@\" in parameter \"%@\" in message \"%@\" should have value %lu, but peer has value %lu"),
+							name, parameter->field->name, message->name, value, other_value);
+						
+						return false;
+					}
+				}
 			}
 		}
 	}
