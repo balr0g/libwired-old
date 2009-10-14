@@ -49,6 +49,7 @@ WI_EXPORT wi_runtime_id_t				wi_array_runtime_id(void);
 
 WI_EXPORT wi_array_t *					wi_array(void);
 WI_EXPORT wi_array_t *					wi_array_with_data(void *, ...) WI_SENTINEL;
+WI_EXPORT wi_array_t *					wi_array_with_arguments(va_list);
 WI_EXPORT wi_array_t *					wi_array_with_plist_file(wi_string_t *);
 WI_EXPORT wi_mutable_array_t *			wi_mutable_array(void);
 
@@ -61,6 +62,7 @@ WI_EXPORT wi_array_t *					wi_array_init_with_data(wi_array_t *, ...) WI_SENTINE
 WI_EXPORT wi_array_t *					wi_array_init_with_data_and_count(wi_array_t *, void **, wi_uinteger_t);
 WI_EXPORT wi_array_t *					wi_array_init_with_argv(wi_array_t *, int, const char **);
 WI_EXPORT wi_array_t *					wi_array_init_with_argument_string(wi_array_t *, wi_string_t *, wi_integer_t);
+WI_EXPORT wi_array_t *					wi_array_init_with_arguments(wi_array_t *, va_list);
 WI_EXPORT wi_array_t *					wi_array_init_with_plist_file(wi_array_t *, wi_string_t *);
 
 WI_EXPORT void							wi_array_wrlock(wi_mutable_array_t *);

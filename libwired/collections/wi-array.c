@@ -211,11 +211,19 @@ wi_array_t * wi_array_with_data(void *data0, ...) {
 	_wi_array_add_data(array, data0);
 
 	va_start(ap, data0);
+	
 	while((data = va_arg(ap, void *)))
 		_wi_array_add_data(array, data);
+	
 	va_end(ap);
 
 	return wi_autorelease(array);
+}
+
+
+
+wi_array_t * wi_array_with_arguments(va_list ap) {
+	return wi_autorelease(wi_array_init_with_arguments(wi_array_alloc(), ap));
 }
 
 
@@ -282,8 +290,10 @@ wi_array_t * wi_array_init_with_data(wi_array_t *array, ...) {
 	array = wi_array_init_with_capacity(array, 0);
 
 	va_start(ap, array);
+	
 	while((data = va_arg(ap, void *)))
 		_wi_array_add_data(array, data);
+	
 	va_end(ap);
 
 	return array;
@@ -396,6 +406,19 @@ wi_array_t * wi_array_init_with_argument_string(wi_array_t *array, wi_string_t *
 	}
 	
 	wi_free(buffer);
+	
+	return array;
+}
+
+
+
+wi_array_t * wi_array_init_with_arguments(wi_array_t *array, va_list ap) {
+	void	*data;
+	
+	array = wi_array_init(array);
+	
+	while((data = va_arg(ap, void *)))
+		_wi_array_add_data(array, data);
 	
 	return array;
 }
