@@ -40,17 +40,11 @@ int wi_cipher_dummy = 1;
 #include <wired/wi-string.h>
 #include <wired/wi-system.h>
 
-#ifdef HAVE_OPENSSL_SHA_H
-#define WI_CIPHER_OPENSSL				1
-#else
+#ifdef HAVE_COMMONCRYPTO_COMMONCRYPTOR_H
 #define WI_CIPHER_COMMONCRYPTO			1
+#else
+#define WI_CIPHER_OPENSSL				1
 #endif
-
-/*#ifdef HAVE_COMMONCRYPTO_COMMONCRYPTOR_H
-#define WI_CIPHER_COMMONCRYPTO			1
-#else
-#define WI_CIPHER_OPENSSL				1
-#endif*/
 
 #ifdef HAVE_OPENSSL_SHA_H
 #include <openssl/evp.h>
@@ -515,8 +509,7 @@ wi_integer_t wi_cipher_encrypt_bytes(wi_cipher_t *cipher, const void *decrypted_
 		
 		return -1;
 	}
-	
-	status = CCCryptorReset(cipher->encrypt_ref, cipher->iv ? wi_data_bytes(cipher->iv) : NULL);
+	status = CCCryptorReset(cipher->encrypt_ref, NULL);
 	
 	if(status != kCCSuccess) {
 		wi_error_set_commoncrypto_error(status);
