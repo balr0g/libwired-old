@@ -509,7 +509,7 @@ wi_integer_t wi_cipher_encrypt_bytes(wi_cipher_t *cipher, const void *decrypted_
 		
 		return -1;
 	}
-	status = CCCryptorReset(cipher->encrypt_ref, NULL);
+	status = CCCryptorReset(cipher->encrypt_ref, cipher->iv ? wi_data_bytes(cipher->iv) : NULL);
 	
 	if(status != kCCSuccess) {
 		wi_error_set_commoncrypto_error(status);
