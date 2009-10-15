@@ -823,6 +823,20 @@ wi_boolean_t wi_array_write_to_file(wi_array_t *array, wi_string_t *path) {
 
 
 
+#pragma mark -
+
+wi_array_t * wi_array_by_sorting(wi_array_t *array, wi_compare_func_t *compare) {
+	wi_mutable_array_t		*newarray;
+	
+	newarray = wi_mutable_copy(array);
+	wi_mutable_array_sort(newarray, compare);
+	
+	wi_runtime_make_immutable(newarray);
+	
+	return wi_autorelease(newarray);
+}
+
+
 
 #pragma mark -
 
