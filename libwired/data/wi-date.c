@@ -344,6 +344,24 @@ static wi_string_t * _wi_date_description(wi_runtime_instance_t *instance) {
 
 
 
+#pragma mark -
+
+wi_integer_t wi_date_compare(wi_runtime_instance_t *instance1, wi_runtime_instance_t *instance2) {
+	wi_date_t			*date1 = instance1;
+	wi_date_t			*date2 = instance2;
+	
+	if(date1->interval > date2->interval)
+		return 1;
+	else if(date2->interval > date1->interval)
+		return -1;
+	
+	return 0;
+}
+
+
+
+#pragma mark -
+
 wi_time_interval_t wi_date_time_interval(wi_date_t *date) {
 	return date->interval;
 }
