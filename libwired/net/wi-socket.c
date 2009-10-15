@@ -1633,9 +1633,6 @@ wi_integer_t wi_socket_read_buffer(wi_socket_t *socket, wi_time_interval_t timeo
 				return bytes;
 			
 			offset += bytes;
-			
-			if((size_t) bytes < length)
-				wi_log_info(WI_STR("XXX: Requested %u bytes (total %u) and got %u (total %u)"), (int32_t) (length - offset + bytes), (int32_t) length, (int32_t) bytes, (int32_t) offset);
 		}
 		
 		return offset;
