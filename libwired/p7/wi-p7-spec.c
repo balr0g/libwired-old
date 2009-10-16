@@ -1931,16 +1931,16 @@ static wi_p7_spec_field_t * _wi_p7_spec_field_with_node(wi_p7_spec_t *p7_spec, x
 			
 			if(wi_dictionary_data_for_key(field->enums_name, name)) {
 				wi_error_set_libwired_error_with_format(WI_ERROR_P7_INVALIDSPEC,
-					WI_STR("Field \"%@\" has duplicate enum name \"%@\""),
-					field->name, name);
+					WI_STR("Enum with name \"%@\" in field \"%@\" already exists"),
+					name, field->name);
 				
 				return NULL;
 			}
 			
 			if(wi_dictionary_data_for_key(field->enums_value, (void *) value)) {
 				wi_error_set_libwired_error_with_format(WI_ERROR_P7_INVALIDSPEC,
-					WI_STR("Field \"%@\" has duplicate enum value %u (\"%@\")"),
-					field->name, value, name);
+					WI_STR("Enum with value %lu (name \"%@\") in field \"%@\" already exists"),
+					value, name, field->name);
 				
 				return NULL;
 			}
