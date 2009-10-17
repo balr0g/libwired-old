@@ -1042,7 +1042,7 @@ static wi_boolean_t _wi_p7_socket_send_compatibility_check(wi_p7_socket_t *p7_so
 	}
 
 	if(!status) {
-		wi_error_set_libwired_error_with_format(WI_ERROR_P7_HANDSHAKEFAILED,
+		wi_error_set_libwired_error_with_format(WI_ERROR_P7_INCOMPATIBLESPEC,
 			WI_STR("Remote protocol %@ %@ is not compatible with local protocol %@ %@"),
 			p7_socket->remote_name,
 			p7_socket->remote_version,
@@ -1092,7 +1092,7 @@ static wi_boolean_t _wi_p7_socket_receive_compatibility_check(wi_p7_socket_t *p7
 	compatible = wi_p7_spec_is_compatible_with_spec(p7_socket->spec, p7_spec);
 	
 	if(!compatible) {
-		wi_error_set_libwired_error_with_format(WI_ERROR_P7_HANDSHAKEFAILED,
+		wi_error_set_libwired_error_with_format(WI_ERROR_P7_INCOMPATIBLESPEC,
 			WI_STR("Remote protocol %@ %@ is not compatible with local protocol %@ %@: %m"),
 			p7_socket->remote_name,
 			p7_socket->remote_version,
