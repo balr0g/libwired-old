@@ -83,6 +83,11 @@
 		"index %ld out of range (count %lu) in %@",						\
 		(index), (array)->data_count, (array))
 
+#define _WI_ARRAY_ASSERT_INSERT_DATA_NOT_NULL(array, data)				\
+	WI_ASSERT((data) != NULL,											\
+		"attempt to insert NULL in %@",									\
+		(array))
+
 
 struct _wi_array_item {
 	void								*data;
@@ -948,7 +953,7 @@ static void _wi_array_insert_item_at_index(wi_array_t *array, _wi_array_item_t *
 
 static void _wi_array_add_data(wi_array_t *array, void *data) {
 	_wi_array_item_t	*item;
-
+	
 	item = _wi_array_create_item(array);
 	item->data = _WI_ARRAY_RETAIN(array, data);
 
@@ -985,6 +990,7 @@ static void _wi_array_remove_all_data(wi_array_t *array) {
 
 void wi_mutable_array_add_data(wi_mutable_array_t *array, void *data) {
 	WI_RUNTIME_ASSERT_MUTABLE(array);
+	_WI_ARRAY_ASSERT_INSERT_DATA_NOT_NULL(array, data);
 	
 	_wi_array_add_data(array, data);
 }
@@ -995,6 +1001,12 @@ void wi_mutable_array_add_data_sorted(wi_mutable_array_t *array, void *data, wi_
 	_wi_array_item_t	*item;
 
 	WI_RUNTIME_ASSERT_MUTABLE(array);
+	
+	if(array->callbacks.retain == wi_retain) {
+		WI_ASSERT(data != NULL,
+			"attempt to insert NULL in %@",
+			array);
+	}
 
 	item = _wi_array_create_item(array);
 	item->data = _WI_ARRAY_RETAIN(array, data);
@@ -1022,6 +1034,12 @@ void wi_mutable_array_insert_data_at_index(wi_mutable_array_t *array, void *data
 	
 	WI_RUNTIME_ASSERT_MUTABLE(array);
 	_WI_ARRAY_ASSERT_INDEX(array, index);
+	
+	if(array->callbacks.retain == wi_retain) {
+		WI_ASSERT(data != NULL,
+			"attempt to insert NULL in %@",
+			array);
+	}
 
 	item = _wi_array_create_item(array);
 	item->data = _WI_ARRAY_RETAIN(array, data);
@@ -1036,6 +1054,12 @@ void wi_mutable_array_replace_data_at_index(wi_mutable_array_t *array, void *dat
 	
 	WI_RUNTIME_ASSERT_MUTABLE(array);
 	_WI_ARRAY_ASSERT_INDEX(array, index);
+
+	if(array->callbacks.retain == wi_retain) {
+		WI_ASSERT(data != NULL,
+			"attempt to insert NULL in %@",
+			array);
+	}
 
 	item = _wi_array_create_item(array);
 	item->data = _WI_ARRAY_RETAIN(array, data);
@@ -1062,6 +1086,12 @@ void wi_mutable_array_remove_data(wi_mutable_array_t *array, void *data) {
 	
 	WI_RUNTIME_ASSERT_MUTABLE(array);
 
+	if(array->callbacks.release == wi_release) {
+		WI_ASSERT(data != NULL,
+			"attempt to remove NULL from %@",
+			array);
+	}
+		
 	index = wi_array_index_of_data(array, data);
 	
 	if(index != WI_NOT_FOUND)

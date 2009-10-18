@@ -935,7 +935,19 @@ static void _wi_dictionary_remove_all_data(wi_mutable_dictionary_t *dictionary) 
 
 void wi_mutable_dictionary_set_data_for_key(wi_mutable_dictionary_t *dictionary, void *data, void *key) {
 	WI_RUNTIME_ASSERT_MUTABLE(dictionary);
-	
+
+	if(dictionary->value_callbacks.retain == wi_retain) {
+		WI_ASSERT(data != NULL,
+			"attempt to insert NULL data in %@",
+			dictionary);
+	}
+
+	if(dictionary->key_callbacks.retain == wi_retain) {
+		WI_ASSERT(key != NULL,
+			"attempt to insert NULL key in %@",
+			dictionary);
+	}
+
 	_wi_dictionary_set_data_for_key(dictionary, data, key);
 }
 
@@ -968,6 +980,12 @@ void wi_mutable_dictionary_set_dictionary(wi_mutable_dictionary_t *dictionary, w
 
 void wi_mutable_dictionary_remove_data_for_key(wi_mutable_dictionary_t *dictionary, void *key) {
 	WI_RUNTIME_ASSERT_MUTABLE(dictionary);
+	
+	if(dictionary->key_callbacks.release == wi_release) {
+		WI_ASSERT(key != NULL,
+			"attempt to remove data for NULL key in %@",
+			dictionary);
+	}
 	
 	_wi_dictionary_remove_data_for_key(dictionary, key);
 }

@@ -661,6 +661,12 @@ wi_uinteger_t wi_set_count_for_data(wi_set_t *set, void *data) {
 void wi_mutable_set_add_data(wi_mutable_set_t *set, void *data) {
 	WI_RUNTIME_ASSERT_MUTABLE(set);
 	
+	if(set->callbacks.retain == wi_retain) {
+		WI_ASSERT(data != NULL,
+			"attempt to insert NULL data in %@",
+			set);
+	}
+
 	_wi_set_add_data(set, data);
 }
 
@@ -698,6 +704,12 @@ void wi_mutable_set_remove_data(wi_mutable_set_t *set, void *data) {
 	wi_boolean_t		remove = false;
 
 	WI_RUNTIME_ASSERT_MUTABLE(set);
+
+	if(set->callbacks.release == wi_release) {
+		WI_ASSERT(data != NULL,
+			"attempt to remove NULL data in %@",
+			set);
+	}
 
 	index = _WI_SET_HASH(set, data) % set->buckets_count;
 	bucket = set->buckets[index];
