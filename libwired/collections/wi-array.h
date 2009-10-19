@@ -29,6 +29,7 @@
 #ifndef WI_ARRAY_H
 #define WI_ARRAY_H 1
 
+#include <stdarg.h>
 #include <wired/wi-base.h>
 #include <wired/wi-enumerator.h>
 #include <wired/wi-runtime.h>
