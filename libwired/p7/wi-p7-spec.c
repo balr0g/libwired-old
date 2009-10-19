@@ -1521,11 +1521,6 @@ void wi_p7_spec_merge_with_spec(wi_p7_spec_t *p7_spec, wi_p7_spec_t *other_p7_sp
 		
 		if(field) {
 			if(field->type->id == WI_P7_ENUM) {
-				WI_ASSERT(field->enums_name != NULL, "field %@ is enum but doesn't have enums_name", field);
-				WI_ASSERT(field->enums_value != NULL, "field %@ is enum but doesn't have enums_value", field);
-				WI_ASSERT(other_field->enums_name != NULL, "other field %@ is enum but doesn't have enums_name", other_field);
-				WI_ASSERT(other_field->enums_value != NULL, "other field %@ is enum but doesn't have enums_value", other_field);
-
 				if(!wi_is_equal(field->enums_name, other_field->enums_name)) {
 					wi_mutable_dictionary_set_dictionary(field->enums_name, other_field->enums_name);
 					wi_mutable_dictionary_set_dictionary(field->enums_value, other_field->enums_value);
