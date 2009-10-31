@@ -226,7 +226,7 @@ wi_boolean_t wi_config_write_file(wi_config_t *config) {
 	wi_enumerator_t		*enumerator;
 	wi_file_t			*file, *tmpfile;
 	wi_string_t			*string, *name, *value;
-	wi_mutable_set_t	*keys;
+	wi_mutable_set_t	*changedkeys, *writtenkeys;
 	wi_boolean_t		write;
 	
 	file = wi_file_for_updating(config->path);
@@ -242,7 +242,8 @@ wi_boolean_t wi_config_write_file(wi_config_t *config) {
 	
 	wi_lock_lock(config->lock);
 	
-	keys = wi_autorelease(wi_mutable_copy(config->changes));
+	changedkeys = wi_autorelease(wi_mutable_copy(config->changes));
+	writtenkeys = wi_mutable_set();
 
 	while((string = wi_file_read_line(file))) {
 		if(wi_string_length(string) == 0) {
@@ -253,12 +254,16 @@ wi_boolean_t wi_config_write_file(wi_config_t *config) {
 			string = wi_string_substring_from_index(string, 1);
 			
 			if(_wi_config_parse_string(config, string, &name, &value)) {
-				if(wi_set_contains_data(keys, name)) {
+				if(wi_set_contains_data(changedkeys, name)) {
 					if(_wi_config_write_setting_to_file(config, name, tmpfile)) {
 						write = false;
 						
-						wi_mutable_set_remove_data(keys, name);
+						wi_mutable_set_add_data(writtenkeys, name);
+						wi_mutable_set_remove_data(changedkeys, name);
 					}
+				}
+				else if(wi_set_contains_data(writtenkeys, name)) {
+					write = false;
 				}
 			}
 			
@@ -269,12 +274,16 @@ wi_boolean_t wi_config_write_file(wi_config_t *config) {
 			write = true;
 			
 			if(_wi_config_parse_string(config, string, &name, &value)) {
-				if(wi_set_contains_data(keys, name)) {
+				if(wi_set_contains_data(changedkeys, name)) {
 					if(_wi_config_write_setting_to_file(config, name, tmpfile)) {
 						write = false;
 						
-						wi_mutable_set_remove_data(keys, name);
+						wi_mutable_set_add_data(writtenkeys, name);
+						wi_mutable_set_remove_data(changedkeys, name);
 					}
+				}
+				else if(wi_set_contains_data(writtenkeys, name)) {
+					write = false;
 				}
 			}
 
@@ -283,7 +292,7 @@ wi_boolean_t wi_config_write_file(wi_config_t *config) {
 		}
 	}
 	
-	enumerator = wi_set_data_enumerator(keys);
+	enumerator = wi_set_data_enumerator(changedkeys);
 	
 	while((name = wi_enumerator_next_data(enumerator)))
 		_wi_config_write_setting_to_file(config, name, tmpfile);
