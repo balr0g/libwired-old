@@ -50,6 +50,7 @@ WI_EXPORT wi_runtime_id_t					wi_set_runtime_id(void);
 
 WI_EXPORT wi_set_t *						wi_set(void);
 WI_EXPORT wi_set_t *						wi_set_with_data(void *, ...);
+WI_EXPORT wi_mutable_set_t *				wi_mutable_set(void);
 
 WI_EXPORT wi_set_t *						wi_set_alloc(void);
 WI_EXPORT wi_mutable_set_t *				wi_mutable_set_alloc(void);
