@@ -1613,7 +1613,8 @@ wi_p7_message_t * wi_p7_socket_read_message(wi_p7_socket_t *p7_socket, wi_time_i
 		p7_message = _wi_p7_socket_read_xml_message(p7_socket, timeout, prefix);
 	else {
 		wi_error_set_libwired_error_with_format(WI_ERROR_P7_HANDSHAKEFAILED,
-			WI_STR("Invalid data from remote host"));
+			WI_STR("Invalid data from remote host (%u doesn't look like a header)"),
+			p7_socket->message_binary_size);
 		
 		return NULL;
 	}
@@ -1623,7 +1624,8 @@ wi_p7_message_t * wi_p7_socket_read_message(wi_p7_socket_t *p7_socket, wi_time_i
 
 	if(p7_socket->serialization == WI_P7_BINARY && p7_message->binary_size == 0) {
 		wi_error_set_libwired_error_with_format(WI_ERROR_P7_INVALIDMESSAGE,
-			WI_STR("Invalid data from remote host"));
+			WI_STR("Invalid data from remote host (%u doesn't look like a header)"),
+			p7_socket->message_binary_size);
 		
 		return NULL;
 	}
