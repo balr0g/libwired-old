@@ -45,6 +45,7 @@ int wi_sqlite3_dummy = 0;
 #include <stdarg.h>
 #include <string.h>
 
+#include <pthread.h>
 #include <sqlite3.h>
 
 struct _wi_sqlite3_database {
@@ -56,6 +57,12 @@ struct _wi_sqlite3_database {
 
 static void								_wi_sqlite3_database_dealloc(wi_runtime_instance_t *);
 
+static void								_wi_sqlite3_config(void);
+
+
+#ifdef WI_PTHREADS
+static pthread_once_t					_wi_sqlite3_once_control = PTHREAD_ONCE_INIT;
+#endif
 
 static wi_runtime_id_t					_wi_sqlite3_database_runtime_id = WI_RUNTIME_ID_NULL;
 static wi_runtime_class_t				_wi_sqlite3_database_runtime_class = {
@@ -97,7 +104,6 @@ void wi_sqlite3_register(void) {
 
 
 void wi_sqlite3_initialize(void) {
-	sqlite3_config(SQLITE_CONFIG_SERIALIZED);
 }
 
 
@@ -114,6 +120,10 @@ wi_runtime_id_t wi_sqlite3_database_runtime_id(void) {
 
 wi_sqlite3_database_t * wi_sqlite3_open_database_with_path(wi_string_t *path) {
 	wi_sqlite3_database_t		*database;
+	
+#ifdef WI_PTHREADS
+	pthread_once(&_wi_sqlite3_once_control, _wi_sqlite3_config);
+#endif
 	
 	database = wi_autorelease(wi_runtime_create_instance(_wi_sqlite3_database_runtime_id, sizeof(wi_sqlite3_database_t)));
 	
@@ -143,6 +153,19 @@ static void _wi_sqlite3_database_dealloc(wi_runtime_instance_t *instance) {
 	if(database->database)
 		sqlite3_close(database->database);
 }
+
+
+
+#pragma mark -
+
+#ifdef WI_PTHREADS
+
+static void _wi_sqlite3_config(void) {
+	if(sqlite3_config(SQLITE_CONFIG_SERIALIZED) != SQLITE_OK)
+		wi_log_warn(WI_STR("Could not configure SQLite3 for thread serialization"));
+}
+
+#endif
 
 
 
