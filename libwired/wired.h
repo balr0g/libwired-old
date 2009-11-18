@@ -54,6 +54,7 @@
 #include <wired/wi-lock.h>
 #include <wired/wi-log.h>
 #include <wired/wi-macros.h>
+#include <wired/wi-null.h>
 #include <wired/wi-number.h>
 #include <wired/wi-p7-message.h>
 #include <wired/wi-p7-socket.h>

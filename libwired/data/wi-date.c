@@ -162,6 +162,12 @@ wi_string_t * wi_time_interval_rfc3339_string(wi_time_interval_t interval) {
 
 
 
+wi_string_t * wi_time_interval_sqlite3_string(wi_time_interval_t interval) {
+	return wi_time_interval_string_with_format(interval, WI_STR("%Y-%m-%d %H:%M:%S"));
+}
+
+
+
 #pragma mark -
 
 wi_runtime_id_t wi_date_runtime_id(void) {
@@ -192,6 +198,12 @@ wi_date_t * wi_date_with_time(time_t time) {
 
 wi_date_t * wi_date_with_rfc3339_string(wi_string_t *string) {
 	return wi_autorelease(wi_date_init_with_rfc3339_string(wi_date_alloc(), string));
+}
+
+
+
+wi_date_t * wi_date_with_sqlite3_string(wi_string_t *string) {
+	return wi_autorelease(wi_date_init_with_string(wi_date_alloc(), string, WI_STR("%Y-%m-%d %H:%M:%S")));
 }
 
 
@@ -392,6 +404,12 @@ wi_string_t * wi_date_string_with_format(wi_date_t *date, wi_string_t *format) {
 
 wi_string_t * wi_date_rfc3339_string(wi_date_t *date) {
 	return wi_time_interval_rfc3339_string(date->interval);
+}
+
+
+
+wi_string_t * wi_date_sqlite3_string(wi_date_t *date) {
+	return wi_time_interval_sqlite3_string(date->interval);
 }
 
 

@@ -76,6 +76,7 @@ void wi_initialize(void) {
 	wi_host_register();
 	wi_lock_register();
 	wi_log_register();
+	wi_null_register();
 	wi_number_register();
 
 #ifdef WI_P7
@@ -146,6 +147,7 @@ void wi_initialize(void) {
 	wi_fsevents_initialize();
 	wi_host_initialize();
 	wi_log_initialize();
+	wi_null_initialize();
 	wi_number_initialize();
 	wi_pool_initialize();
 	wi_process_initialize();

@@ -35,6 +35,7 @@ int wi_sqlite3_dummy = 0;
 #else
 
 #include <wired/wi-macros.h>
+#include <wired/wi-null.h>
 #include <wired/wi-number.h>
 #include <wired/wi-private.h>
 #include <wired/wi-runtime.h>
@@ -96,6 +97,7 @@ void wi_sqlite3_register(void) {
 
 
 void wi_sqlite3_initialize(void) {
+	sqlite3_config(SQLITE_CONFIG_SERIALIZED);
 }
 
 
@@ -154,56 +156,63 @@ wi_runtime_id_t wi_sqlite3_statement_runtime_id(void) {
 
 #pragma mark -
 
-wi_sqlite3_statement_t * wi_sqlite3_prepare_statement(wi_sqlite3_database_t *database, wi_string_t *format, ...) {
+wi_dictionary_t * wi_sqlite3_execute_statement(wi_sqlite3_database_t *database, wi_string_t *format, ...) {
 	wi_sqlite3_statement_t		*statement;
-	char						*string;
+	wi_string_t					*string;
 	va_list						ap;
 	
 	va_start(ap, format);
-	string = sqlite3_vmprintf(wi_string_cstring(format), ap);
+	string = wi_string_with_format_and_arguments(format, ap);
 	va_end(ap);
 	
 	statement = wi_autorelease(wi_runtime_create_instance(_wi_sqlite3_statement_runtime_id, sizeof(wi_sqlite3_statement_t)));
 	
-	if(sqlite3_prepare_v2(database->database, string, -1, &statement->statement, NULL) != SQLITE_OK) {
+	if(sqlite3_prepare_v2(database->database, wi_string_cstring(string), wi_string_length(string), &statement->statement, NULL) == SQLITE_OK) {
+		return wi_sqlite3_fetch_statement_results(database, statement);
+	} else {
 		wi_error_set_sqlite3_error(database->database);
+		
+		return NULL;
+	}
+}
+
+
+
+wi_sqlite3_statement_t * wi_sqlite3_prepare_statement(wi_sqlite3_database_t *database, wi_string_t *format, ...) {
+	wi_sqlite3_statement_t		*statement;
+	wi_string_t					*string;
+	va_list						ap;
 	
-		statement->statement	= NULL;
-		statement				= NULL;
+	va_start(ap, format);
+	string = wi_string_with_format_and_arguments(format, ap);
+	va_end(ap);
+	
+	statement = wi_autorelease(wi_runtime_create_instance(_wi_sqlite3_statement_runtime_id, sizeof(wi_sqlite3_statement_t)));
+	
+	if(sqlite3_prepare_v2(database->database, wi_string_cstring(string), wi_string_length(string), &statement->statement, NULL) != SQLITE_OK) {
+		wi_error_set_sqlite3_error(database->database);
+		
+		return NULL;
 	}
 	
-	sqlite3_free(string);
-		
 	return statement;
 }
 
 
 
-wi_boolean_t wi_sqlite3_execute_statement(wi_sqlite3_database_t *database, wi_sqlite3_statement_t *statement) {
-	if(sqlite3_step(statement->statement) != SQLITE_DONE) {
-		wi_error_set_sqlite3_error(database->database);
-		
-		return false;
-	}
-	
-	return false;
-}
-
-
-
-wi_sqlite3_status_t wi_sqlite3_get_next_statement_results(wi_sqlite3_database_t *database, wi_sqlite3_statement_t *statement, wi_array_t **results) {
-	wi_mutable_array_t		*array;
-	wi_runtime_instance_t	*instance;
-	int						i, count;
+wi_dictionary_t * wi_sqlite3_fetch_statement_results(wi_sqlite3_database_t *database, wi_sqlite3_statement_t *statement) {
+	wi_mutable_dictionary_t		*results;
+	wi_runtime_instance_t		*instance;
+	int							i, count;
 	
 	switch(sqlite3_step(statement->statement)) {
 		case SQLITE_DONE:
-			return WI_SQLITE3_STATUS_DONE;
+			return wi_dictionary();
 			break;
 			
 		case SQLITE_ROW:
-			array = wi_mutable_array();
-			count = sqlite3_column_count(statement->statement);
+			results			= wi_mutable_dictionary();
+			count			= sqlite3_column_count(statement->statement);
 			
 			for(i = 0; i < count; i++) {
 				switch(sqlite3_column_type(statement->statement, i)) {
@@ -224,7 +233,7 @@ wi_sqlite3_status_t wi_sqlite3_get_next_statement_results(wi_sqlite3_database_t 
 						break;
 						
 					case SQLITE_NULL:
-						instance = NULL;
+						instance = wi_null();
 						break;
 					
 					default:
@@ -233,18 +242,16 @@ wi_sqlite3_status_t wi_sqlite3_get_next_statement_results(wi_sqlite3_database_t 
 				}
 				
 				if(instance)
-					wi_mutable_array_add_data(array, instance);
+					wi_mutable_dictionary_set_data_for_key(results, instance, wi_string_with_cstring(sqlite3_column_name(statement->statement, i)));
 			}
 			
-			*results = array;
-			
-			return WI_SQLITE3_STATUS_RESULTS;
+			return results;
 			break;
 			
 		default:
 			wi_error_set_sqlite3_error(database);
 			
-			return WI_SQLITE3_STATUS_ERROR;
+			return NULL;
 			break;
 	}
 }

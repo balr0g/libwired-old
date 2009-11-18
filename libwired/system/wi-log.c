@@ -157,9 +157,9 @@ static void _wi_log_vlog(wi_log_level_t level, wi_string_t *fmt, va_list ap) {
 	if(_wi_log_in_callback)
 		return;
 	
-	string = wi_string_init_with_format_and_arguments(wi_string_alloc(), fmt, ap);
-	cstring = wi_string_cstring(string);
-	name = wi_string_cstring(wi_process_name(wi_process()));
+	string		= wi_string_init_with_format_and_arguments(wi_string_alloc(), fmt, ap);
+	cstring		= wi_string_cstring(string);
+	name		= wi_string_cstring(wi_process_name(wi_process()));
 	
 	_wi_log_date(date);
 	

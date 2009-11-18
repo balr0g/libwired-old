@@ -113,6 +113,8 @@ static void								_wi_string_append_arguments(wi_string_t *, const char *, va_l
 static void								_wi_string_append_cstring(wi_string_t *, const char *);
 static void								_wi_string_append_bytes(wi_string_t *, const void *, wi_uinteger_t);
 
+static wi_string_t *					_wi_string_sqlite3_escaped_string(wi_string_t *);
+
 static wi_boolean_t						_wi_mutable_string_char_is_whitespace(char);
 
 static wi_mutable_array_t *				_wi_string_path_components(wi_string_t *);
@@ -588,6 +590,34 @@ nextflag:
 				}
 				break;
 			
+			case 'q':
+				description = wi_description(va_arg(ap, wi_runtime_instance_t *));
+				
+				if(description) {
+					description = _wi_string_sqlite3_escaped_string(description);
+					_wi_string_append_cstring(string, description->string);
+					totalsize += description->length;
+				} else {
+					_wi_string_append_cstring(string, "'(null)'");
+					totalsize += 8;
+				}
+				break;
+				
+			case 'Q':
+				description = wi_description(va_arg(ap, wi_runtime_instance_t *));
+				
+				if(description) {
+					description = _wi_string_sqlite3_escaped_string(description);
+					_wi_string_append_cstring(string, "'");
+					_wi_string_append_cstring(string, description->string);
+					_wi_string_append_cstring(string, "'");
+					totalsize += description->length + 2;
+				} else {
+					_wi_string_append_cstring(string, "NULL");
+					totalsize += 4;
+				}
+				break;
+			
 			case ' ':
 			case '-':
 			case '+':
@@ -781,6 +811,29 @@ static void _wi_string_append_bytes(wi_string_t *string, const void *buffer, wi_
 	
 	string->length += length;
 	string->string[string->length] = '\0';
+}
+
+
+
+#pragma mark -
+
+static wi_string_t * _wi_string_sqlite3_escaped_string(wi_string_t *string) {
+	wi_mutable_string_t		*newstring;
+	wi_range_t				range, searchrange;
+	
+	newstring		= wi_mutable_copy(string);
+	searchrange		= wi_make_range(0, wi_string_length(newstring));
+	
+	while((range = wi_string_range_of_string_in_range(newstring, WI_STR("'"), 0, searchrange)).location != WI_NOT_FOUND) {
+		wi_mutable_string_replace_characters_in_range_with_string(newstring, range, WI_STR("''"));
+		
+		searchrange.location	= range.location + 2;
+		searchrange.length		= wi_string_length(newstring) - searchrange.location;
+	}
+	
+	wi_runtime_make_immutable(newstring);
+	
+	return wi_autorelease(newstring);
 }
 
 
