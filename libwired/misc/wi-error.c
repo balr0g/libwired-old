@@ -47,11 +47,15 @@
 #include <CommonCrypto/CommonCryptor.h>
 #endif
 
-#ifdef HAVE_LIBXML_PARSER_H
+#ifdef WI_LIBXML2
 #include <libxml/xmlerror.h>
 #endif
 
-#ifdef HAVE_ZLIB_H
+#ifdef WI_SQLITE3
+#include <sqlite3.h>
+#endif
+
+#ifdef WI_ZLIB
 #include <zlib.h>
 #endif
 
@@ -270,7 +274,7 @@ void wi_error_enter_thread(void) {
 	
 	wi_error_set_error(WI_ERROR_DOMAIN_NONE, WI_ERROR_NONE);
 	
-#ifdef HAVE_LIBXML_PARSER_H
+#ifdef WI_LIBXML2
 	xmlSetGenericErrorFunc(NULL, _wi_error_xml_error_handler);
 #endif
 }
@@ -282,12 +286,25 @@ void wi_error_enter_thread(void) {
 void wi_error_set_error(wi_error_domain_t domain, int code) {
 	wi_error_t		*error;
 
-	error = _wi_error_get_error();
-	error->domain = domain;
-	error->code = code;
+	error			= _wi_error_get_error();
+	error->domain	= domain;
+	error->code		= code;
 
 	wi_release(error->string);
 	error->string = NULL;
+}
+
+
+
+void wi_error_set_error_with_string(wi_error_domain_t domain, int code, wi_string_t *string) {
+	wi_error_t		*error;
+
+	error			= _wi_error_get_error();
+	error->domain	= domain;
+	error->code		= code;
+
+	wi_release(error->string);
+	error->string = wi_retain(string);
 }
 
 
@@ -301,25 +318,24 @@ void wi_error_set_errno(int code) {
 #ifdef HAVE_OPENSSL_SHA_H
 
 void wi_error_set_openssl_error(void) {
-	wi_error_t		*error;
+	wi_string_t		*string;
 	const char		*file;
+	unsigned long	code;
 	int				line;
 
 	if(ERR_peek_error() == 0) {
 		wi_error_set_errno(errno);
 	} else {
-		error = _wi_error_get_error();
-		error->domain = WI_ERROR_DOMAIN_OPENSSL;
-		error->code = ERR_get_error_line(&file, &line);
-		
-		wi_release(error->string);
-
-		error->string = wi_string_init_with_format(wi_string_alloc(), WI_STR("%s:%d: %s: %s (%u)"),
+		code		= ERR_get_error_line(&file, &line);
+		string		= wi_string_with_format(WI_STR("%s:%d: %s: %s (%u)"),
 			file,
 			line,
-			ERR_func_error_string(error->code),
-			ERR_reason_error_string(error->code),
-			ERR_GET_REASON(error->code));
+			ERR_func_error_string(code),
+			ERR_reason_error_string(code),
+			ERR_GET_REASON(code));
+		
+		wi_error_set_error_with_string(WI_ERROR_DOMAIN_OPENSSL, code, string);
+
 	}
 	
 	ERR_clear_error();
@@ -332,7 +348,7 @@ void wi_error_set_openssl_error(void) {
 #ifdef HAVE_OPENSSL_SSL_H
 
 void wi_error_set_openssl_ssl_error_with_result(void *ssl, int result) {
-	wi_error_t		*error;
+	wi_string_t		*string;
 	int				code;
 	
 	code = SSL_get_error(ssl, result);
@@ -350,41 +366,41 @@ void wi_error_set_openssl_ssl_error_with_result(void *ssl, int result) {
 	else if(code == SSL_ERROR_SSL) {
 		wi_error_set_openssl_error();
 	} else {
-		error = _wi_error_get_error();
-		error->domain = WI_ERROR_DOMAIN_OPENSSL_SSL;
-		error->code = code;
-
-		wi_release(error->string);
-
-		switch(error->code) {
+		switch(code) {
 			case SSL_ERROR_NONE:
-				error->string = wi_retain(WI_STR("SSL: No error"));
+				string = WI_STR("SSL: No error");
 				break;
 
 			case SSL_ERROR_ZERO_RETURN:
-				error->string = wi_retain(WI_STR("SSL: Zero return"));
+				string = WI_STR("SSL: Zero return");
 				break;
 				
 			case SSL_ERROR_WANT_READ:
-				error->string = wi_retain(WI_STR("SSL: Want read"));
+				string = WI_STR("SSL: Want read");
 				break;
 				
 			case SSL_ERROR_WANT_WRITE:
-				error->string = wi_retain(WI_STR("SSL: Want write"));
+				string = WI_STR("SSL: Want write");
 				break;
 				
 			case SSL_ERROR_WANT_CONNECT:
-				error->string = wi_retain(WI_STR("SSL: Want connect"));
+				string = WI_STR("SSL: Want connect");
 				break;
 				
 			case SSL_ERROR_WANT_ACCEPT:
-				error->string = wi_retain(WI_STR("SSL: Want accept"));
+				string = WI_STR("SSL: Want accept");
 				break;
 				
 			case SSL_ERROR_WANT_X509_LOOKUP:
-				error->string = wi_retain(WI_STR("SSL: Want X509 lookup"));
+				string = WI_STR("SSL: Want X509 lookup");
+				break;
+			
+			default:
+				string = NULL;
 				break;
 		}
+		
+		wi_error_set_error_with_string(WI_ERROR_DOMAIN_OPENSSL_SSL, code, string);
 	}
 	
 	ERR_clear_error();
@@ -397,62 +413,67 @@ void wi_error_set_openssl_ssl_error_with_result(void *ssl, int result) {
 #ifdef HAVE_COMMONCRYPTO_COMMONCRYPTOR_H
 
 void wi_error_set_commoncrypto_error(int code) {
-	wi_error_t		*error;
-	
-	error = _wi_error_get_error();
-	error->domain = WI_ERROR_DOMAIN_COMMONCRYPTO;
-	error->code = code;
-	
-	wi_release(error->string);
+	wi_string_t		*string;
 
 	switch(code) {
 		case kCCParamError:
-			error->string = wi_retain(WI_STR("Illegal parameter value"));
+			string = WI_STR("Illegal parameter value");
 			break;
 
 		case kCCBufferTooSmall:
-			error->string = wi_retain(WI_STR("Insufficent buffer provided for specified operation"));
+			string = WI_STR("Insufficent buffer provided for specified operation");
 			break;
 
 		case kCCMemoryFailure:
-			error->string = wi_retain(WI_STR("Memory allocation failure"));
+			string = WI_STR("Memory allocation failure");
 			break;
 
 		case kCCAlignmentError:
-			error->string = wi_retain(WI_STR("Input size was not aligned properly"));
+			string = WI_STR("Input size was not aligned properly");
 			break;
 
 		case kCCDecodeError:
-			error->string = wi_retain(WI_STR("Input data did not decode or decrypt properly"));
+			string = WI_STR("Input data did not decode or decrypt properly");
 			break;
 
 		case kCCUnimplemented:
-			error->string = wi_retain(WI_STR("Function not implemented for the current algorithm"));
+			string = WI_STR("Function not implemented for the current algorithm");
+			break;
+		
+		default:
+			string = NULL;
 			break;
 	}
+	
+	wi_error_set_error_with_string(WI_ERROR_DOMAIN_COMMONCRYPTO, code, string);
 }
 
 #endif
 
 
 
-#ifdef HAVE_LIBXML_PARSER_H
+#ifdef WI_LIBXML2
 
 void wi_error_set_libxml2_error(void) {
-	wi_error_t		*error;
-	wi_string_t		*string;
 	xmlErrorPtr		xml_error;
 
 	xml_error = xmlGetLastError();
+	
+	wi_error_set_error_with_string(WI_ERROR_DOMAIN_LIBXML2,
+								   xml_error->code,
+								   wi_string_by_deleting_surrounding_whitespace(wi_string_with_cstring(xml_error->message)));
+}
 
-	error = _wi_error_get_error();
-	error->domain = WI_ERROR_DOMAIN_REGEX;
-	error->code = xml_error->code;
-	
-	string = wi_string_by_deleting_surrounding_whitespace(wi_string_with_cstring(xml_error->message));
-	
-	wi_release(error->string);
-	error->string = wi_retain(string);
+#endif
+
+
+
+#ifdef WI_SQLITE3
+
+void wi_error_set_sqlite3_error(void *db) {
+	wi_error_set_error_with_string(WI_ERROR_DOMAIN_SQLITE3,
+								   sqlite3_extended_errcode(db),
+								   wi_string_with_cstring(sqlite3_errmsg(db)));
 }
 
 #endif
@@ -460,22 +481,18 @@ void wi_error_set_libxml2_error(void) {
 
 
 void wi_error_set_regex_error(regex_t *regex, int code) {
-	wi_error_t		*error;
-	char			string[256];
-
-	error = _wi_error_get_error();
-	error->domain = WI_ERROR_DOMAIN_REGEX;
-	error->code = code;
+	char	string[256];
 	
 	regerror(code, regex, string, sizeof(string));
-
-	wi_release(error->string);
-	error->string = wi_string_init_with_cstring(wi_string_alloc(), string);
+	
+	wi_error_set_error_with_string(WI_ERROR_DOMAIN_REGEX,
+								   code,
+								   wi_string_with_cstring(string));
 }
 
 
 
-#ifdef HAVE_ZLIB_H
+#ifdef WI_ZLIB
 
 void wi_error_set_zlib_error(int code) {
 	if(code == Z_ERRNO)
@@ -501,22 +518,20 @@ void wi_error_set_libwired_error(int code) {
 
 
 void wi_error_set_libwired_error_with_string(int code, wi_string_t *string) {
-	wi_error_t		*error;
-
-	error = _wi_error_get_error();
-	error->domain = WI_ERROR_DOMAIN_LIBWIRED;
-	error->code = code;
+	wi_string_t		*errorstring;
 	
-	wi_release(error->string);
-	
-	error->string = wi_string_init_with_cstring(wi_mutable_string_alloc(), _wi_error_strings[error->code]);
+	errorstring = wi_string_init_with_cstring(wi_mutable_string_alloc(), _wi_error_strings[code]);
 
 	if(wi_string_length(string) > 0) {
-		if(wi_string_length(error->string) > 0)
-			wi_mutable_string_append_string(error->string, WI_STR(": "));
+		if(wi_string_length(errorstring) > 0)
+			wi_mutable_string_append_string(errorstring, WI_STR(": "));
 		
-		wi_mutable_string_append_string(error->string, string);
+		wi_mutable_string_append_string(errorstring, string);
 	}
+	
+	wi_error_set_error_with_string(WI_ERROR_DOMAIN_LIBWIRED, code, errorstring);
+	
+	wi_release(errorstring);
 }
 
 
@@ -556,6 +571,7 @@ wi_string_t * wi_error_string(void) {
 			case WI_ERROR_DOMAIN_OPENSSL_SSL:
 			case WI_ERROR_DOMAIN_COMMONCRYPTO:
 			case WI_ERROR_DOMAIN_LIBXML2:
+			case WI_ERROR_DOMAIN_SQLITE3:
 				break;
 			
 			case WI_ERROR_DOMAIN_ZLIB:

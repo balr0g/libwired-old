@@ -39,13 +39,13 @@ int wi_plist_dummy = 0;
 #include <wired/wi-data.h>
 #include <wired/wi-date.h>
 #include <wired/wi-dictionary.h>
+#include <wired/wi-libxml2.h>
 #include <wired/wi-macros.h>
 #include <wired/wi-number.h>
 #include <wired/wi-plist.h>
 #include <wired/wi-private.h>
 #include <wired/wi-runtime.h>
 #include <wired/wi-string.h>
-#include <wired/wi-xml.h>
 
 #include <libxml/tree.h>
 #include <libxml/parser.h>

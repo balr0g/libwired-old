@@ -1,7 +1,7 @@
 /* $Id$ */
 
 /*
- *  Copyright (c) 2008-2009 Axel Andersson
+ *  Copyright (c) 2009 Axel Andersson
  *  All rights reserved.
  * 
  *  Redistribution and use in source and binary forms, with or without
@@ -26,18 +26,31 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef WI_XML_H
-#define WI_XML_H 1
+#ifndef WI_SQLITE3_H
+#define WI_SQLITE3_H 1
 
 #include <wired/wi-base.h>
 #include <wired/wi-runtime.h>
 
-WI_EXPORT wi_string_t *				wi_xml_node_name(void *);
-void *								wi_xml_node_child_with_name(void *, wi_string_t *);
-WI_EXPORT wi_string_t *				wi_xml_node_attribute_with_name(void *, wi_string_t *);
-WI_EXPORT wi_integer_t				wi_xml_node_integer_attribute_with_name(void *, wi_string_t *);
-WI_EXPORT void						wi_xml_node_set_content(void *, wi_string_t *);
-WI_EXPORT wi_string_t *				wi_xml_node_content(void *);
-WI_EXPORT void *					wi_xml_node_new_child(void *, wi_string_t *, wi_string_t *);
+typedef struct _wi_sqlite3_database			wi_sqlite3_database_t;
+typedef struct _wi_sqlite3_statement		wi_sqlite3_statement_t;
 
-#endif /* WI_XML_H */
+enum _wi_sqlite3_status {
+	WI_SQLITE3_STATUS_DONE,
+	WI_SQLITE3_STATUS_ERROR,
+	WI_SQLITE3_STATUS_RESULTS
+};
+typedef enum _wi_sqlite3_status				wi_sqlite3_status_t;
+
+
+WI_EXPORT wi_runtime_id_t					wi_sqlite3_database_runtime_id(void);
+
+WI_EXPORT wi_sqlite3_database_t *			wi_sqlite3_open_database_with_path(wi_string_t *);
+
+WI_EXPORT wi_runtime_id_t					wi_sqlite3_statement_runtime_id(void);
+
+WI_EXPORT wi_sqlite3_statement_t *			wi_sqlite3_prepare_statement(wi_sqlite3_database_t *, wi_string_t *, ...);
+WI_EXPORT wi_boolean_t						wi_sqlite3_execute_statement(wi_sqlite3_database_t *, wi_sqlite3_statement_t *);
+WI_EXPORT wi_sqlite3_status_t				wi_sqlite3_get_next_statement_results(wi_sqlite3_database_t *, wi_sqlite3_statement_t *, wi_array_t **);
+
+#endif /* WI_SQLITE3_H */

@@ -34,11 +34,11 @@ int wi_xml_dummy = 0;
 
 #else
 
+#include <wired/wi-libxml2.h>
 #include <wired/wi-macros.h>
 #include <wired/wi-private.h>
 #include <wired/wi-runtime.h>
 #include <wired/wi-string.h>
-#include <wired/wi-xml.h>
 
 #include <string.h>
 

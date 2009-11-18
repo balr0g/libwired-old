@@ -43,6 +43,7 @@ int wi_p7_spec_dummy = 0;
 #include <wired/wi-array.h>
 #include <wired/wi-byteorder.h>
 #include <wired/wi-dictionary.h>
+#include <wired/wi-libxml2.h>
 #include <wired/wi-log.h>
 #include <wired/wi-p7-message.h>
 #include <wired/wi-p7-spec.h>
@@ -50,7 +51,6 @@ int wi_p7_spec_dummy = 0;
 #include <wired/wi-private.h>
 #include <wired/wi-set.h>
 #include <wired/wi-string.h>
-#include <wired/wi-xml.h>
 
 typedef struct _wi_p7_spec_collection		_wi_p7_spec_collection_t;
 typedef struct _wi_p7_spec_transaction		_wi_p7_spec_transaction_t;

@@ -97,6 +97,7 @@ void wi_initialize(void) {
 	wi_settings_register();
 	wi_socket_register();
 	wi_speed_calculator_register();
+	wi_sqlite3_register();
 	wi_string_register();
 	wi_task_register();
 	
@@ -164,6 +165,7 @@ void wi_initialize(void) {
 	wi_settings_initialize();
 	wi_socket_initialize();
 	wi_speed_calculator_initialize();
+	wi_sqlite3_initialize();
 	wi_task_initialize();
 	
 #ifdef WI_TERMCAP

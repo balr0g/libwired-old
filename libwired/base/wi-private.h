@@ -91,6 +91,7 @@ WI_EXPORT void							wi_set_register(void);
 WI_EXPORT void							wi_settings_register(void);
 WI_EXPORT void							wi_socket_register(void);
 WI_EXPORT void							wi_speed_calculator_register(void);
+WI_EXPORT void							wi_sqlite3_register(void);
 WI_EXPORT void							wi_string_register(void);
 WI_EXPORT void							wi_task_register(void);
 WI_EXPORT void							wi_terminal_register(void);
@@ -132,6 +133,7 @@ WI_EXPORT void							wi_set_initialize(void);
 WI_EXPORT void							wi_settings_initialize(void);
 WI_EXPORT void							wi_socket_initialize(void);
 WI_EXPORT void							wi_speed_calculator_initialize(void);
+WI_EXPORT void							wi_sqlite3_initialize(void);
 WI_EXPORT void							wi_string_initialize(void);
 WI_EXPORT void							wi_task_initialize(void);
 WI_EXPORT void							wi_terminal_initialize(void);
@@ -164,6 +166,7 @@ WI_EXPORT void *						wi_enumerator_set_data_enumerator(wi_runtime_instance_t *,
 
 WI_EXPORT void							wi_error_enter_thread(void);
 WI_EXPORT void							wi_error_set_error(wi_error_domain_t, int);
+WI_EXPORT void							wi_error_set_error_with_string(wi_error_domain_t, int, wi_string_t *);
 WI_EXPORT void							wi_error_set_errno(int);
 
 #ifdef HAVE_OPENSSL_SHA_H
@@ -178,13 +181,17 @@ WI_EXPORT void							wi_error_set_openssl_ssl_error_with_result(void *, int);
 WI_EXPORT void							wi_error_set_commoncrypto_error(int);
 #endif
 
-#ifdef HAVE_LIBXML_PARSER_H
+#ifdef WI_ZLIB
 WI_EXPORT void							wi_error_set_libxml2_error(void);
+#endif
+
+#ifdef WI_SQLITE3
+WI_EXPORT void							wi_error_set_sqlite3_error(void *);
 #endif
 
 WI_EXPORT void							wi_error_set_regex_error(regex_t *, int);
 
-#ifdef HAVE_ZLIB_H
+#ifdef WI_ZLIB
 WI_EXPORT void							wi_error_set_zlib_error(int);
 #endif
 

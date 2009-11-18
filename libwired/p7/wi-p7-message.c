@@ -37,6 +37,7 @@ int wi_p7_message_dummy = 0;
 #include <wired/wi-assert.h>
 #include <wired/wi-byteorder.h>
 #include <wired/wi-dictionary.h>
+#include <wired/wi-libxml2.h>
 #include <wired/wi-p7-message.h>
 #include <wired/wi-p7-socket.h>
 #include <wired/wi-p7-spec.h>
@@ -44,7 +45,6 @@ int wi_p7_message_dummy = 0;
 #include <wired/wi-private.h>
 #include <wired/wi-string.h>
 #include <wired/wi-system.h>
-#include <wired/wi-xml.h>
 
 #include <libxml/tree.h>
 #include <libxml/parser.h>

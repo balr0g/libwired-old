@@ -263,6 +263,8 @@ AC_DEFUN([WI_INCLUDE_CORESERVICES_FRAMEWORK], [
 			WI_APPEND_FLAG([LIBS], [-framework CoreServices])
 		])
 		
+		WI_APPEND_FLAG([CPPFLAGS], [-DWI_CORESERVICES])
+		
 		wi_include_coreservices_framework_done="yes"
 	fi
 ])
@@ -273,6 +275,8 @@ AC_DEFUN([WI_INCLUDE_CARBON_FRAMEWORK], [
 		AC_CHECK_HEADERS([Carbon/Carbon.h], [
 			WI_APPEND_FLAG([LIBS], [-framework Carbon])
 		])
+		
+		WI_APPEND_FLAG([CPPFLAGS], [-DWI_CARBON])
 		
 		wi_include_carbon_framework_done="yes"
 	fi
@@ -490,6 +494,8 @@ AC_DEFUN([WI_INCLUDE_READLINE_LIBRARY], [
 			_WI_MSG_LIB_ERROR([readline])
 		])
 
+		WI_APPEND_FLAG([CPPFLAGS], [-DWI_READLINE])
+		
 		wi_include_readline_library_done="yes"
 	fi
 ])
@@ -519,6 +525,7 @@ AC_DEFUN([WI_INCLUDE_LIBXML2_LIBRARY], [
 			_WI_MSG_LIB_ERROR([libxml2])
 		])
 
+		WI_APPEND_FLAG([CPPFLAGS], [-DWI_LIBXML2])
 		WI_APPEND_FLAG([CPPFLAGS], [-DWI_PLIST])
 
 		wi_include_libxml2_library_done="yes"
@@ -538,6 +545,27 @@ AC_DEFUN([WI_INCLUDE_ZLIB_LIBRARY], [
 			_WI_MSG_LIB_ERROR([zlib])
 		])
 
+		WI_APPEND_FLAG([CPPFLAGS], [-DWI_ZLIB])
+		
 		wi_include_zlib_library_done="yes"
+	fi
+])
+
+
+AC_DEFUN([WI_INCLUDE_SQLITE3_LIBRARY], [
+	if test "$wi_include_sqlite3_library_done" != "yes"; then
+		AC_CHECK_HEADERS([sqlite3.h], [], [
+			_WI_MSG_LIB_ERROR([sqlite3])
+		])
+		
+		AC_CHECK_LIB([sqlite3], [sqlite3_open], [
+			WI_APPEND_FLAG([LIBS], [-lsqlite3])
+		], [
+			_WI_MSG_LIB_ERROR([sqlite3])
+		])
+
+		WI_APPEND_FLAG([CPPFLAGS], [-DWI_SQLITE3])
+		
+		wi_include_sqlite3_library_done="yes"
 	fi
 ])

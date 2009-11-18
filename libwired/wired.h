@@ -50,6 +50,7 @@
 #include <wired/wi-fts.h>
 #include <wired/wi-host.h>
 #include <wired/wi-ip.h>
+#include <wired/wi-libxml2.h>
 #include <wired/wi-lock.h>
 #include <wired/wi-log.h>
 #include <wired/wi-macros.h>
@@ -68,6 +69,7 @@
 #include <wired/wi-settings.h>
 #include <wired/wi-socket.h>
 #include <wired/wi-speed-calculator.h>
+#include <wired/wi-sqlite3.h>
 #include <wired/wi-string.h>
 #include <wired/wi-system.h>
 #include <wired/wi-task.h>
@@ -80,6 +82,5 @@
 #include <wired/wi-version.h>
 #include <wired/wi-wired.h>
 #include <wired/wi-x509.h>
-#include <wired/wi-xml.h>
 
 #endif /* WIRED_H */
