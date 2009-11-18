@@ -34,6 +34,7 @@ int wi_sqlite3_dummy = 0;
 
 #else
 
+#include <wired/wi-lock.h>
 #include <wired/wi-macros.h>
 #include <wired/wi-null.h>
 #include <wired/wi-number.h>
@@ -52,17 +53,13 @@ struct _wi_sqlite3_database {
 	wi_runtime_base_t					base;
 	
 	sqlite3								*database;
+	
+	wi_recursive_lock_t					*lock;
 };
 
 
 static void								_wi_sqlite3_database_dealloc(wi_runtime_instance_t *);
 
-static void								_wi_sqlite3_config(void);
-
-
-#ifdef WI_PTHREADS
-static pthread_once_t					_wi_sqlite3_once_control = PTHREAD_ONCE_INIT;
-#endif
 
 static wi_runtime_id_t					_wi_sqlite3_database_runtime_id = WI_RUNTIME_ID_NULL;
 static wi_runtime_class_t				_wi_sqlite3_database_runtime_class = {
@@ -121,11 +118,8 @@ wi_runtime_id_t wi_sqlite3_database_runtime_id(void) {
 wi_sqlite3_database_t * wi_sqlite3_open_database_with_path(wi_string_t *path) {
 	wi_sqlite3_database_t		*database;
 	
-#ifdef WI_PTHREADS
-	pthread_once(&_wi_sqlite3_once_control, _wi_sqlite3_config);
-#endif
-	
-	database = wi_autorelease(wi_runtime_create_instance(_wi_sqlite3_database_runtime_id, sizeof(wi_sqlite3_database_t)));
+	database			= wi_autorelease(wi_runtime_create_instance(_wi_sqlite3_database_runtime_id, sizeof(wi_sqlite3_database_t)));
+	database->lock		= wi_recursive_lock_init(wi_recursive_lock_alloc());
 	
 	if(sqlite3_open(wi_string_cstring(path), &database->database) != SQLITE_OK) {
 		if(database->database) {
@@ -152,20 +146,9 @@ static void _wi_sqlite3_database_dealloc(wi_runtime_instance_t *instance) {
 	
 	if(database->database)
 		sqlite3_close(database->database);
+	
+	wi_release(database->lock);
 }
-
-
-
-#pragma mark -
-
-#ifdef WI_PTHREADS
-
-static void _wi_sqlite3_config(void) {
-	if(sqlite3_config(SQLITE_CONFIG_SERIALIZED) != SQLITE_OK)
-		wi_log_warn(WI_STR("Could not configure SQLite3 for thread serialization"));
-}
-
-#endif
 
 
 
@@ -181,6 +164,7 @@ wi_runtime_id_t wi_sqlite3_statement_runtime_id(void) {
 
 wi_dictionary_t * wi_sqlite3_execute_statement(wi_sqlite3_database_t *database, wi_string_t *format, ...) {
 	wi_sqlite3_statement_t		*statement;
+	wi_dictionary_t				*results;
 	wi_string_t					*string;
 	va_list						ap;
 	
@@ -190,13 +174,19 @@ wi_dictionary_t * wi_sqlite3_execute_statement(wi_sqlite3_database_t *database, 
 	
 	statement = wi_autorelease(wi_runtime_create_instance(_wi_sqlite3_statement_runtime_id, sizeof(wi_sqlite3_statement_t)));
 	
+	wi_recursive_lock_lock(database->lock);
+	
 	if(sqlite3_prepare_v2(database->database, wi_string_cstring(string), wi_string_length(string), &statement->statement, NULL) == SQLITE_OK) {
-		return wi_sqlite3_fetch_statement_results(database, statement);
+		results = wi_sqlite3_fetch_statement_results(database, statement);
 	} else {
 		wi_error_set_sqlite3_error(database->database);
 		
-		return NULL;
+		results = NULL;
 	}
+
+	wi_recursive_lock_unlock(database->lock);
+	
+	return results;
 }
 
 
@@ -212,11 +202,15 @@ wi_sqlite3_statement_t * wi_sqlite3_prepare_statement(wi_sqlite3_database_t *dat
 	
 	statement = wi_autorelease(wi_runtime_create_instance(_wi_sqlite3_statement_runtime_id, sizeof(wi_sqlite3_statement_t)));
 	
+	wi_recursive_lock_lock(database->lock);
+	
 	if(sqlite3_prepare_v2(database->database, wi_string_cstring(string), wi_string_length(string), &statement->statement, NULL) != SQLITE_OK) {
 		wi_error_set_sqlite3_error(database->database);
 		
-		return NULL;
+		statement = NULL;
 	}
+	
+	wi_recursive_lock_unlock(database->lock);
 	
 	return statement;
 }
@@ -228,9 +222,11 @@ wi_dictionary_t * wi_sqlite3_fetch_statement_results(wi_sqlite3_database_t *data
 	wi_runtime_instance_t		*instance;
 	int							i, count;
 	
+	wi_recursive_lock_lock(database->lock);
+	
 	switch(sqlite3_step(statement->statement)) {
 		case SQLITE_DONE:
-			return wi_dictionary();
+			results = wi_mutable_dictionary();
 			break;
 			
 		case SQLITE_ROW:
@@ -267,16 +263,20 @@ wi_dictionary_t * wi_sqlite3_fetch_statement_results(wi_sqlite3_database_t *data
 				if(instance)
 					wi_mutable_dictionary_set_data_for_key(results, instance, wi_string_with_cstring(sqlite3_column_name(statement->statement, i)));
 			}
-			
-			return results;
 			break;
 			
 		default:
 			wi_error_set_sqlite3_error(database);
 			
-			return NULL;
+			results = NULL;
 			break;
 	}
+	
+	wi_recursive_lock_unlock(database->lock);
+	
+	wi_runtime_make_immutable(results);
+		
+	return results;
 }
 
 

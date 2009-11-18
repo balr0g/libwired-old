@@ -558,24 +558,6 @@ AC_DEFUN([WI_INCLUDE_SQLITE3_LIBRARY], [
 			_WI_MSG_LIB_ERROR([sqlite3])
 		])
 		
-		if test "$wi_include_pthreads_done" = "yes"; then
-			AC_MSG_CHECKING([if sqlite3 supports serialization])
-			AC_RUN_IFELSE([
-				#include <sqlite3.h>
-				int main(void) {
-				#ifdef SQLITE_CONFIG_SERIALIZED
-					return 0;
-				#else
-					return 1;
-				#endif
-				}
-			], [
-				AC_MSG_RESULT([yes])
-			], [
-				AC_MSG_ERROR([no])
-			])
-		fi
-
 		AC_CHECK_LIB([sqlite3], [sqlite3_open], [
 			WI_APPEND_FLAG([LIBS], [-lsqlite3])
 		], [
