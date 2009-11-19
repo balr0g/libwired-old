@@ -11836,6 +11836,8 @@ fi
 
 
 
+
+
 for ac_func in  \
 	MDItemCreate \
 	NXGetLocalArchInfo \
@@ -11848,6 +11850,8 @@ for ac_func in  \
 	sched_get_priority_max \
 	sched_get_priority_min \
 	setproctitle \
+	sqlite3_extended_errcode \
+	sqlite3_prepare_v2 \
 	srandom \
 	stat64 \
 	statvfs \

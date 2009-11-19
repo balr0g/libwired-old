@@ -472,7 +472,11 @@ void wi_error_set_libxml2_error(void) {
 
 void wi_error_set_sqlite3_error(void *db) {
 	wi_error_set_error_with_string(WI_ERROR_DOMAIN_SQLITE3,
+#ifdef HAVE_SQLITE3_EXTENDED_ERRCODE
 								   sqlite3_extended_errcode(db),
+#else
+								   sqlite3_errcode(db),
+#endif
 								   wi_string_with_cstring(sqlite3_errmsg(db)));
 }
 
@@ -575,7 +579,7 @@ wi_string_t * wi_error_string(void) {
 				break;
 			
 			case WI_ERROR_DOMAIN_ZLIB:
-#ifdef HAVE_ZLIB_H
+#ifdef WI_ZLIB
 				error->string = wi_string_init_with_format(wi_string_alloc(), WI_STR("zlib: %s"), zError(error->code));
 #endif
 				break;

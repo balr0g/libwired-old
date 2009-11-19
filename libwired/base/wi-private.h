@@ -183,7 +183,7 @@ WI_EXPORT void							wi_error_set_openssl_ssl_error_with_result(void *, int);
 WI_EXPORT void							wi_error_set_commoncrypto_error(int);
 #endif
 
-#ifdef WI_ZLIB
+#ifdef WI_LIBXML2
 WI_EXPORT void							wi_error_set_libxml2_error(void);
 #endif
 

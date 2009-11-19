@@ -28,7 +28,7 @@
 
 #include "config.h"
 
-#ifndef HAVE_SQLITE3_H
+#ifndef WI_SQLITE3
 
 int wi_sqlite3_dummy = 0;
 
@@ -175,8 +175,12 @@ wi_dictionary_t * wi_sqlite3_execute_statement(wi_sqlite3_database_t *database, 
 	statement = wi_autorelease(wi_runtime_create_instance(_wi_sqlite3_statement_runtime_id, sizeof(wi_sqlite3_statement_t)));
 	
 	wi_recursive_lock_lock(database->lock);
-	
+
+#ifdef HAVE_SQLITE3_PREPARE_V2
 	if(sqlite3_prepare_v2(database->database, wi_string_cstring(string), wi_string_length(string), &statement->statement, NULL) == SQLITE_OK) {
+#else
+	if(sqlite3_prepare(database->database, wi_string_cstring(string), wi_string_length(string), &statement->statement, NULL) == SQLITE_OK) {
+#endif
 		results = wi_sqlite3_fetch_statement_results(database, statement);
 	} else {
 		wi_error_set_sqlite3_error(database->database);
@@ -204,7 +208,11 @@ wi_sqlite3_statement_t * wi_sqlite3_prepare_statement(wi_sqlite3_database_t *dat
 	
 	wi_recursive_lock_lock(database->lock);
 	
+#ifdef HAVE_SQLITE3_PREPARE_V2
 	if(sqlite3_prepare_v2(database->database, wi_string_cstring(string), wi_string_length(string), &statement->statement, NULL) != SQLITE_OK) {
+#else
+	if(sqlite3_prepare(database->database, wi_string_cstring(string), wi_string_length(string), &statement->statement, NULL) != SQLITE_OK) {
+#endif
 		wi_error_set_sqlite3_error(database->database);
 		
 		statement = NULL;
