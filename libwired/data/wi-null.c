@@ -34,13 +34,16 @@ struct _wi_null {
 };
 
 
+static wi_runtime_instance_t *			_wi_null_copy(wi_runtime_instance_t *);
+
+
 static wi_null_t						*_wi_null;
 
 static wi_runtime_id_t					_wi_null_runtime_id = WI_RUNTIME_ID_NULL;
 static wi_runtime_class_t				_wi_null_runtime_class = {
 	"wi_null_t",
 	NULL,
-	NULL,
+	_wi_null_copy,
 	NULL,
 	NULL,
 	NULL
@@ -70,6 +73,14 @@ wi_runtime_id_t wi_null_runtime_id(void) {
 
 #pragma mark -
 
-wi_null_t * wi_null(void) {
+wi_runtime_instance_t * wi_null(void) {
 	return _wi_null;
+}
+
+
+
+#pragma mark -
+
+static wi_runtime_instance_t * _wi_null_copy(wi_runtime_instance_t *instance) {
+	return wi_retain(_wi_null);
 }
