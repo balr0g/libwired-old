@@ -203,7 +203,24 @@ wi_date_t * wi_date_with_rfc3339_string(wi_string_t *string) {
 
 
 wi_date_t * wi_date_with_sqlite3_string(wi_string_t *string) {
-	return wi_autorelease(wi_date_init_with_string(wi_date_alloc(), string, WI_STR("%Y-%m-%d %H:%M:%S")));
+	struct tm		tm;
+	time_t			time;
+	wi_uinteger_t	hours, minutes;
+	
+	time = wi_time_interval();
+	
+	localtime_r(&time, &tm);
+	
+	hours		= WI_ABS(tm.tm_gmtoff) / 3600;
+	minutes		= (WI_ABS(tm.tm_gmtoff) % 3600) / 60;
+	string		= wi_string_by_appending_format(string, WI_STR(" %@%.2lu%.2lu"),
+		(tm.tm_gmtoff > 0)
+			? WI_STR("+")
+			: WI_STR("-"),
+		hours,
+		minutes);
+	
+	return wi_autorelease(wi_date_init_with_string(wi_date_alloc(), string, WI_STR("%Y-%m-%d %H:%M:%S %z")));
 }
 
 
@@ -261,8 +278,6 @@ wi_date_t * wi_date_init_with_string(wi_date_t *date, wi_string_t *string, wi_st
 	time_t				clock;
 	wi_uinteger_t		offset, hours, minutes;
 
-	offset = 0;
-
 	memset(&tm, 0, sizeof(tm));
 
 	if(!strptime(wi_string_cstring(string), wi_string_cstring(format), &tm)) {
@@ -271,13 +286,15 @@ wi_date_t * wi_date_init_with_string(wi_date_t *date, wi_string_t *string, wi_st
 		return NULL;
 	}
 
+	offset = 0;
+
 	if(wi_string_contains_string(format, WI_STR("%z"), WI_STRING_CASE_INSENSITIVE)) {
-		regexp = wi_regexp_with_string(WI_STR("/((\\+|\\-)[0-9]{4})/"));
-		match = wi_regexp_string_by_matching_string(regexp, string, 1);
+		regexp		= wi_regexp_with_string(WI_STR("/((\\+|\\-)[0-9]{4})/"));
+		match		= wi_regexp_string_by_matching_string(regexp, string, 1);
 
 		if(match) {
-			hours = wi_string_uinteger(wi_string_substring_with_range(match, wi_make_range(1, 2)));
-			minutes = wi_string_uinteger(wi_string_substring_with_range(match, wi_make_range(3, 2)));
+			hours		= wi_string_uinteger(wi_string_substring_with_range(match, wi_make_range(1, 2)));
+			minutes		= wi_string_uinteger(wi_string_substring_with_range(match, wi_make_range(3, 2)));
 
 			offset = (hours * 3600) + (minutes * 60);
 
@@ -287,7 +304,7 @@ wi_date_t * wi_date_init_with_string(wi_date_t *date, wi_string_t *string, wi_st
 	}
 
 	clock = wi_timegm(&tm) - offset;
-
+	
 	return wi_date_init_with_time(date, clock);
 }
 
