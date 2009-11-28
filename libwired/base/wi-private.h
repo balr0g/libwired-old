@@ -189,6 +189,7 @@ WI_EXPORT void							wi_error_set_libxml2_error(void);
 
 #ifdef WI_SQLITE3
 WI_EXPORT void							wi_error_set_sqlite3_error(void *);
+WI_EXPORT void							wi_error_set_sqlite3_error_with_description(void *, wi_string_t *);
 #endif
 
 WI_EXPORT void							wi_error_set_regex_error(regex_t *, int);

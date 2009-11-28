@@ -34,6 +34,7 @@ int wi_sqlite3_dummy = 0;
 
 #else
 
+#include <wired/wi-date.h>
 #include <wired/wi-lock.h>
 #include <wired/wi-macros.h>
 #include <wired/wi-null.h>
@@ -42,6 +43,7 @@ int wi_sqlite3_dummy = 0;
 #include <wired/wi-runtime.h>
 #include <wired/wi-sqlite3.h>
 #include <wired/wi-string.h>
+#include <wired/wi-uuid.h>
 
 #include <stdarg.h>
 #include <string.h>
@@ -76,10 +78,15 @@ struct _wi_sqlite3_statement {
 	wi_runtime_base_t					base;
 	
 	sqlite3_stmt						*statement;
+	wi_string_t							*query;
+	wi_mutable_array_t					*parameters;
 };
 
 
 static void								_wi_sqlite3_statement_dealloc(wi_runtime_instance_t *);
+static wi_string_t *					_wi_sqlite3_statement_description(wi_runtime_instance_t *);
+
+static void								_wi_sqlite3_bind_statement(wi_sqlite3_statement_t *, va_list);
 
 
 static wi_runtime_id_t					_wi_sqlite3_statement_runtime_id = WI_RUNTIME_ID_NULL;
@@ -88,7 +95,7 @@ static wi_runtime_class_t				_wi_sqlite3_statement_runtime_class = {
 	_wi_sqlite3_statement_dealloc,
 	NULL,
 	NULL,
-	NULL,
+	_wi_sqlite3_statement_description,
 	NULL
 };
 
@@ -154,6 +161,35 @@ static void _wi_sqlite3_database_dealloc(wi_runtime_instance_t *instance) {
 
 #pragma mark -
 
+void wi_sqlite3_begin_immediate_transaction(wi_sqlite3_database_t *database) {
+	wi_recursive_lock_lock(database->lock);
+	
+	if(!wi_sqlite3_execute_statement(database, WI_STR("BEGIN IMMEDIATE TRANSACTION"), NULL))
+		WI_ASSERT(0, "Could not execute database statement: %m");
+}
+
+
+
+void wi_sqlite3_commit_transaction(wi_sqlite3_database_t *database) {
+	if(!wi_sqlite3_execute_statement(database, WI_STR("COMMIT TRANSACTION"), NULL))
+		WI_ASSERT(0, "Could not execute database statement: %m");
+
+	wi_recursive_lock_unlock(database->lock);
+}
+
+
+
+void wi_sqlite3_rollback_transaction(wi_sqlite3_database_t *database) {
+	if(!wi_sqlite3_execute_statement(database, WI_STR("ROLLBACK TRANSACTION"), NULL))
+		WI_ASSERT(0, "Could not execute database statement: %m");
+
+	wi_recursive_lock_unlock(database->lock);
+}
+
+
+
+#pragma mark -
+
 wi_runtime_id_t wi_sqlite3_statement_runtime_id(void) {
 	return _wi_sqlite3_statement_runtime_id;
 }
@@ -162,28 +198,36 @@ wi_runtime_id_t wi_sqlite3_statement_runtime_id(void) {
 
 #pragma mark -
 
-wi_dictionary_t * wi_sqlite3_execute_statement(wi_sqlite3_database_t *database, wi_string_t *format, ...) {
+wi_dictionary_t * wi_sqlite3_execute_statement(wi_sqlite3_database_t *database, wi_string_t *query, ...) {
 	wi_sqlite3_statement_t		*statement;
 	wi_dictionary_t				*results;
-	wi_string_t					*string;
 	va_list						ap;
 	
-	va_start(ap, format);
-	string = wi_string_with_format_and_arguments(format, ap);
-	va_end(ap);
-	
-	statement = wi_autorelease(wi_runtime_create_instance(_wi_sqlite3_statement_runtime_id, sizeof(wi_sqlite3_statement_t)));
+	statement				= wi_autorelease(wi_runtime_create_instance(_wi_sqlite3_statement_runtime_id, sizeof(wi_sqlite3_statement_t)));
+	statement->query		= wi_retain(query);
+	statement->parameters	= wi_array_init(wi_mutable_array_alloc());
 	
 	wi_recursive_lock_lock(database->lock);
 
+	if(
 #ifdef HAVE_SQLITE3_PREPARE_V2
-	if(sqlite3_prepare_v2(database->database, wi_string_cstring(string), wi_string_length(string), &statement->statement, NULL) == SQLITE_OK) {
+	   sqlite3_prepare_v2
 #else
-	if(sqlite3_prepare(database->database, wi_string_cstring(string), wi_string_length(string), &statement->statement, NULL) == SQLITE_OK) {
+	   sqlite3_prepare
 #endif
+	   (database->database, wi_string_cstring(query), wi_string_length(query), &statement->statement, NULL) == SQLITE_OK) {
+		va_start(ap, query);
+		_wi_sqlite3_bind_statement(statement, ap);
+		va_end(ap);
+		
 		results = wi_sqlite3_fetch_statement_results(database, statement);
+
+		if(statement->statement) {
+			sqlite3_finalize(statement->statement);
+			statement->statement = NULL;
+		}
 	} else {
-		wi_error_set_sqlite3_error(database->database);
+		wi_error_set_sqlite3_error_with_description(database->database, wi_description(statement));
 		
 		results = NULL;
 	}
@@ -195,25 +239,28 @@ wi_dictionary_t * wi_sqlite3_execute_statement(wi_sqlite3_database_t *database, 
 
 
 
-wi_sqlite3_statement_t * wi_sqlite3_prepare_statement(wi_sqlite3_database_t *database, wi_string_t *format, ...) {
+wi_sqlite3_statement_t * wi_sqlite3_prepare_statement(wi_sqlite3_database_t *database, wi_string_t *query, ...) {
 	wi_sqlite3_statement_t		*statement;
-	wi_string_t					*string;
 	va_list						ap;
 	
-	va_start(ap, format);
-	string = wi_string_with_format_and_arguments(format, ap);
-	va_end(ap);
-	
-	statement = wi_autorelease(wi_runtime_create_instance(_wi_sqlite3_statement_runtime_id, sizeof(wi_sqlite3_statement_t)));
+	statement				= wi_autorelease(wi_runtime_create_instance(_wi_sqlite3_statement_runtime_id, sizeof(wi_sqlite3_statement_t)));
+	statement->query		= wi_retain(query);
+	statement->parameters	= wi_array_init(wi_mutable_array_alloc());
 	
 	wi_recursive_lock_lock(database->lock);
 	
+	if(
 #ifdef HAVE_SQLITE3_PREPARE_V2
-	if(sqlite3_prepare_v2(database->database, wi_string_cstring(string), wi_string_length(string), &statement->statement, NULL) != SQLITE_OK) {
+	   sqlite3_prepare_v2
 #else
-	if(sqlite3_prepare(database->database, wi_string_cstring(string), wi_string_length(string), &statement->statement, NULL) != SQLITE_OK) {
+	   sqlite3_prepare
 #endif
-		wi_error_set_sqlite3_error(database->database);
+	   (database->database, wi_string_cstring(query), wi_string_length(query), &statement->statement, NULL) == SQLITE_OK) {
+		va_start(ap, query);
+		_wi_sqlite3_bind_statement(statement, ap);
+		va_end(ap);
+	} else {
+		wi_error_set_sqlite3_error_with_description(database->database, wi_description(statement));
 		
 		statement = NULL;
 	}
@@ -228,13 +275,19 @@ wi_sqlite3_statement_t * wi_sqlite3_prepare_statement(wi_sqlite3_database_t *dat
 wi_dictionary_t * wi_sqlite3_fetch_statement_results(wi_sqlite3_database_t *database, wi_sqlite3_statement_t *statement) {
 	wi_mutable_dictionary_t		*results;
 	wi_runtime_instance_t		*instance;
-	int							i, count;
+	const char					*text;
+	int							i, count, length, result;
 	
 	wi_recursive_lock_lock(database->lock);
 	
-	switch(sqlite3_step(statement->statement)) {
+	result = sqlite3_step(statement->statement);
+	
+	switch(result) {
 		case SQLITE_DONE:
 			results = wi_mutable_dictionary();
+
+			sqlite3_finalize(statement->statement);
+			statement->statement = NULL;
 			break;
 			
 		case SQLITE_ROW:
@@ -244,27 +297,39 @@ wi_dictionary_t * wi_sqlite3_fetch_statement_results(wi_sqlite3_database_t *data
 			for(i = 0; i < count; i++) {
 				switch(sqlite3_column_type(statement->statement, i)) {
 					case SQLITE_INTEGER:
-						instance = wi_number_with_int64(sqlite3_column_int64(statement->statement, i));
+						instance	= wi_number_with_int64(sqlite3_column_int64(statement->statement, i));
 						break;
 						
 					case SQLITE_FLOAT:
-						instance = wi_number_with_double(sqlite3_column_double(statement->statement, i));
+						instance	= wi_number_with_double(sqlite3_column_double(statement->statement, i));
 						break;
 						
 					case SQLITE_TEXT:
-						instance = wi_string_with_cstring((const char *) sqlite3_column_text(statement->statement, i));
+						text		= sqlite3_column_text(statement->statement, i);
+						length		= strlen(text);
+						
+						if(length == 36 && text[9] == '-')
+							instance = wi_uuid_with_bytes(text);
+						else if(length == 19 && text[5] == '-')
+							instance = wi_date_with_sqlite3_string(text);
+						else
+							instance = NULL;
+						
+						if(!instance)
+							instance = wi_string_with_cstring(text);
 						break;
 						
 					case SQLITE_BLOB:
-						instance = NULL;
+						length		= sqlite3_column_bytes(statement->statement, i);
+						instance	= wi_data_with_bytes(sqlite3_column_blob(statement->statement, i), length);
 						break;
 						
 					case SQLITE_NULL:
-						instance = wi_null();
+						instance	= wi_null();
 						break;
 					
 					default:
-						instance = NULL;
+						instance	= NULL;
 						break;
 				}
 				
@@ -274,8 +339,11 @@ wi_dictionary_t * wi_sqlite3_fetch_statement_results(wi_sqlite3_database_t *data
 			break;
 			
 		default:
-			wi_error_set_sqlite3_error(database);
-			
+			wi_error_set_sqlite3_error_with_description(database->database, wi_description(statement));
+
+			sqlite3_finalize(statement->statement);
+			statement->statement = NULL;
+
 			results = NULL;
 			break;
 	}
@@ -294,8 +362,83 @@ wi_dictionary_t * wi_sqlite3_fetch_statement_results(wi_sqlite3_database_t *data
 static void _wi_sqlite3_statement_dealloc(wi_runtime_instance_t *instance) {
 	wi_sqlite3_statement_t	*statement = instance;
 	
-	if(statement->statement)
-		sqlite3_finalize(statement->statement);
+	WI_ASSERT(statement->statement == NULL, "statement for query \"%@\" still alive in dealloc", statement->query);
+	
+	wi_release(statement->query);
+	wi_release(statement->parameters);
+}
+
+
+
+static wi_string_t * _wi_sqlite3_statement_description(wi_runtime_instance_t *instance) {
+	wi_sqlite3_statement_t	*statement = instance;
+	
+	return wi_string_with_format(WI_STR("%@ %@"),
+		statement->query,
+		wi_array_components_joined_by_string(statement->parameters, WI_STR(" ")));
+}
+
+
+
+#pragma mark -
+
+static void _wi_sqlite3_bind_statement(wi_sqlite3_statement_t *statement, va_list ap) {
+	wi_string_t					*string;
+	wi_runtime_instance_t		*instance;
+	wi_runtime_id_t				id;
+	wi_uinteger_t				index;
+	int							result;
+	
+	index = 1;
+	
+	while((instance = va_arg(ap, wi_runtime_instance_t *))) {
+		id			= wi_runtime_id(instance);
+		result		= SQLITE_OK;
+		
+		if(id == wi_string_runtime_id()) {
+			result = sqlite3_bind_text(statement->statement, index, wi_string_cstring(instance), wi_string_length(instance), SQLITE_STATIC);
+		}
+		else if(id == wi_number_runtime_id()) {
+			switch(wi_number_storage_type(instance)) {
+				case WI_NUMBER_STORAGE_INT8:
+				case WI_NUMBER_STORAGE_INT16:
+				case WI_NUMBER_STORAGE_INT32:
+				case WI_NUMBER_STORAGE_INT64:
+					result = sqlite3_bind_int64(statement->statement, index, wi_number_int64(instance));
+					break;
+					
+				case WI_NUMBER_STORAGE_FLOAT:
+				case WI_NUMBER_STORAGE_DOUBLE:
+					result = sqlite3_bind_double(statement->statement, index, wi_number_double(instance));
+					break;
+			}
+		}
+		else if(id == wi_uuid_runtime_id()) {
+			string = wi_uuid_string(instance);
+			
+			result = sqlite3_bind_text(statement->statement, index, wi_string_cstring(string), wi_string_length(string), SQLITE_STATIC);
+		}
+		else if(id == wi_date_runtime_id()) {
+			string = wi_date_sqlite3_string(instance);
+			
+			result = sqlite3_bind_text(statement->statement, index, wi_string_cstring(string), wi_string_length(string), SQLITE_STATIC);
+		}
+		else if(id == wi_null_runtime_id()) {
+			result = sqlite3_bind_null(statement->statement, index);
+		}
+		else if(id == wi_data_runtime_id()) {
+			result = sqlite3_bind_blob(statement->statement, index, wi_data_bytes(instance), wi_data_length(instance), SQLITE_STATIC);
+		}
+		else {
+			WI_ASSERT(0, "%@ is not a supported data type", instance);
+		}
+		
+		WI_ASSERT(result == SQLITE_OK, "error %d while binding parameter %u", result, index);
+		
+		wi_mutable_array_add_data(statement->parameters, instance);
+		
+		index++;
+	}
 }
 
 #endif

@@ -471,13 +471,26 @@ void wi_error_set_libxml2_error(void) {
 #ifdef WI_SQLITE3
 
 void wi_error_set_sqlite3_error(void *db) {
+	wi_error_set_sqlite3_error_with_description(db, NULL);
+}
+
+
+
+void wi_error_set_sqlite3_error_with_description(void *db, wi_string_t *description) {
+	wi_string_t		*string;
+	
+	string = wi_string_with_cstring(sqlite3_errmsg(db));
+	
+	if(description)
+		string = wi_string_by_appending_format(string, WI_STR(" : %@"), description);
+	
 	wi_error_set_error_with_string(WI_ERROR_DOMAIN_SQLITE3,
 #ifdef HAVE_SQLITE3_EXTENDED_ERRCODE
 								   sqlite3_extended_errcode(db),
 #else
 								   sqlite3_errcode(db),
 #endif
-								   wi_string_with_cstring(sqlite3_errmsg(db)));
+								   string);
 }
 
 #endif
