@@ -275,7 +275,6 @@ wi_sqlite3_statement_t * wi_sqlite3_prepare_statement(wi_sqlite3_database_t *dat
 wi_dictionary_t * wi_sqlite3_fetch_statement_results(wi_sqlite3_database_t *database, wi_sqlite3_statement_t *statement) {
 	wi_mutable_dictionary_t		*results;
 	wi_runtime_instance_t		*instance;
-	const char					*text;
 	int							i, count, length, result;
 	
 	wi_recursive_lock_lock(database->lock);
@@ -305,18 +304,7 @@ wi_dictionary_t * wi_sqlite3_fetch_statement_results(wi_sqlite3_database_t *data
 						break;
 						
 					case SQLITE_TEXT:
-						text		= sqlite3_column_text(statement->statement, i);
-						length		= strlen(text);
-						
-						if(length == 36 && text[9] == '-')
-							instance = wi_uuid_with_bytes(text);
-						else if(length == 19 && text[5] == '-')
-							instance = wi_date_with_sqlite3_string(text);
-						else
-							instance = NULL;
-						
-						if(!instance)
-							instance = wi_string_with_cstring(text);
+						instance	= wi_string_with_cstring((const char *) sqlite3_column_text(statement->statement, i));
 						break;
 						
 					case SQLITE_BLOB:
