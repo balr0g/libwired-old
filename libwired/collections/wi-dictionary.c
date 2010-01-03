@@ -184,6 +184,8 @@ const wi_dictionary_value_callbacks_t	wi_dictionary_null_value_callbacks = {
 	NULL
 };
 
+static wi_dictionary_t					*_wi_dictionary0;
+
 static wi_uinteger_t					_wi_dictionary_buckets_per_page;
 
 #ifndef _WI_DICTIONARY_USE_QSORT_R
@@ -215,6 +217,8 @@ void wi_dictionary_initialize(void) {
 #ifndef _WI_DICTIONARY_USE_QSORT_R
 	_wi_dictionary_sort_lock = wi_lock_init(wi_lock_alloc());
 #endif
+	
+	_wi_dictionary0 = wi_dictionary_init(wi_dictionary_alloc());
 }
 
 
@@ -230,7 +234,7 @@ wi_runtime_id_t wi_dictionary_runtime_id(void) {
 #pragma mark -
 
 wi_dictionary_t * wi_dictionary(void) {
-	return wi_autorelease(wi_dictionary_init(wi_dictionary_alloc()));
+	return _wi_dictionary0;
 }
 
 
