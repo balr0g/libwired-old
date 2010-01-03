@@ -60,6 +60,8 @@ struct _wi_sqlite3_database {
 };
 
 
+static int								_wi_sqlite3_busy_handler(void *, int);
+
 static void								_wi_sqlite3_database_dealloc(wi_runtime_instance_t *);
 
 
@@ -79,7 +81,6 @@ struct _wi_sqlite3_statement {
 	
 	sqlite3_stmt						*statement;
 	wi_string_t							*query;
-	wi_mutable_array_t					*parameters;
 };
 
 
@@ -128,7 +129,9 @@ wi_sqlite3_database_t * wi_sqlite3_open_database_with_path(wi_string_t *path) {
 	database			= wi_autorelease(wi_runtime_create_instance(_wi_sqlite3_database_runtime_id, sizeof(wi_sqlite3_database_t)));
 	database->lock		= wi_recursive_lock_init(wi_recursive_lock_alloc());
 	
-	if(sqlite3_open(wi_string_cstring(path), &database->database) != SQLITE_OK) {
+	if(sqlite3_open(wi_string_cstring(path), &database->database) == SQLITE_OK) {
+		sqlite3_busy_handler(database->database, _wi_sqlite3_busy_handler, NULL);
+	} else {
 		if(database->database) {
 			wi_error_set_sqlite3_error(database->database);
 			
@@ -142,6 +145,14 @@ wi_sqlite3_database_t * wi_sqlite3_open_database_with_path(wi_string_t *path) {
 	}
 	
 	return database;
+}
+
+
+
+#pragma mark -
+
+static int _wi_sqlite3_busy_handler(void *context, int tries) {
+	return 1;
 }
 
 
@@ -205,7 +216,6 @@ wi_dictionary_t * wi_sqlite3_execute_statement(wi_sqlite3_database_t *database, 
 	
 	statement				= wi_autorelease(wi_runtime_create_instance(_wi_sqlite3_statement_runtime_id, sizeof(wi_sqlite3_statement_t)));
 	statement->query		= wi_retain(query);
-	statement->parameters	= wi_array_init(wi_mutable_array_alloc());
 	
 	wi_recursive_lock_lock(database->lock);
 
@@ -245,7 +255,6 @@ wi_sqlite3_statement_t * wi_sqlite3_prepare_statement(wi_sqlite3_database_t *dat
 	
 	statement				= wi_autorelease(wi_runtime_create_instance(_wi_sqlite3_statement_runtime_id, sizeof(wi_sqlite3_statement_t)));
 	statement->query		= wi_retain(query);
-	statement->parameters	= wi_array_init(wi_mutable_array_alloc());
 	
 	wi_recursive_lock_lock(database->lock);
 	
@@ -283,7 +292,7 @@ wi_dictionary_t * wi_sqlite3_fetch_statement_results(wi_sqlite3_database_t *data
 	
 	switch(result) {
 		case SQLITE_DONE:
-			results = wi_mutable_dictionary();
+			results = wi_dictionary();
 
 			sqlite3_finalize(statement->statement);
 			statement->statement = NULL;
@@ -324,6 +333,8 @@ wi_dictionary_t * wi_sqlite3_fetch_statement_results(wi_sqlite3_database_t *data
 				if(instance)
 					wi_mutable_dictionary_set_data_for_key(results, instance, wi_string_with_cstring(sqlite3_column_name(statement->statement, i)));
 			}
+	
+			wi_runtime_make_immutable(results);
 			break;
 			
 		default:
@@ -337,8 +348,6 @@ wi_dictionary_t * wi_sqlite3_fetch_statement_results(wi_sqlite3_database_t *data
 	}
 	
 	wi_recursive_lock_unlock(database->lock);
-	
-	wi_runtime_make_immutable(results);
 		
 	return results;
 }
@@ -353,7 +362,6 @@ static void _wi_sqlite3_statement_dealloc(wi_runtime_instance_t *instance) {
 	WI_ASSERT(statement->statement == NULL, "statement for query \"%@\" still alive in dealloc", statement->query);
 	
 	wi_release(statement->query);
-	wi_release(statement->parameters);
 }
 
 
@@ -361,9 +369,7 @@ static void _wi_sqlite3_statement_dealloc(wi_runtime_instance_t *instance) {
 static wi_string_t * _wi_sqlite3_statement_description(wi_runtime_instance_t *instance) {
 	wi_sqlite3_statement_t	*statement = instance;
 	
-	return wi_string_with_format(WI_STR("%@ %@"),
-		statement->query,
-		wi_array_components_joined_by_string(statement->parameters, WI_STR(" ")));
+	return statement->query;
 }
 
 
@@ -422,8 +428,6 @@ static void _wi_sqlite3_bind_statement(wi_sqlite3_statement_t *statement, va_lis
 		}
 		
 		WI_ASSERT(result == SQLITE_OK, "error %d while binding parameter %u", result, index);
-		
-		wi_mutable_array_add_data(statement->parameters, instance);
 		
 		index++;
 	}
