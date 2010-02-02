@@ -196,6 +196,7 @@ static wi_boolean_t							_wi_p7_socket_accept_handshake(wi_p7_socket_t *, wi_ti
 #ifdef WI_RSA
 static wi_boolean_t							_wi_p7_socket_connect_key_exchange(wi_p7_socket_t *, wi_time_interval_t, wi_string_t *, wi_string_t *);
 static wi_boolean_t							_wi_p7_socket_accept_key_exchange(wi_p7_socket_t *, wi_time_interval_t);
+static wi_boolean_t							_wi_p7_password_is_equal(wi_string_t *, wi_string_t *);
 #endif
 
 static wi_boolean_t							_wi_p7_socket_send_compatibility_check(wi_p7_socket_t *, wi_time_interval_t);
@@ -839,8 +840,8 @@ static wi_boolean_t _wi_p7_socket_connect_key_exchange(wi_p7_socket_t *p7_socket
 		return false;
 	
 	server_password = wi_string_with_data(data);
-
-	if(!wi_is_equal(server_password, client_password2)) {
+	
+	if(!_wi_p7_password_is_equal(server_password, client_password2)) {
 		wi_error_set_libwired_error_with_format(WI_ERROR_P7_HANDSHAKEFAILED,
 			WI_STR("Password mismatch during key exchange"));
 		
@@ -970,7 +971,7 @@ static wi_boolean_t _wi_p7_socket_accept_key_exchange(wi_p7_socket_t *p7_socket,
 	server_password1 = wi_data_sha1(wi_data_by_appending_data(wi_string_data(string), rsa));
 	server_password2 = wi_data_sha1(wi_data_by_appending_data(rsa, wi_string_data(string)));
 	
-	if(!wi_is_equal(client_password, server_password1)) {
+	if(!_wi_p7_password_is_equal(client_password, server_password1)) {
 		wi_error_set_libwired_error_with_format(WI_ERROR_P7_AUTHENTICATIONFAILED,
 			WI_STR("Password mismatch for \"%@\" during key exchange"),
 			p7_socket->user_name);
@@ -1000,6 +1001,31 @@ static wi_boolean_t _wi_p7_socket_accept_key_exchange(wi_p7_socket_t *p7_socket,
 	p7_socket->encryption_enabled = true;
 	
 	return true;
+}
+
+
+
+static wi_boolean_t _wi_p7_password_is_equal(wi_string_t *password1, wi_string_t *password2) {
+	const char			*cstring1, *cstring2;
+	wi_uinteger_t		length1, length2, i;
+	wi_boolean_t		result;
+	
+	length1		= wi_string_length(password1);
+	length2		= wi_string_length(password2);
+	
+	if(length1 != length2)
+		return false;
+	
+	cstring1	= wi_string_cstring(password1);
+	cstring2	= wi_string_cstring(password2);
+	result		= true;
+	
+	for(i = 0; i < length1; i++) {
+		if(cstring1[i] != cstring2[i])
+			result = false;
+	}
+	
+	return result;
 }
 
 #endif
