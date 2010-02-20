@@ -162,15 +162,29 @@ wi_url_t * wi_url_init_with_string(wi_url_t *url, wi_string_t *string) {
 		}
 	}
 	
-	range = wi_string_range_of_string(string, WI_STR(":"), 0);
-	
-	if(range.location == WI_NOT_FOUND ||
-	   range.location + range.length >= wi_string_length(string) ||
-	   wi_string_contains_string(wi_string_substring_from_index(string, range.location + 1), WI_STR(":"), 0)) {
-		url->host = wi_copy(string);
+	if(wi_string_has_prefix(string, WI_STR("["))) {
+		range = wi_string_range_of_string(string, WI_STR("]"), 0);
+		
+		if(range.location != WI_NOT_FOUND) {
+			url->host = wi_retain(wi_string_substring_with_range(string, wi_make_range(1, range.location - 1)));
+			string = wi_string_substring_from_index(string, range.location + 1);
+			
+			if(wi_string_has_prefix(string, WI_STR(":")) && wi_string_length(string) > 1)
+				url->port = wi_string_uint32(wi_string_substring_from_index(string, 1));
+		} else {
+			url->host = wi_copy(string);
+		}
 	} else {
-		url->host = wi_retain(wi_string_substring_to_index(string, range.location));
-		url->port = wi_string_uint32(wi_string_substring_from_index(string, range.location + 1));
+		range = wi_string_range_of_string(string, WI_STR(":"), 0);
+		
+		if(range.location == WI_NOT_FOUND ||
+		   range.location + range.length >= wi_string_length(string) ||
+		   wi_string_contains_string(wi_string_substring_from_index(string, range.location + 1), WI_STR(":"), 0)) {
+			url->host = wi_copy(string);
+		} else {
+			url->host = wi_retain(wi_string_substring_to_index(string, range.location));
+			url->port = wi_string_uint32(wi_string_substring_from_index(string, range.location + 1));
+		}
 	}
 	
 end:
