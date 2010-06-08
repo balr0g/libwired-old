@@ -446,7 +446,7 @@ FILE * wi_tmpfile(void) {
 #pragma mark -
 
 int wi_dirfd(DIR *dir) {
-#if defined(HAVE_DIRFD)
+#if defined(HAVE_DIRFD) || defined(dirfd)
 	return dirfd(dir);
 #elif defined(HAVE_DIR_DD_FD)
 	return dir->dd_fd;
@@ -455,7 +455,6 @@ int wi_dirfd(DIR *dir) {
 #else
 	return 0;
 #endif
-
 }
 
 
