@@ -831,6 +831,12 @@ wi_dictionary_t * wi_p7_message_fields(wi_p7_message_t *p7_message) {
 		
 		field_name		= wi_p7_spec_field_name(field);
 		field_value		= _wi_p7_message_field_string_value(p7_message, field);
+		
+		if(!field_name)
+			field_name = WI_STR("<unknown field>");
+		
+		if(!field_value)
+			field_value = WI_STR("<unknown value>");
 
 		wi_mutable_dictionary_set_data_for_key(fields, field_value, field_name);
 
