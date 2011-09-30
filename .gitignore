@@ -8,7 +8,12 @@ Makefile
 /aclocal.m4
 /compile
 /configure
+/config.h
+/config.log
+/config.status
 /depcomp
 /install-sh
 /missing
 
+#Mac OS X
+/a.out.dSYM
