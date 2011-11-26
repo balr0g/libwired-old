@@ -553,19 +553,10 @@ AC_DEFUN([WI_INCLUDE_ZLIB_LIBRARY], [
 
 
 AC_DEFUN([WI_INCLUDE_SQLITE3_LIBRARY], [
-	if test "$wi_include_sqlite3_library_done" != "yes"; then
-		AC_CHECK_HEADERS([sqlite3.h], [], [
-			_WI_MSG_LIB_ERROR([sqlite3])
-		])
 		
-		AC_CHECK_LIB([sqlite3], [sqlite3_open], [
 			WI_APPEND_FLAG([LIBS], [-lsqlite3])
-		], [
-			_WI_MSG_LIB_ERROR([sqlite3])
-		])
 		
 		WI_APPEND_FLAG([CPPFLAGS], [-DWI_SQLITE3])
 		
 		wi_include_sqlite3_library_done="yes"
-	fi
 ])
