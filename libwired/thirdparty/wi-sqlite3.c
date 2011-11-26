@@ -49,7 +49,7 @@ int wi_sqlite3_dummy = 0;
 #include <string.h>
 
 #include <pthread.h>
-#include <sqlite3.h>
+#include <wired/sqlite3.h>
 
 struct _wi_sqlite3_database {
 	wi_runtime_base_t					base;

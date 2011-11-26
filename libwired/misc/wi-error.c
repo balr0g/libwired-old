@@ -52,7 +52,7 @@
 #endif
 
 #ifdef WI_SQLITE3
-#include <sqlite3.h>
+#include <wired/sqlite3.h>
 #endif
 
 #ifdef WI_ZLIB
